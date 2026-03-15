@@ -1423,7 +1423,7 @@ class PlayerViewModel @Inject constructor(
         message: String,
         recoveryType: PlayerRecoveryType = PlayerRecoveryType.UNKNOWN,
         actions: List<PlayerNoticeAction> = emptyList(),
-        durationMs: Long = 3600L
+        durationMs: Long = if (actions.isNotEmpty()) 8000L else 3600L
     ) {
         playerNoticeHideJob?.cancel()
         _playerNotice.value = PlayerNoticeState(

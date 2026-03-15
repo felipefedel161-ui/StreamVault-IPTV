@@ -348,7 +348,7 @@ class M3uParser {
                         val eqPos = content.indexOf('=', nextTokenStart)
                         if (eqPos > nextTokenStart) {
                             val candidateKey = content.substring(nextTokenStart, eqPos).trim().lowercase()
-                            if (candidateKey.isNotEmpty() && !candidateKey.any { it.isWhitespace() }) {
+                            if (candidateKey.isNotEmpty() && !candidateKey.any { it.isWhitespace() } && candidateKey in knownAttributes) {
                                 break
                             }
                         }

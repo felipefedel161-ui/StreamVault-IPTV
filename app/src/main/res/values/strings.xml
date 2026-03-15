@@ -427,7 +427,7 @@
     <string name="search_command_title">Command Search</string>
     <string name="search_command_subtitle">Start with a title, keyword, channel name, or series. Results stay grouped for fast remote navigation.</string>
     <string name="search_incorrect_pin">Incorrect PIN</string>
-    <string name="search_type_to_search">Type to search...</string>
+    <string name="search_type_to_search">Type at least 2 characters to search</string>
     <string name="search_no_results">No results found for \'%1$s\'</string>
     <string name="search_no_results_title">No matches</string>
     <string name="search_ready_title">Search the library</string>

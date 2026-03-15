@@ -127,7 +127,7 @@ class Media3PlayerEngine @Inject constructor(
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.CONTENT_TYPE_MOVIE)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_UNKNOWN)
                     .build(),
                 true // handleAudioFocus
             )
@@ -139,6 +139,11 @@ class Media3PlayerEngine @Inject constructor(
                         format: Format,
                         decoderReuseEvaluation: DecoderReuseEvaluation?
                     ) {
+                        decoderReuseEvaluation?.let { eval ->
+                            if (eval.result != 0) { // Not REUSE_RESULT_YES
+                                Log.d(TAG, "Decoder reuse: result=${eval.result}, discardReasons=${eval.discardReasons}")
+                            }
+                        }
                         lastFrameRate = format.frameRate.takeIf { it > 0f } ?: lastFrameRate
                         _playerStats.update { 
                             it.copy(

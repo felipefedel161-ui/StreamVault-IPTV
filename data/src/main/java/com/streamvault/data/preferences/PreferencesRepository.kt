@@ -30,6 +30,7 @@ class PreferencesRepository @Inject constructor(
         private const val PIN_SALT_BYTES = 16
         private const val PIN_HASH_ITERATIONS = 120_000
         private const val PIN_HASH_KEY_BITS = 256
+        private val secureRandom = SecureRandom()
     }
 
     private object PreferencesKeys {
@@ -96,7 +97,7 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun setParentalPin(pin: String) {
-        val salt = ByteArray(PIN_SALT_BYTES).also { SecureRandom().nextBytes(it) }
+        val salt = ByteArray(PIN_SALT_BYTES).also { secureRandom.nextBytes(it) }
         val hash = hashPin(pin, salt)
         val saltBase64 = java.util.Base64.getEncoder().encodeToString(salt)
         context.dataStore.edit { preferences ->

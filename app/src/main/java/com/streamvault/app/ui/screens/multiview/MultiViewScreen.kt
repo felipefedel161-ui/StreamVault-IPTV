@@ -339,6 +339,19 @@ private fun PlayerCell(
                         }
                     }
 
+                    // Buffering indicator for active streams
+                    val playbackState = slot.playerEngine?.playbackState?.collectAsState()
+                    if (playbackState?.value == com.streamvault.player.PlaybackState.BUFFERING) {
+                        CircularProgressIndicator(
+                            color = Color.White.copy(alpha = 0.7f),
+                            modifier = Modifier
+                                .size(20.dp)
+                                .align(Alignment.TopStart)
+                                .padding(6.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+
                     if (isFocused && !slot.isEmpty) {
                         Box(
                             modifier = Modifier
