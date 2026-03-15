@@ -110,7 +110,7 @@ private fun SeriesDetailContent(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(series.backdropUrl ?: series.posterUrl)
                 .build(),
-            contentDescription = null,
+            contentDescription = series.name,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(420.dp)

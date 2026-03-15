@@ -206,7 +206,7 @@ fun ChannelInfoOverlay(
                             if (!currentChannel.logoUrl.isNullOrBlank()) {
                                 AsyncImage(
                                     model = currentChannel.logoUrl,
-                                    contentDescription = null,
+                                    contentDescription = currentChannel.name,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(6.dp),

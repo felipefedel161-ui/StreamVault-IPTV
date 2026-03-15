@@ -330,7 +330,7 @@ private fun TopNavigationButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 tint = if (selected) AppColors.Brand else AppColors.TextSecondary,
                 modifier = Modifier.size(14.dp)
             )
@@ -501,7 +501,7 @@ fun LoadMoreCard(
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
-                contentDescription = null,
+                contentDescription = label,
                 tint = AppColors.Brand,
                 modifier = Modifier.size(18.dp)
             )
@@ -642,7 +642,7 @@ private fun RailButton(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = label,
                 tint = if (selected) AppColors.Brand else AppColors.TextSecondary,
                 modifier = Modifier.size(20.dp)
             )

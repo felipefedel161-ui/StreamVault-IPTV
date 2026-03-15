@@ -370,6 +370,7 @@ fun HomeScreen(
                             .fillMaxHeight()
                             .background(SurfaceElevated.copy(alpha = 0.88f), RoundedCornerShape(20.dp))
                             .padding(top = 10.dp)
+                            .focusGroup()
                     ) {
                         // Sticky Header Part
                         Column(modifier = Modifier.padding(horizontal = 10.dp)) {

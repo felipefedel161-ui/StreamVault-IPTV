@@ -210,7 +210,7 @@ private fun DashboardHero(
         if (!feature.artworkUrl.isNullOrBlank()) {
             AsyncImage(
                 model = feature.artworkUrl,
-                contentDescription = null,
+                contentDescription = feature.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -777,7 +777,7 @@ private fun FavoriteChannelLogoCard(
                 if (!channel.logoUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = channel.logoUrl,
-                        contentDescription = null,
+                        contentDescription = channel.name,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
