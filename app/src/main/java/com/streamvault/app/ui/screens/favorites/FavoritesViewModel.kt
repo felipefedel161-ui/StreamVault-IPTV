@@ -1,7 +1,9 @@
 package com.streamvault.app.ui.screens.favorites
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamvault.app.R
 import com.streamvault.domain.model.ContentType
 import com.streamvault.domain.model.Favorite
 import com.streamvault.domain.model.PlaybackHistory
@@ -14,6 +16,7 @@ import com.streamvault.domain.repository.PlaybackHistoryRepository
 import com.streamvault.domain.repository.ProviderRepository
 import com.streamvault.domain.repository.SeriesRepository
 import com.streamvault.data.preferences.PreferencesRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -116,6 +119,7 @@ data class SavedGroupManagementUiModel(
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class FavoritesViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val favoriteRepository: FavoriteRepository,
     private val channelRepository: ChannelRepository,
     private val movieRepository: MovieRepository,
@@ -133,8 +137,8 @@ class FavoritesViewModel @Inject constructor(
             .map { items ->
                 FavoriteSectionUiModel(
                     key = GLOBAL_SECTION_KEY,
-                    title = "All Favorites",
-                    subtitle = "${items.size} saved items",
+                    title = appContext.getString(R.string.favorites_all_favorites),
+                    subtitle = appContext.getString(R.string.favorites_saved_items_format, items.size),
                     items = items,
                     reorderable = items.size > 1
                 )
@@ -263,14 +267,20 @@ class FavoritesViewModel @Inject constructor(
                                         history = entry,
                                         title = entry.title,
                                         subtitle = when (entry.contentType) {
-                                            ContentType.MOVIE -> "Movie"
-                                            ContentType.SERIES -> "Series"
+                                            ContentType.MOVIE -> appContext.getString(R.string.favorites_content_type_movie)
+                                            ContentType.SERIES -> appContext.getString(R.string.favorites_content_type_series)
                                             ContentType.SERIES_EPISODE -> buildString {
-                                                append("Episode")
-                                                entry.seasonNumber?.let { append(" S$it") }
-                                                entry.episodeNumber?.let { append("E$it") }
+                                                val s = entry.seasonNumber
+                                                val e = entry.episodeNumber
+                                                if (s != null && e != null) {
+                                                    append(appContext.getString(R.string.favorites_content_type_episode_format, s, e))
+                                                } else {
+                                                    append(appContext.getString(R.string.favorites_content_type_episode))
+                                                    entry.seasonNumber?.let { append(" S$it") }
+                                                    entry.episodeNumber?.let { append("E$it") }
+                                                }
                                             }
-                                            ContentType.LIVE -> "Live"
+                                            ContentType.LIVE -> appContext.getString(R.string.favorites_content_type_live)
                                         },
                                         providerId = entry.providerId
                                     )
@@ -501,9 +511,9 @@ class FavoritesViewModel @Inject constructor(
                 it.copy(
                     managedGroupDialog = null,
                     userMessage = if (group.group.id in currentPromoted) {
-                        "Removed ${group.group.name} from Home priority."
+                        appContext.getString(R.string.favorites_removed_home_priority, group.group.name)
                     } else {
-                        "Pinned ${group.group.name} to Home."
+                        appContext.getString(R.string.favorites_pinned_home, group.group.name)
                     }
                 )
             }
@@ -547,7 +557,7 @@ class FavoritesViewModel @Inject constructor(
                     managedGroupDialog = null,
                     mergeSourceGroup = null,
                     mergeTargetCandidates = emptyList(),
-                    userMessage = "Merged ${source.group.name} into the selected group."
+                    userMessage = appContext.getString(R.string.favorites_merged_group, source.group.name)
                 )
             }
         }

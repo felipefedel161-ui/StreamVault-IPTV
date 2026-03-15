@@ -53,6 +53,7 @@ import com.streamvault.app.ui.components.SkeletonCard
 import com.streamvault.app.ui.components.shimmerEffect
 import com.streamvault.app.ui.components.shell.AppNavigationChrome
 import com.streamvault.app.ui.components.shell.AppScreenScaffold
+import androidx.activity.compose.BackHandler
 import com.streamvault.app.ui.theme.*
 import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.Channel
@@ -138,7 +139,29 @@ fun HomeScreen(
             viewModel.userMessageShown()
         }
     }
-    
+
+    val hasOverlay = showPinDialog || showSplitManagerDialog ||
+        uiState.showDialog || uiState.showDeleteGroupDialog ||
+        uiState.showRenameGroupDialog || uiState.selectedCategoryForOptions != null ||
+        uiState.isChannelReorderMode
+
+    BackHandler(enabled = hasOverlay) {
+        when {
+            showPinDialog -> {
+                showPinDialog = false
+                pinError = null
+                pendingUnlockCategory = null
+                pendingUnlockChannel = null
+            }
+            uiState.showDeleteGroupDialog -> viewModel.cancelDeleteGroup()
+            uiState.showRenameGroupDialog -> viewModel.cancelRenameGroup()
+            uiState.selectedCategoryForOptions != null -> viewModel.dismissCategoryOptions()
+            uiState.showDialog -> viewModel.onDismissDialog()
+            showSplitManagerDialog -> showSplitManagerDialog = false
+            uiState.isChannelReorderMode -> viewModel.exitChannelReorderMode()
+        }
+    }
+
     if (showPinDialog) {
         PinDialog(
             onDismissRequest = { 

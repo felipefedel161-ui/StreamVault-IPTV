@@ -22,7 +22,10 @@ import com.streamvault.domain.repository.PlaybackHistoryRepository
 import com.streamvault.domain.repository.ProviderRepository
 import com.streamvault.domain.repository.SeriesRepository
 import com.streamvault.domain.usecase.GetCustomCategories
+import android.content.Context
+import com.streamvault.app.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import java.time.Year
 import java.time.format.DateTimeFormatter
@@ -41,6 +44,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val providerRepository: ProviderRepository,
     private val favoriteRepository: FavoriteRepository,
     private val channelRepository: ChannelRepository,
@@ -256,9 +260,9 @@ class DashboardViewModel @Inject constructor(
                             DashboardLiveShortcut(
                                 label = category.name,
                                 detail = if (groupId in promotedGroupIds) {
-                                    "Pinned • ${category.count} channels"
+                                    appContext.getString(R.string.dashboard_pinned_channels_format, category.count)
                                 } else {
-                                    "${category.count} channels"
+                                    appContext.getString(R.string.dashboard_channels_format, category.count)
                                 },
                                 categoryId = category.id,
                                 type = DashboardShortcutType.CUSTOM_GROUP
@@ -296,22 +300,22 @@ class DashboardViewModel @Inject constructor(
         val resumeItem = continueWatching.firstOrNull()
         if (resumeItem != null) {
             val detail = when (resumeItem.contentType) {
-                ContentType.MOVIE -> "Resume movie"
-                ContentType.SERIES -> "Resume series"
+                ContentType.MOVIE -> appContext.getString(R.string.dashboard_resume_movie)
+                ContentType.SERIES -> appContext.getString(R.string.dashboard_resume_series)
                 ContentType.SERIES_EPISODE -> {
                     if (resumeItem.seasonNumber != null && resumeItem.episodeNumber != null) {
-                        "Resume S${resumeItem.seasonNumber} E${resumeItem.episodeNumber}"
+                        appContext.getString(R.string.dashboard_resume_episode_format, resumeItem.seasonNumber, resumeItem.episodeNumber)
                     } else {
-                        "Resume episode"
+                        appContext.getString(R.string.dashboard_resume_episode)
                     }
                 }
-                ContentType.LIVE -> "Resume"
+                ContentType.LIVE -> appContext.getString(R.string.dashboard_resume_live)
             }
             return DashboardFeature(
                 title = resumeItem.title,
                 summary = detail,
                 artworkUrl = resumeItem.posterUrl,
-                actionLabel = "Continue Watching",
+                actionLabel = appContext.getString(R.string.dashboard_continue_watching),
                 actionType = DashboardFeatureAction.CONTINUE_WATCHING
             )
         }
@@ -319,9 +323,9 @@ class DashboardViewModel @Inject constructor(
         recentChannels.firstOrNull()?.let { channel ->
             return DashboardFeature(
                 title = channel.name,
-                summary = "Jump back into live TV",
+                summary = appContext.getString(R.string.dashboard_jump_back_live),
                 artworkUrl = channel.logoUrl,
-                actionLabel = "Watch Live",
+                actionLabel = appContext.getString(R.string.dashboard_watch_live),
                 actionType = DashboardFeatureAction.LIVE
             )
         }
@@ -329,9 +333,9 @@ class DashboardViewModel @Inject constructor(
         recentMovies.firstOrNull()?.let { movie ->
             return DashboardFeature(
                 title = movie.name,
-                summary = movie.year ?: "Fresh movie pick",
+                summary = movie.year ?: appContext.getString(R.string.dashboard_fresh_movie_pick),
                 artworkUrl = movie.backdropUrl ?: movie.posterUrl,
-                actionLabel = "Open Movies",
+                actionLabel = appContext.getString(R.string.dashboard_open_movies),
                 actionType = DashboardFeatureAction.MOVIES
             )
         }
@@ -339,18 +343,18 @@ class DashboardViewModel @Inject constructor(
         recentSeries.firstOrNull()?.let { series ->
             return DashboardFeature(
                 title = series.name,
-                summary = "Updated series shelf",
+                summary = appContext.getString(R.string.dashboard_updated_series),
                 artworkUrl = series.backdropUrl ?: series.posterUrl,
-                actionLabel = "Open Series",
+                actionLabel = appContext.getString(R.string.dashboard_open_series),
                 actionType = DashboardFeatureAction.SERIES
             )
         }
 
         return DashboardFeature(
             title = providerName,
-            summary = "Your IPTV library is ready",
+            summary = appContext.getString(R.string.dashboard_library_ready),
             artworkUrl = null,
-            actionLabel = "Open Live TV",
+            actionLabel = appContext.getString(R.string.dashboard_open_live_tv),
             actionType = DashboardFeatureAction.LIVE
         )
     }

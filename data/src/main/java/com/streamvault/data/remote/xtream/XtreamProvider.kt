@@ -1,5 +1,6 @@
 package com.streamvault.data.remote.xtream
 
+import android.util.Log
 import com.streamvault.data.remote.dto.*
 import com.streamvault.data.util.AdultContentClassifier
 import com.streamvault.domain.model.*
@@ -79,7 +80,10 @@ class XtreamProvider(
                         "Active" -> ProviderStatus.ACTIVE
                         "Expired" -> ProviderStatus.EXPIRED
                         "Disabled" -> ProviderStatus.DISABLED
-                        else -> ProviderStatus.UNKNOWN
+                        else -> {
+                            Log.w("XtreamProvider", "Unknown account status: ${response.userInfo.status}")
+                            ProviderStatus.UNKNOWN
+                        }
                     }
                 )
             )

@@ -715,8 +715,8 @@ private fun SavedLibrarySummaryCard(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusPill(label = stringResource(R.string.favorites_continue_short) + " ${summary.continueWatchingCount}")
-                StatusPill(label = stringResource(R.string.favorites_recent_short) + " ${summary.recentLiveCount}")
+                StatusPill(label = stringResource(R.string.favorites_status_pill_format, stringResource(R.string.favorites_continue_short), summary.continueWatchingCount))
+                StatusPill(label = stringResource(R.string.favorites_status_pill_format, stringResource(R.string.favorites_recent_short), summary.recentLiveCount))
             }
         }
     }

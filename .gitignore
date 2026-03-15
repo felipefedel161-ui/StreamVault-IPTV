@@ -19,6 +19,9 @@ captures/
 .externalNativeBuild
 .cxx
 local.properties
+keystore.properties
+*.jks
+*.keystore
 
 # Build output
 build_output_*.txt

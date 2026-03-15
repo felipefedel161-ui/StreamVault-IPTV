@@ -472,7 +472,7 @@ class Media3PlayerEngine @Inject constructor(
                     _currentPosition.value = player.currentPosition
                     _duration.value = player.duration.coerceAtLeast(0L)
                 }
-                delay(500) // Poll every 500ms for smooth UI
+                delay(1000) // Poll every 1s for smooth UI timeline updates
             }
         }
     }
