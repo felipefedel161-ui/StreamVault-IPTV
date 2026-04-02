@@ -33,6 +33,7 @@ import com.streamvault.app.ui.theme.OnSurface
 import com.streamvault.app.ui.theme.OnSurfaceDim
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.SurfaceElevated
+import com.streamvault.app.ui.interaction.mouseClickable
 
 data class SavedCategoryShortcut(
     val name: String,
@@ -116,7 +117,7 @@ fun SavedCategoryShortcutsRow(
                 item(key = "primary_shortcut") {
                     Surface(
                         onClick = onPrimaryShortcutClick,
-                        modifier = Modifier.width(shortcutWidth),
+                        modifier = Modifier.width(shortcutWidth).mouseClickable(onClick = onPrimaryShortcutClick),
                         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
                         colors = ClickableSurfaceDefaults.colors(
                             containerColor = if (isPrimaryShortcutSelected) {
@@ -164,7 +165,10 @@ fun SavedCategoryShortcutsRow(
                     onLongClick = onShortcutLongClick?.let { handler ->
                         { handler(shortcut.name) }
                     },
-                    modifier = Modifier.width(shortcutWidth),
+                    modifier = Modifier.width(shortcutWidth).mouseClickable(
+                        onClick = { onShortcutClick(shortcut.name) },
+                        onLongClick = onShortcutLongClick?.let { handler -> { handler(shortcut.name) } }
+                    ),
                     shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
                     colors = ClickableSurfaceDefaults.colors(
                         containerColor = if (isSelected) Primary.copy(alpha = 0.18f) else SurfaceElevated,

@@ -10,6 +10,7 @@ import com.streamvault.data.util.rankSearchResults
 import com.streamvault.domain.model.Program
 import com.streamvault.domain.model.Result
 import com.streamvault.domain.repository.EpgRepository
+import com.streamvault.domain.repository.EpgSourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -36,7 +37,8 @@ class EpgRepositoryImpl @Inject constructor(
     private val programDao: ProgramDao,
     private val xmltvParser: XmltvParser,
     private val okHttpClient: OkHttpClient,
-    private val transactionRunner: DatabaseTransactionRunner
+    private val transactionRunner: DatabaseTransactionRunner,
+    private val epgSourceRepository: EpgSourceRepository
 ) : EpgRepository {
 
     private val providerRefreshMutexes = ConcurrentHashMap<Long, Mutex>()
@@ -231,6 +233,14 @@ class EpgRepositoryImpl @Inject constructor(
     override suspend fun clearOldPrograms(beforeTime: Long) {
         programDao.deleteOld(beforeTime)
     }
+
+    override suspend fun getResolvedProgramsForChannels(
+        providerId: Long,
+        channelIds: List<Long>,
+        startTime: Long,
+        endTime: Long
+    ): Map<String, List<Program>> =
+        epgSourceRepository.getResolvedProgramsForChannels(providerId, channelIds, startTime, endTime)
 
     private fun nowTicker(): Flow<Long> = flow {
         while (true) {

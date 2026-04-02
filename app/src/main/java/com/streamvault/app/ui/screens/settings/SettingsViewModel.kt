@@ -100,7 +100,8 @@ class SettingsViewModel @Inject constructor(
     private val syncMetadataRepository: SyncMetadataRepository,
     private val playbackHistoryRepository: com.streamvault.domain.repository.PlaybackHistoryRepository,
     private val tvInputChannelSyncManager: TvInputChannelSyncManager,
-    private val syncProvider: SyncProvider
+    private val syncProvider: SyncProvider,
+    private val epgSourceRepository: com.streamvault.domain.repository.EpgSourceRepository
 ) : ViewModel() {
     private val appContext = application
     private val exportBackup = ExportBackup(backupManager)
@@ -838,6 +839,77 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // ── EPG Source Management ────────────────────────────────────────
+
+    fun loadEpgSources() {
+        viewModelScope.launch {
+            epgSourceRepository.getAllSources().collect { sources ->
+                _uiState.update { it.copy(epgSources = sources) }
+            }
+        }
+    }
+
+    fun loadEpgAssignments(providerId: Long) {
+        viewModelScope.launch {
+            epgSourceRepository.getAssignmentsForProvider(providerId).collect { assignments ->
+                _uiState.update {
+                    it.copy(epgSourceAssignments = it.epgSourceAssignments + (providerId to assignments))
+                }
+            }
+        }
+    }
+
+    fun addEpgSource(name: String, url: String) {
+        viewModelScope.launch {
+            val result = epgSourceRepository.addSource(name, url)
+            if (result is Result.Error) {
+                _uiState.update { it.copy(userMessage = result.message) }
+            }
+        }
+    }
+
+    fun deleteEpgSource(sourceId: Long) {
+        viewModelScope.launch {
+            epgSourceRepository.deleteSource(sourceId)
+        }
+    }
+
+    fun toggleEpgSourceEnabled(sourceId: Long, enabled: Boolean) {
+        viewModelScope.launch {
+            epgSourceRepository.setSourceEnabled(sourceId, enabled)
+        }
+    }
+
+    fun refreshEpgSource(sourceId: Long) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            val result = epgSourceRepository.refreshSource(sourceId)
+            _uiState.update {
+                it.copy(
+                    isSyncing = false,
+                    userMessage = if (result is Result.Error) result.message else "EPG source refreshed"
+                )
+            }
+        }
+    }
+
+    fun assignEpgSourceToProvider(providerId: Long, epgSourceId: Long) {
+        viewModelScope.launch {
+            val existingAssignments = _uiState.value.epgSourceAssignments[providerId].orEmpty()
+            val nextPriority = (existingAssignments.maxOfOrNull { it.priority } ?: 0) + 1
+            val result = epgSourceRepository.assignSourceToProvider(providerId, epgSourceId, nextPriority)
+            if (result is Result.Error) {
+                _uiState.update { it.copy(userMessage = result.message) }
+            }
+        }
+    }
+
+    fun unassignEpgSourceFromProvider(providerId: Long, epgSourceId: Long) {
+        viewModelScope.launch {
+            epgSourceRepository.unassignSourceFromProvider(providerId, epgSourceId)
+        }
+    }
+
     private fun buildCapabilitySummary(provider: Provider): String {
         return when (provider.type) {
             ProviderType.XTREAM_CODES -> {
@@ -911,7 +983,9 @@ data class SettingsUiState(
     val liveChannelNumberingMode: ChannelNumberingMode = ChannelNumberingMode.GROUP,
     val vodViewMode: VodViewMode = VodViewMode.MODERN,
     val categorySortModes: Map<ContentType, CategorySortMode> = emptyMap(),
-    val hiddenCategories: List<Category> = emptyList()
+    val hiddenCategories: List<Category> = emptyList(),
+    val epgSources: List<com.streamvault.domain.model.EpgSource> = emptyList(),
+    val epgSourceAssignments: Map<Long, List<com.streamvault.domain.model.ProviderEpgSourceAssignment>> = emptyMap()
 )
 
 private fun ProviderSyncSelection.label(application: Application): String = when (this) {

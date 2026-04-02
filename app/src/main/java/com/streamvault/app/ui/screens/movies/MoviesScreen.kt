@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.tv.material3.*
@@ -641,7 +642,7 @@ private fun MoviesVodContent(
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 148.dp),
+        columns = GridCells.Adaptive(minSize = 136.dp),
         modifier = Modifier
             .fillMaxSize()
             .onPreviewKeyEvent { event ->
@@ -756,6 +757,9 @@ private fun MoviesVodContent(
                     isLocked = isLocked,
                     isReorderMode = uiState.isReorderMode,
                     isDragging = isDraggingThis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f / 3f),
                     onClick = {
                         if (uiState.isReorderMode) {
                             draggingMovie = if (isDraggingThis) null else movie
@@ -1028,7 +1032,7 @@ private fun MoviesVodClassicContent(
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 148.dp),
+                columns = GridCells.Adaptive(minSize = 136.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -1072,6 +1076,9 @@ private fun MoviesVodClassicContent(
                             isLocked = isLocked,
                             isReorderMode = uiState.isReorderMode,
                             isDragging = isDraggingThis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(2f / 3f),
                             onClick = {
                                 if (uiState.isReorderMode) {
                                     draggingMovie = if (isDraggingThis) null else movie

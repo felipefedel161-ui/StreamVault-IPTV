@@ -31,6 +31,7 @@ import com.streamvault.app.ui.theme.OnSurface
 import com.streamvault.app.ui.theme.OnSurfaceDim
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.SurfaceElevated
+import com.streamvault.app.ui.interaction.mouseClickable
 
 @Composable
 fun SavedCategoryContextCard(
@@ -98,6 +99,7 @@ fun SavedCategoryContextCard(
             ) {
                 Button(
                     onClick = onManageClick,
+                    modifier = Modifier.mouseClickable(onClick = onManageClick),
                     colors = ButtonDefaults.colors(
                         containerColor = Primary.copy(alpha = 0.92f),
                         focusedContainerColor = Primary,
@@ -114,6 +116,7 @@ fun SavedCategoryContextCard(
                 }
                 Button(
                     onClick = onBrowseAllClick,
+                    modifier = Modifier.mouseClickable(onClick = onBrowseAllClick),
                     colors = ButtonDefaults.colors(
                         containerColor = SurfaceElevated.copy(alpha = 0.78f),
                         contentColor = OnSurface,

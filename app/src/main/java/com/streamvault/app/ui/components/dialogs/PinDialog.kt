@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.streamvault.app.device.rememberIsTelevisionDevice
+import com.streamvault.app.ui.interaction.mouseClickable
 import com.streamvault.app.ui.theme.ErrorColor
 import com.streamvault.app.ui.theme.FocusBorder
 import com.streamvault.app.ui.theme.Primary
@@ -110,6 +111,15 @@ fun PinDialog(
                     }
 
                     val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫")
+                    val handleKeyPress: (String) -> Unit = { key ->
+                        if (canInteract) {
+                            if (key == "⌫") {
+                                if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                            } else if (pin.length < 4) {
+                                pin += key
+                            }
+                        }
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         keys.chunked(3).forEach { row ->
                             Row(
@@ -123,17 +133,11 @@ fun PinDialog(
                                             Spacer(modifier = Modifier.fillMaxWidth().height(48.dp))
                                         } else {
                                             Button(
-                                                onClick = {
-                                                    if (!canInteract) return@Button
-                                                    if (key == "⌫") {
-                                                        if (pin.isNotEmpty()) pin = pin.dropLast(1)
-                                                    } else if (pin.length < 4) {
-                                                        pin += key
-                                                    }
-                                                },
+                                                onClick = { handleKeyPress(key) },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .then(if (isFirst) Modifier.focusRequester(firstKeyFocusRequester) else Modifier),
+                                                    .then(if (isFirst) Modifier.focusRequester(firstKeyFocusRequester) else Modifier)
+                                                    .mouseClickable(onClick = { handleKeyPress(key) }),
                                                 colors = ButtonDefaults.colors(
                                                     containerColor = Color.White.copy(alpha = 0.08f),
                                                     contentColor = Color.White,
@@ -153,8 +157,10 @@ fun PinDialog(
                         }
                     }
 
+                    val dismissHandler = { if (canInteract) onDismissRequest() }
                     Button(
-                        onClick = { if (canInteract) onDismissRequest() },
+                        onClick = dismissHandler,
+                        modifier = Modifier.mouseClickable(onClick = dismissHandler),
                         colors = ButtonDefaults.colors(
                             containerColor = Color.Transparent,
                             contentColor = Color.White.copy(alpha = 0.7f),

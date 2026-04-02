@@ -132,6 +132,7 @@ fun FocusableCard(
             .height(height)
             .mouseClickable(
                 focusRequester = focusRequester,
+                onLongClick = onLongClick,
                 onClick = {
                     sounds.playSelect()
                     onClick()
@@ -333,7 +334,9 @@ fun MovieCard(
     isLocked: Boolean = false,
     watchProgress: Float = 0f,
     isReorderMode: Boolean = false,
-    isDragging: Boolean = false
+    isDragging: Boolean = false,
+    width: Dp = 136.dp,
+    height: Dp = 204.dp
 ) {
     val movieDescription = buildString {
         append(movie.name)
@@ -350,8 +353,8 @@ fun MovieCard(
         onClick = onClick,
         onLongClick = onLongClick,
         modifier = modifier,
-        width = 136.dp,
-        height = 204.dp,
+        width = width,
+        height = height,
         isReorderMode = isReorderMode,
         isDragging = isDragging,
         semanticsDescription = movieDescription,
@@ -427,7 +430,9 @@ fun SeriesCard(
     watchProgress: Float = 0f,
     subtitle: String? = null,
     isReorderMode: Boolean = false,
-    isDragging: Boolean = false
+    isDragging: Boolean = false,
+    width: Dp = 136.dp,
+    height: Dp = 204.dp
 ) {
     val seriesDescription = buildString {
         append(series.name)
@@ -447,8 +452,8 @@ fun SeriesCard(
         onClick = onClick,
         onLongClick = onLongClick,
         modifier = modifier,
-        width = 136.dp,
-        height = 204.dp,
+        width = width,
+        height = height,
         isReorderMode = isReorderMode,
         isDragging = isDragging,
         semanticsDescription = seriesDescription,

@@ -1,0 +1,57 @@
+package com.streamvault.domain.repository
+
+import com.streamvault.domain.model.ChannelEpgMapping
+import com.streamvault.domain.model.EpgResolutionSummary
+import com.streamvault.domain.model.EpgSource
+import com.streamvault.domain.model.Program
+import com.streamvault.domain.model.ProviderEpgSourceAssignment
+import com.streamvault.domain.model.Result
+import kotlinx.coroutines.flow.Flow
+
+interface EpgSourceRepository {
+
+    // ── EPG Source CRUD ────────────────────────────────────────────
+
+    fun getAllSources(): Flow<List<EpgSource>>
+
+    suspend fun getSourceById(id: Long): EpgSource?
+
+    suspend fun addSource(name: String, url: String): Result<EpgSource>
+
+    suspend fun updateSource(source: EpgSource): Result<Unit>
+
+    suspend fun deleteSource(id: Long)
+
+    suspend fun setSourceEnabled(id: Long, enabled: Boolean)
+
+    // ── Provider ↔ Source assignment ───────────────────────────────
+
+    fun getAssignmentsForProvider(providerId: Long): Flow<List<ProviderEpgSourceAssignment>>
+
+    suspend fun assignSourceToProvider(providerId: Long, epgSourceId: Long, priority: Int): Result<Unit>
+
+    suspend fun unassignSourceFromProvider(providerId: Long, epgSourceId: Long)
+
+    suspend fun updateAssignmentPriority(providerId: Long, epgSourceId: Long, priority: Int)
+
+    // ── Refresh / Ingestion ────────────────────────────────────────
+
+    suspend fun refreshSource(sourceId: Long): Result<Unit>
+
+    suspend fun refreshAllForProvider(providerId: Long): Result<Unit>
+
+    // ── Resolution ─────────────────────────────────────────────────
+
+    suspend fun resolveForProvider(providerId: Long): EpgResolutionSummary
+
+    suspend fun getResolutionSummary(providerId: Long): EpgResolutionSummary
+
+    // ── Resolved query ─────────────────────────────────────────────
+
+    suspend fun getResolvedProgramsForChannels(
+        providerId: Long,
+        channelIds: List<Long>,
+        startTime: Long,
+        endTime: Long
+    ): Map<String, List<Program>>
+}

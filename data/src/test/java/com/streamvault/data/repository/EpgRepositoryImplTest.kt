@@ -27,6 +27,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
+import com.streamvault.domain.repository.EpgSourceRepository
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.concurrent.atomic.AtomicInteger
@@ -36,6 +37,7 @@ class EpgRepositoryImplTest {
 
     private val programDao: ProgramDao = mock()
     private val xmltvParser: XmltvParser = mock()
+    private val epgSourceRepository: EpgSourceRepository = mock()
     private val transactionRunner = object : DatabaseTransactionRunner {
         override suspend fun <T> inTransaction(block: suspend () -> T): T = block()
     }
@@ -69,7 +71,8 @@ class EpgRepositoryImplTest {
             programDao = programDao,
             xmltvParser = xmltvParser,
             okHttpClient = okHttpClientReturningXml(),
-            transactionRunner = transactionRunner
+            transactionRunner = transactionRunner,
+            epgSourceRepository = epgSourceRepository
         )
 
         val result = repository.searchPrograms(7L, "sports", 0L, 100L).first()
@@ -122,7 +125,8 @@ class EpgRepositoryImplTest {
             programDao = programDao,
             xmltvParser = xmltvParser,
             okHttpClient = okHttpClientReturningXml(),
-            transactionRunner = transactionRunner
+            transactionRunner = transactionRunner,
+            epgSourceRepository = epgSourceRepository
         )
 
         val firstRefresh = async { repository.refreshEpg(7L, "https://example.com/epg.xml") }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -628,7 +629,7 @@ private fun SeriesVodContent(
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 148.dp),
+        columns = GridCells.Adaptive(minSize = 136.dp),
         modifier = Modifier
             .fillMaxSize()
             .onPreviewKeyEvent { event ->
@@ -743,6 +744,9 @@ private fun SeriesVodContent(
                     isLocked = isLocked,
                     isReorderMode = uiState.isReorderMode,
                     isDragging = isDraggingThis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f / 3f),
                     onClick = {
                         if (uiState.isReorderMode) {
                             draggingSeries = if (isDraggingThis) null else series
@@ -1015,7 +1019,7 @@ private fun SeriesVodClassicContent(
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 148.dp),
+                columns = GridCells.Adaptive(minSize = 136.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -1059,6 +1063,9 @@ private fun SeriesVodClassicContent(
                             isLocked = isLocked,
                             isReorderMode = uiState.isReorderMode,
                             isDragging = isDraggingThis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(2f / 3f),
                             onClick = {
                                 if (uiState.isReorderMode) {
                                     draggingSeries = if (isDraggingThis) null else series

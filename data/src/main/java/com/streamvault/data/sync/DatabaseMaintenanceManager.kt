@@ -2,6 +2,7 @@ package com.streamvault.data.sync
 
 import android.util.Log
 import com.streamvault.data.local.StreamVaultDatabase
+import com.streamvault.data.local.dao.EpgProgrammeDao
 import com.streamvault.data.local.dao.EpisodeDao
 import com.streamvault.data.local.dao.FavoriteDao
 import com.streamvault.data.local.dao.ProgramDao
@@ -15,6 +16,7 @@ import kotlinx.coroutines.withContext
 class DatabaseMaintenanceManager @Inject constructor(
     private val database: StreamVaultDatabase,
     private val programDao: ProgramDao,
+    private val epgProgrammeDao: EpgProgrammeDao,
     private val episodeDao: EpisodeDao,
     private val favoriteDao: FavoriteDao
 ) {
@@ -22,6 +24,7 @@ class DatabaseMaintenanceManager @Inject constructor(
     suspend fun runDailyMaintenance(now: Long = System.currentTimeMillis()): MaintenanceReport = withContext(Dispatchers.IO) {
         val oldProgramThreshold = now - PROGRAM_RETENTION_MILLIS
         val deletedPrograms = programDao.deleteOld(oldProgramThreshold)
+        val deletedExternalProgrammes = epgProgrammeDao.deleteOld(oldProgramThreshold)
         val deletedOrphanEpisodes = episodeDao.deleteOrphans()
         val deletedStaleFavorites = favoriteDao.deleteMissingLiveFavorites() +
             favoriteDao.deleteMissingMovieFavorites() +
@@ -36,6 +39,7 @@ class DatabaseMaintenanceManager @Inject constructor(
 
         MaintenanceReport(
             deletedPrograms = deletedPrograms,
+            deletedExternalProgrammes = deletedExternalProgrammes,
             deletedOrphanEpisodes = deletedOrphanEpisodes,
             deletedStaleFavorites = deletedStaleFavorites,
             vacuumRan = vacuumRan,
@@ -88,6 +92,7 @@ class DatabaseMaintenanceManager @Inject constructor(
 
     data class MaintenanceReport(
         val deletedPrograms: Int,
+        val deletedExternalProgrammes: Int = 0,
         val deletedOrphanEpisodes: Int,
         val deletedStaleFavorites: Int,
         val vacuumRan: Boolean,

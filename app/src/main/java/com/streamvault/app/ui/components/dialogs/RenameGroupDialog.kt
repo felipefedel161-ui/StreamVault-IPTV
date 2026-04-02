@@ -44,6 +44,7 @@ import com.streamvault.app.ui.design.requestFocusSafely
 import com.streamvault.app.ui.design.FocusSpec
 import com.streamvault.app.R
 import com.streamvault.app.device.rememberIsTelevisionDevice
+import com.streamvault.app.ui.interaction.mouseClickable
 import com.streamvault.app.ui.theme.FocusBorder
 import com.streamvault.app.ui.theme.OnSurface
 import com.streamvault.app.ui.theme.OnSurfaceDim
@@ -145,13 +146,22 @@ fun RenameGroupDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val cancelHandler = {
+                        if (canInteract) {
+                            keyboardController?.hide()
+                            onDismissRequest()
+                        }
+                    }
+                    val renameHandler = {
+                        val normalized = value.trim()
+                        if (canInteract && normalized.isNotEmpty()) {
+                            keyboardController?.hide()
+                            onConfirm(normalized)
+                        }
+                    }
                     Button(
-                        onClick = {
-                            if (canInteract) {
-                                keyboardController?.hide()
-                                onDismissRequest()
-                            }
-                        },
+                        onClick = cancelHandler,
+                        modifier = Modifier.mouseClickable(onClick = cancelHandler),
                         colors = ButtonDefaults.colors(
                             containerColor = Color.White.copy(alpha = 0.08f),
                             contentColor = OnSurface,
@@ -168,14 +178,12 @@ fun RenameGroupDialog(
                         Text(stringResource(R.string.add_group_cancel))
                     }
                     Button(
-                        onClick = {
-                            val normalized = value.trim()
-                            if (canInteract && normalized.isNotEmpty()) {
-                                keyboardController?.hide()
-                                onConfirm(normalized)
-                            }
-                        },
+                        onClick = renameHandler,
                         enabled = canInteract && value.trim().isNotEmpty(),
+                        modifier = Modifier.mouseClickable(
+                            enabled = canInteract && value.trim().isNotEmpty(),
+                            onClick = renameHandler
+                        ),
                         colors = ButtonDefaults.colors(
                             containerColor = Primary,
                             contentColor = Color.White,

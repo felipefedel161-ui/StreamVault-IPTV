@@ -69,6 +69,7 @@ fun ChipRowSection(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp)
+            .suppressParentVerticalScroll()
     ) {
         if (!title.isNullOrBlank()) {
             Text(

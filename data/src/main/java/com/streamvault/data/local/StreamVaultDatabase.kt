@@ -29,9 +29,14 @@ import com.streamvault.data.local.entity.*
         VirtualGroupEntity::class,
         PlaybackHistoryEntity::class,
         SyncMetadataEntity::class,
-        MovieCategoryHydrationEntity::class
+        MovieCategoryHydrationEntity::class,
+        EpgSourceEntity::class,
+        ProviderEpgSourceEntity::class,
+        EpgChannelEntity::class,
+        EpgProgrammeEntity::class,
+        ChannelEpgMappingEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true   // ← was false; schema JSON now tracked in version control
 )
 @TypeConverters(RoomEnumConverters::class)
@@ -50,6 +55,11 @@ abstract class StreamVaultDatabase : RoomDatabase() {
     abstract fun playbackHistoryDao(): PlaybackHistoryDao
     abstract fun syncMetadataDao(): SyncMetadataDao
     abstract fun movieCategoryHydrationDao(): MovieCategoryHydrationDao
+    abstract fun epgSourceDao(): EpgSourceDao
+    abstract fun providerEpgSourceDao(): ProviderEpgSourceDao
+    abstract fun epgChannelDao(): EpgChannelDao
+    abstract fun epgProgrammeDao(): EpgProgrammeDao
+    abstract fun channelEpgMappingDao(): ChannelEpgMappingDao
 
     companion object {
         /**
@@ -1167,6 +1177,101 @@ abstract class StreamVaultDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_movie_category_hydration_provider_id ON movie_category_hydration(provider_id)"
                 )
+            }
+        }
+
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // ── epg_sources ──
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS epg_sources (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        enabled INTEGER NOT NULL DEFAULT 1,
+                        last_refresh_at INTEGER NOT NULL DEFAULT 0,
+                        last_success_at INTEGER NOT NULL DEFAULT 0,
+                        last_error TEXT,
+                        priority INTEGER NOT NULL DEFAULT 0,
+                        created_at INTEGER NOT NULL DEFAULT 0,
+                        updated_at INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_epg_sources_url ON epg_sources(url)")
+
+                // ── provider_epg_sources ──
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS provider_epg_sources (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        provider_id INTEGER NOT NULL,
+                        epg_source_id INTEGER NOT NULL,
+                        priority INTEGER NOT NULL DEFAULT 0,
+                        enabled INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE,
+                        FOREIGN KEY(epg_source_id) REFERENCES epg_sources(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_provider_epg_sources_provider_id_epg_source_id ON provider_epg_sources(provider_id, epg_source_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_provider_epg_sources_epg_source_id ON provider_epg_sources(epg_source_id)")
+
+                // ── epg_channels ──
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS epg_channels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        epg_source_id INTEGER NOT NULL,
+                        xmltv_channel_id TEXT NOT NULL,
+                        display_name TEXT NOT NULL,
+                        normalized_name TEXT NOT NULL DEFAULT '',
+                        icon_url TEXT,
+                        FOREIGN KEY(epg_source_id) REFERENCES epg_sources(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_epg_channels_epg_source_id_xmltv_channel_id ON epg_channels(epg_source_id, xmltv_channel_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_epg_channels_epg_source_id ON epg_channels(epg_source_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_epg_channels_normalized_name ON epg_channels(normalized_name)")
+
+                // ── epg_programmes ──
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS epg_programmes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        epg_source_id INTEGER NOT NULL,
+                        xmltv_channel_id TEXT NOT NULL,
+                        start_time INTEGER NOT NULL DEFAULT 0,
+                        end_time INTEGER NOT NULL DEFAULT 0,
+                        title TEXT NOT NULL,
+                        subtitle TEXT,
+                        description TEXT NOT NULL DEFAULT '',
+                        category TEXT,
+                        lang TEXT NOT NULL DEFAULT '',
+                        rating TEXT,
+                        image_url TEXT,
+                        episode_info TEXT,
+                        FOREIGN KEY(epg_source_id) REFERENCES epg_sources(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_epg_programmes_epg_source_id_xmltv_channel_id_start_time ON epg_programmes(epg_source_id, xmltv_channel_id, start_time)")
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_epg_programmes_epg_source_id_xmltv_channel_id_start_time_end_time ON epg_programmes(epg_source_id, xmltv_channel_id, start_time, end_time)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_epg_programmes_epg_source_id ON epg_programmes(epg_source_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_epg_programmes_start_time ON epg_programmes(start_time)")
+
+                // ── channel_epg_mappings ──
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS channel_epg_mappings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        provider_channel_id INTEGER NOT NULL,
+                        provider_id INTEGER NOT NULL,
+                        source_type TEXT NOT NULL DEFAULT 'NONE',
+                        epg_source_id INTEGER,
+                        xmltv_channel_id TEXT,
+                        match_type TEXT,
+                        confidence REAL NOT NULL DEFAULT 0,
+                        is_manual_override INTEGER NOT NULL DEFAULT 0,
+                        updated_at INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_channel_epg_mappings_provider_id_provider_channel_id ON channel_epg_mappings(provider_id, provider_channel_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_channel_epg_mappings_provider_id ON channel_epg_mappings(provider_id)")
             }
         }
     }

@@ -30,6 +30,9 @@ import com.streamvault.app.ui.theme.OnSurface
 import com.streamvault.app.ui.theme.OnSurfaceDim
 import com.streamvault.app.ui.theme.Primary
 import com.streamvault.app.ui.theme.SurfaceElevated
+import com.streamvault.app.ui.interaction.mouseClickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.Alignment
 import com.streamvault.domain.model.Category
 import kotlinx.coroutines.delay
 
@@ -56,8 +59,17 @@ fun CategoryOptionsDialog(
         onDismissRequest = safeDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            val dialogWidth = when {
+                maxWidth < 700.dp -> 0.9f
+                maxWidth < 1280.dp -> 0.56f
+                else -> 0.38f
+            }
         Surface(
-            modifier = Modifier.fillMaxWidth(0.38f),
+            modifier = Modifier.fillMaxWidth(dialogWidth),
             shape = RoundedCornerShape(24.dp),
             colors = SurfaceDefaults.colors(containerColor = SurfaceElevated)
         ) {
@@ -144,6 +156,7 @@ fun CategoryOptionsDialog(
 
                 Button(
                     onClick = safeDismiss,
+                    modifier = Modifier.mouseClickable(onClick = safeDismiss),
                     colors = ButtonDefaults.colors(
                         containerColor = Color.White.copy(alpha = 0.08f),
                         contentColor = OnSurface
@@ -152,6 +165,7 @@ fun CategoryOptionsDialog(
                     Text(stringResource(R.string.category_options_cancel))
                 }
             }
+        }
         }
     }
 }
@@ -164,7 +178,7 @@ private fun PremiumDialogAction(
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().mouseClickable(onClick = onClick),
         colors = ButtonDefaults.colors(
             containerColor = if (destructive) MaterialTheme.colorScheme.errorContainer else Color.White.copy(alpha = 0.08f),
             contentColor = if (destructive) MaterialTheme.colorScheme.onErrorContainer else OnSurface

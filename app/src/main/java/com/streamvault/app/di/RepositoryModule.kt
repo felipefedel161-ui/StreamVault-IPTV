@@ -38,6 +38,9 @@ abstract class RepositoryModule {
     abstract fun bindEpgRepository(impl: EpgRepositoryImpl): EpgRepository
 
     @Binds @Singleton
+    abstract fun bindEpgSourceRepository(impl: EpgSourceRepositoryImpl): EpgSourceRepository
+
+    @Binds @Singleton
     abstract fun bindFavoriteRepository(impl: FavoriteRepositoryImpl): FavoriteRepository
 
     @Binds @Singleton

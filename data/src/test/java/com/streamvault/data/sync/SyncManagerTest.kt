@@ -16,6 +16,8 @@ import com.streamvault.domain.model.Result
 import com.streamvault.domain.model.ProviderType
 import com.streamvault.domain.model.SyncMetadata
 import com.streamvault.domain.repository.EpgRepository
+import com.streamvault.domain.repository.EpgSourceRepository
+import com.streamvault.data.preferences.PreferencesRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -145,6 +147,8 @@ class SyncManagerTest {
     private val categoryDao: CategoryDao = mock()
     private val catalogSyncDao: CatalogSyncDao = mock()
     private val epgRepo: EpgRepository = mock()
+    private val epgSourceRepo: EpgSourceRepository = mock()
+    private val preferencesRepo: PreferencesRepository = mock()
     private val xtreamBackend = FakeXtreamBackend()
     private val xtreamJson = Json {
         ignoreUnknownKeys = true
@@ -176,9 +180,11 @@ class SyncManagerTest {
         xtreamJson = xtreamJson,
         m3uParser = M3uParser(),
         epgRepository = epgRepo,
+        epgSourceRepository = epgSourceRepo,
         okHttpClient = xtreamBackend.okHttpClient(),
         syncMetadataRepository = syncMetadataRepo,
-        transactionRunner = transactionRunner
+        transactionRunner = transactionRunner,
+        preferencesRepository = preferencesRepo
     )
 
     // ── Initial state ───────────────────────────────────────────────

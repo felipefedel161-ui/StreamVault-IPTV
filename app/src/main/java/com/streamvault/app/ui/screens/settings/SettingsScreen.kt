@@ -2,11 +2,13 @@ package com.streamvault.app.ui.screens.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,6 +26,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.Switch
 import androidx.compose.material3.RadioButton
@@ -208,7 +211,8 @@ fun SettingsScreen(
                     item { SettingsNavItem(stringResource(R.string.settings_privacy), "L", Color(0xFFFFB74D), selectedCategory == 2) { selectedCategory = 2 } }
                     item { SettingsNavItem(stringResource(R.string.settings_recording_title), "R", Color(0xFFEF5350), selectedCategory == 3) { selectedCategory = 3 } }
                     item { SettingsNavItem(stringResource(R.string.settings_backup_restore), "B", Color(0xFF42A5F5), selectedCategory == 4) { selectedCategory = 4 } }
-                    item { SettingsNavItem(stringResource(R.string.settings_about), "i", Color(0xFF78909C), selectedCategory == 5) { selectedCategory = 5 } }
+                    item { SettingsNavItem("EPG Sources", "E", Color(0xFF66BB6A), selectedCategory == 5) { selectedCategory = 5; viewModel.loadEpgSources() } }
+                    item { SettingsNavItem(stringResource(R.string.settings_about), "i", Color(0xFF78909C), selectedCategory == 6) { selectedCategory = 6 } }
                 }
 
                 // Thin vertical separator
@@ -624,7 +628,259 @@ fun SettingsScreen(
                         }
                     }
 
-                    // ── 5: About ──────────────────────────────────────────────
+                    // ── 5: EPG Sources ───────────────────────────────────────
+                    else if (selectedCategory == 5) {
+                        val epgSources = uiState.epgSources
+                        val providers = uiState.providers
+
+                        item {
+                            Text(
+                                text = "EPG Sources",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF66BB6A),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            Text(
+                                text = "Add external XMLTV EPG sources and assign them to providers. External sources are matched to channels by ID or name and override provider-native EPG data.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceDim,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+                        }
+
+                        // Add source form
+                        item {
+                            var newName by remember { mutableStateOf("") }
+                            var newUrl by remember { mutableStateOf("") }
+                            val ctx = androidx.compose.ui.platform.LocalContext.current
+                            val filePickerLauncher = rememberLauncherForActivityResult(
+                                contract = ActivityResultContracts.OpenDocument()
+                            ) { uri ->
+                                if (uri != null) {
+                                    try {
+                                        ctx.contentResolver.takePersistableUriPermission(
+                                            uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        )
+                                    } catch (_: SecurityException) { /* provider does not offer persistable permission */ }
+                                    newUrl = uri.toString()
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.06f))
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Add EPG Source", style = MaterialTheme.typography.titleSmall, color = Color.White)
+                                    EpgSourceTextField(value = newName, onValueChange = { newName = it }, placeholder = "Source name")
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            EpgSourceTextField(
+                                                value = newUrl,
+                                                onValueChange = { newUrl = it },
+                                                placeholder = "XMLTV URL (HTTPS) or browse file"
+                                            )
+                                        }
+                                        Surface(
+                                            onClick = { filePickerLauncher.launch(arrayOf("*/*")) },
+                                            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                            colors = ClickableSurfaceDefaults.colors(
+                                                containerColor = Primary.copy(alpha = 0.15f),
+                                                focusedContainerColor = Primary.copy(alpha = 0.3f)
+                                            ),
+                                            scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                        ) {
+                                            Text("Browse", modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), style = MaterialTheme.typography.labelMedium, color = Primary)
+                                        }
+                                    }
+                                    Surface(
+                                        onClick = {
+                                            if (newName.isNotBlank() && newUrl.isNotBlank()) {
+                                                viewModel.addEpgSource(newName.trim(), newUrl.trim())
+                                                newName = ""
+                                                newUrl = ""
+                                            }
+                                        },
+                                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                        colors = ClickableSurfaceDefaults.colors(
+                                            containerColor = Color(0xFF66BB6A).copy(alpha = 0.2f),
+                                            focusedContainerColor = Color(0xFF66BB6A).copy(alpha = 0.4f)
+                                        ),
+                                        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                    ) {
+                                        Text("Add Source", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = Color(0xFF66BB6A))
+                                    }
+                                }
+                            }
+                        }
+
+                        // Source list
+                        if (epgSources.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No external EPG sources configured. Add a source above to get started.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = OnSurfaceDim,
+                                    modifier = Modifier.padding(vertical = 16.dp)
+                                )
+                            }
+                        } else {
+                            items(epgSources.size) { index ->
+                                val source = epgSources[index]
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White.copy(alpha = 0.06f))
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(source.name, style = MaterialTheme.typography.titleSmall, color = Color.White)
+                                                Text(displayableEpgUrl(source.url), style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim, maxLines = 1)
+                                                if (source.lastError != null) {
+                                                    Text("Error: ${source.lastError}", style = MaterialTheme.typography.bodySmall, color = Color(0xFFEF5350))
+                                                }
+                                                if (source.lastSuccessAt != null) {
+                                                    val ago = (System.currentTimeMillis() - source.lastSuccessAt) / 60000
+                                                    Text("Last synced: ${ago}m ago", style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim)
+                                                }
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Surface(
+                                                    onClick = { viewModel.toggleEpgSourceEnabled(source.id, !source.enabled) },
+                                                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                                    colors = ClickableSurfaceDefaults.colors(
+                                                        containerColor = if (source.enabled) Color(0xFF66BB6A).copy(alpha = 0.2f) else Color.White.copy(alpha = 0.08f),
+                                                        focusedContainerColor = if (source.enabled) Color(0xFF66BB6A).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.15f)
+                                                    ),
+                                                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                                ) {
+                                                    Text(
+                                                        if (source.enabled) "ON" else "OFF",
+                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = if (source.enabled) Color(0xFF66BB6A) else OnSurfaceDim
+                                                    )
+                                                }
+                                                Surface(
+                                                    onClick = { viewModel.refreshEpgSource(source.id) },
+                                                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                                    colors = ClickableSurfaceDefaults.colors(
+                                                        containerColor = Primary.copy(alpha = 0.15f),
+                                                        focusedContainerColor = Primary.copy(alpha = 0.3f)
+                                                    ),
+                                                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                                ) {
+                                                    Text("Refresh", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = Primary)
+                                                }
+                                                Surface(
+                                                    onClick = { viewModel.deleteEpgSource(source.id) },
+                                                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                                    colors = ClickableSurfaceDefaults.colors(
+                                                        containerColor = Color(0xFFEF5350).copy(alpha = 0.12f),
+                                                        focusedContainerColor = Color(0xFFEF5350).copy(alpha = 0.25f)
+                                                    ),
+                                                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                                ) {
+                                                    Text("Delete", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFFEF5350))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Provider assignment section
+                        if (providers.isNotEmpty() && epgSources.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Provider Assignments",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFF66BB6A),
+                                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                                )
+                                Text(
+                                    text = "Assign EPG sources to providers. Channels will be matched automatically by ID or name.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceDim,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                            }
+                            items(providers.size) { providerIndex ->
+                                val provider = providers[providerIndex]
+                                val assignments = uiState.epgSourceAssignments[provider.id].orEmpty()
+                                val assignedSourceIds = assignments.map { it.epgSourceId }.toSet()
+                                val unassignedSources = epgSources.filter { it.id !in assignedSourceIds }
+
+                                LaunchedEffect(provider.id) {
+                                    viewModel.loadEpgAssignments(provider.id)
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White.copy(alpha = 0.06f))
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(provider.name, style = MaterialTheme.typography.titleSmall, color = Color.White)
+
+                                        if (assignments.isEmpty()) {
+                                            Text("No EPG sources assigned", style = MaterialTheme.typography.bodySmall, color = OnSurfaceDim)
+                                        } else {
+                                            assignments.forEach { assignment ->
+                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                                    Text(
+                                                        "${assignment.epgSourceName} (priority: ${assignment.priority})",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color.White,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Surface(
+                                                        onClick = { viewModel.unassignEpgSourceFromProvider(provider.id, assignment.epgSourceId) },
+                                                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(6.dp)),
+                                                        colors = ClickableSurfaceDefaults.colors(
+                                                            containerColor = Color(0xFFEF5350).copy(alpha = 0.12f),
+                                                            focusedContainerColor = Color(0xFFEF5350).copy(alpha = 0.25f)
+                                                        ),
+                                                        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                                    ) {
+                                                        Text("Remove", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFFEF5350))
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (unassignedSources.isNotEmpty()) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                unassignedSources.forEach { source ->
+                                                    Surface(
+                                                        onClick = { viewModel.assignEpgSourceToProvider(provider.id, source.id) },
+                                                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                                                        colors = ClickableSurfaceDefaults.colors(
+                                                            containerColor = Color(0xFF66BB6A).copy(alpha = 0.12f),
+                                                            focusedContainerColor = Color(0xFF66BB6A).copy(alpha = 0.25f)
+                                                        ),
+                                                        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                                                    ) {
+                                                        Text("+ ${source.name}", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = Color(0xFF66BB6A))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── 6: About ──────────────────────────────────────────────
                     else {
                         item {
                             SettingsRow(label = stringResource(R.string.settings_app_version), value = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
@@ -2698,6 +2954,52 @@ private fun RecordingItemCard(
                     }
                 }
             }
+        }
+    }
+}
+
+private fun displayableEpgUrl(url: String): String = when {
+    url.startsWith("content://") -> {
+        val lastSegment = try { android.net.Uri.parse(url).lastPathSegment } catch (_: Exception) { null }
+        val decoded = lastSegment?.let { android.net.Uri.decode(it) }?.substringAfterLast("/")?.substringAfterLast("\\")
+        if (!decoded.isNullOrBlank() && decoded.length < 60) "local: $decoded" else "local file"
+    }
+    else -> url
+}
+
+@Composable
+private fun EpgSourceTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    Surface(
+        onClick = { focusRequester.requestFocus() },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.White.copy(alpha = 0.08f),
+            focusedContainerColor = Color.White.copy(alpha = 0.12f)
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            if (value.isEmpty() && !isFocused) {
+                Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceDim)
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                singleLine = true,
+                cursorBrush = SolidColor(Primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { isFocused = it.isFocused }
+            )
         }
     }
 }

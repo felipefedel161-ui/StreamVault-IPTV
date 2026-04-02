@@ -41,6 +41,7 @@ import com.streamvault.domain.model.SyncMetadata
 import com.streamvault.domain.model.SyncState
 import com.streamvault.domain.model.VodSyncMode
 import com.streamvault.domain.repository.EpgRepository
+import com.streamvault.domain.repository.EpgSourceRepository
 import com.streamvault.domain.repository.SyncMetadataRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -112,6 +113,7 @@ class SyncManager @Inject constructor(
     private val xtreamJson: Json,
     private val m3uParser: M3uParser,
     private val epgRepository: EpgRepository,
+    private val epgSourceRepository: EpgSourceRepository,
     private val okHttpClient: OkHttpClient,
     private val syncMetadataRepository: SyncMetadataRepository,
     private val transactionRunner: DatabaseTransactionRunner,
@@ -817,6 +819,19 @@ class SyncManager @Inject constructor(
             }
         }
 
+        // Refresh external EPG sources assigned to this provider, then run resolution
+        try {
+            progress(provider.id, onProgress, "Refreshing external EPG sources...")
+            epgSourceRepository.refreshAllForProvider(provider.id)
+            progress(provider.id, onProgress, "Resolving EPG mappings...")
+            epgSourceRepository.resolveForProvider(provider.id)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "External EPG resolution failed (non-fatal): ${sanitizeThrowableMessage(e)}")
+            warnings.add("External EPG source refresh/resolution failed.")
+        }
+
         return if (warnings.isEmpty()) SyncOutcome() else SyncOutcome(partial = true, warnings = warnings)
     }
 
@@ -877,6 +892,19 @@ class SyncManager @Inject constructor(
             }
         }
 
+        // Refresh external EPG sources assigned to this provider, then run resolution
+        try {
+            progress(provider.id, onProgress, "Refreshing external EPG sources...")
+            epgSourceRepository.refreshAllForProvider(provider.id)
+            progress(provider.id, onProgress, "Resolving EPG mappings...")
+            epgSourceRepository.resolveForProvider(provider.id)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "External EPG resolution failed (non-fatal): ${sanitizeThrowableMessage(e)}")
+            warnings.add("External EPG source refresh/resolution failed.")
+        }
+
         return if (warnings.isEmpty()) SyncOutcome() else SyncOutcome(partial = true, warnings = warnings)
     }
 
@@ -912,6 +940,12 @@ class SyncManager @Inject constructor(
                 epgCount = programDao.countByProvider(provider.id)
             )
         syncMetadataRepository.updateMetadata(metadata)
+
+        // Also refresh external sources and run resolution
+        progress(provider.id, onProgress, "Refreshing external EPG sources...")
+        epgSourceRepository.refreshAllForProvider(provider.id)
+        progress(provider.id, onProgress, "Resolving EPG mappings...")
+        epgSourceRepository.resolveForProvider(provider.id)
     }
 
     private suspend fun syncLiveOnly(

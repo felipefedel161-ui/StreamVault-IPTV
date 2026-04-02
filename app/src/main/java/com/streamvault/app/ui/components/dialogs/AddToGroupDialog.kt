@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.delay
 import androidx.tv.material3.*
 import com.streamvault.app.device.rememberIsTelevisionDevice
+import com.streamvault.app.ui.interaction.mouseClickable
 import android.view.KeyEvent as AndroidKeyEvent
 
 @Composable
@@ -148,7 +149,8 @@ fun AddToGroupDialog(
                                         if (isFocused) 3.dp else 0.dp,
                                         if (isFocused) AppColors.Focus else Color.Transparent,
                                         CircleShape
-                                    ),
+                                    )
+                                    .mouseClickable(onClick = safeToggleFavorite),
                                 colors = ButtonDefaults.colors(
                                     containerColor = when {
                                         isFocused -> AppColors.Focus
@@ -190,7 +192,8 @@ fun AddToGroupDialog(
                                             if (isFocused) 3.dp else 0.dp,
                                             if (isFocused) AppColors.Focus else Color.Transparent,
                                             CircleShape
-                                        ),
+                                        )
+                                        .mouseClickable(onClick = safeOpenSplitScreenPlanner),
                                     colors = ButtonDefaults.colors(
                                     containerColor = when {
                                         isFocused -> AppColors.Focus
@@ -234,6 +237,7 @@ fun AddToGroupDialog(
                         items(groups) { group ->
                             val isMember = memberOfGroups.contains(group.id)
                             var isFocused by remember { mutableStateOf(false) }
+                            val groupAction = { if (isMember) safeRemoveFromGroup(group) else safeAddToGroup(group) }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -247,9 +251,7 @@ fun AddToGroupDialog(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Button(
-                                    onClick = {
-                                        if (isMember) safeRemoveFromGroup(group) else safeAddToGroup(group)
-                                    },
+                                    onClick = groupAction,
                                     modifier = Modifier
                                         .background(
                                             color = if (isFocused) AppColors.Focus else Color.Transparent,
@@ -260,7 +262,8 @@ fun AddToGroupDialog(
                                             if (isFocused) 3.dp else 0.dp,
                                             if (isFocused) AppColors.Focus else Color.Transparent,
                                             CircleShape
-                                        ),
+                                        )
+                                        .mouseClickable(onClick = groupAction),
                                     colors = ButtonDefaults.colors(
                                         containerColor = when {
                                             isFocused -> AppColors.Focus
@@ -294,7 +297,8 @@ fun AddToGroupDialog(
                                     if (isFocused) 3.dp else 1.dp,
                                     if (isFocused) AppColors.Focus else AppColors.BrandMuted.copy(alpha = 0.55f),
                                     CircleShape
-                                ),
+                                )
+                                .mouseClickable(onClick = safeCreateGroup),
                             colors = ButtonDefaults.colors(
                                 containerColor = if (isFocused) AppColors.Focus else Color.Transparent,
                                 contentColor = if (isFocused) Color.Black else AppColors.TextPrimary

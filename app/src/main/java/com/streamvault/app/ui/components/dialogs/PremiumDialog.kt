@@ -32,6 +32,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import com.streamvault.app.device.rememberIsTelevisionDevice
+import com.streamvault.app.ui.interaction.mouseClickable
 import com.streamvault.app.ui.design.AppColors
 import com.streamvault.app.ui.design.FocusSpec
 
@@ -178,7 +179,7 @@ fun PremiumDialogActionButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().mouseClickable(enabled = enabled, onClick = onClick),
         colors = ButtonDefaults.colors(
             containerColor = containerColor,
             contentColor = contentColor,
@@ -219,6 +220,7 @@ fun PremiumDialogFooterButton(
     Button(
         onClick = onClick,
         enabled = enabled,
+        modifier = Modifier.mouseClickable(enabled = enabled, onClick = onClick),
         colors = ButtonDefaults.colors(
             containerColor = containerColor,
             contentColor = contentColor,

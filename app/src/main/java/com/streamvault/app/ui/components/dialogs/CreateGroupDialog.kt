@@ -39,6 +39,7 @@ import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import com.streamvault.app.R
 import com.streamvault.app.device.rememberIsTelevisionDevice
+import com.streamvault.app.ui.interaction.mouseClickable
 import com.streamvault.app.ui.theme.OnSurface
 import com.streamvault.app.ui.theme.OnSurfaceDim
 import com.streamvault.app.ui.theme.Primary
@@ -132,13 +133,22 @@ fun CreateGroupDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val cancelHandler = {
+                        if (canInteract) {
+                            keyboardController?.hide()
+                            onDismissRequest()
+                        }
+                    }
+                    val createHandler = {
+                        val normalized = value.trim()
+                        if (canInteract && normalized.isNotEmpty()) {
+                            keyboardController?.hide()
+                            onConfirm(normalized)
+                        }
+                    }
                     Button(
-                        onClick = {
-                            if (canInteract) {
-                                keyboardController?.hide()
-                                onDismissRequest()
-                            }
-                        },
+                        onClick = cancelHandler,
+                        modifier = Modifier.mouseClickable(onClick = cancelHandler),
                         colors = ButtonDefaults.colors(
                             containerColor = Color.White.copy(alpha = 0.08f),
                             contentColor = OnSurface
@@ -147,14 +157,12 @@ fun CreateGroupDialog(
                         Text(stringResource(R.string.add_group_cancel))
                     }
                     Button(
-                        onClick = {
-                            val normalized = value.trim()
-                            if (canInteract && normalized.isNotEmpty()) {
-                                keyboardController?.hide()
-                                onConfirm(normalized)
-                            }
-                        },
+                        onClick = createHandler,
                         enabled = canInteract && value.trim().isNotEmpty(),
+                        modifier = Modifier.mouseClickable(
+                            enabled = canInteract && value.trim().isNotEmpty(),
+                            onClick = createHandler
+                        ),
                         colors = ButtonDefaults.colors(
                             containerColor = Primary,
                             contentColor = Color.White

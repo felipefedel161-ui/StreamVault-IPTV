@@ -212,7 +212,6 @@ class SeriesViewModel @Inject constructor(
                         favoriteRepository.getAllFavorites(ContentType.SERIES),
                         getCustomCategories(ContentType.SERIES),
                         seriesRepository.getCategories(provider.id),
-                        seriesRepository.getCategoryItemCounts(provider.id),
                         playbackHistoryRepository.getRecentlyWatchedByProvider(provider.id, limit = 2_000),
                         preferencesRepository.getHiddenCategoryIds(provider.id, ContentType.SERIES),
                         preferencesRepository.getCategorySortMode(provider.id, ContentType.SERIES)
@@ -220,10 +219,9 @@ class SeriesViewModel @Inject constructor(
                         val allFavorites = values[0] as List<com.streamvault.domain.model.Favorite>
                         val customCategories = values[1] as List<Category>
                         val providerCategories = values[2] as List<Category>
-                        val providerCategoryCounts = values[3] as Map<Long, Int>
-                        val history = values[4] as List<PlaybackHistory>
-                        val hiddenCategoryIds = values[5] as Set<Long>
-                        val sortMode = values[6] as CategorySortMode
+                        val history = values[3] as List<PlaybackHistory>
+                        val hiddenCategoryIds = values[4] as Set<Long>
+                        val sortMode = values[5] as CategorySortMode
                         SeriesCategorySelectionDependencies(
                             allFavorites = allFavorites,
                             customCategories = customCategories,
@@ -232,7 +230,6 @@ class SeriesViewModel @Inject constructor(
                                 hiddenCategoryIds = hiddenCategoryIds,
                                 sortMode = sortMode
                             ),
-                            providerCategoryCounts = providerCategoryCounts,
                             history = history,
                             hiddenCategoryIds = hiddenCategoryIds
                         )
@@ -264,7 +261,6 @@ class SeriesViewModel @Inject constructor(
                             history = dependencies.history,
                             customCategories = dependencies.customCategories,
                             providerCategories = dependencies.providerCategories,
-                            providerCategoryCounts = dependencies.providerCategoryCounts,
                             hiddenCategoryIds = dependencies.hiddenCategoryIds
                         )
                     }
@@ -1080,7 +1076,6 @@ private data class SeriesCategorySelectionDependencies(
     val history: List<PlaybackHistory>,
     val customCategories: List<Category>,
     val providerCategories: List<Category>,
-    val providerCategoryCounts: Map<Long, Int>,
     val hiddenCategoryIds: Set<Long>
 )
 
@@ -1095,7 +1090,6 @@ private data class SelectedSeriesCategoryRequest(
     val history: List<PlaybackHistory>,
     val customCategories: List<Category>,
     val providerCategories: List<Category>,
-    val providerCategoryCounts: Map<Long, Int>,
     val hiddenCategoryIds: Set<Long>
 )
 

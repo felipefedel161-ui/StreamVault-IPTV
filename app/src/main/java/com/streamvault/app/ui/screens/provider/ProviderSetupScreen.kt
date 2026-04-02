@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.streamvault.app.ui.interaction.mouseClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -534,7 +535,7 @@ private fun SourceTypeCard(
 ) {
     Surface(
         onClick = { if (enabled) onClick() },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().mouseClickable(enabled = enabled, onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor  = if (selected) Primary.copy(alpha = 0.18f) else SurfaceElevated,
@@ -710,7 +711,8 @@ private fun ActionButton(
             .fillMaxWidth()
             .height(52.dp)
             .scale(scale)
-            .onFocusEvent { isFocused = it.hasFocus },
+            .onFocusEvent { isFocused = it.hasFocus }
+            .mouseClickable(enabled = !isLoading, onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (!isLoading) Primary else SurfaceHighlight,
@@ -751,7 +753,7 @@ private fun FileSelectorCard(
 
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(80.dp).onFocusEvent { isFocused = it.hasFocus },
+        modifier = Modifier.fillMaxWidth().height(80.dp).onFocusEvent { isFocused = it.hasFocus }.mouseClickable(onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(1.dp, borderColor)),
@@ -782,7 +784,7 @@ private fun TabButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
-        modifier = Modifier.onFocusEvent { isFocused = it.hasFocus },
+        modifier = Modifier.onFocusEvent { isFocused = it.hasFocus }.mouseClickable(onClick = onClick),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (isSelected) Primary.copy(alpha = 0.2f) else Surface,

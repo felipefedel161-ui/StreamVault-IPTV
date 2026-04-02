@@ -614,12 +614,33 @@ class EpgViewModel @Inject constructor(
             }
 
             val guideKeys = channels.mapNotNull(Channel::guideLookupKey).distinct()
-            val xmltvKeys = channels.mapNotNull { it.epgChannelId?.trim()?.takeIf { value -> value.isNotEmpty() } }.distinct()
-            val programsByChannel = runCatching {
-                if (xmltvKeys.isEmpty()) emptyMap()
-                else epgRepository.getProgramsForChannels(providerId, xmltvKeys, windowStart, windowEnd).first()
+
+            // 1. Try the multi-source resolved path first
+            val channelIds = channels.map { it.id }
+            val resolvedPrograms = runCatching {
+                epgRepository.getResolvedProgramsForChannels(providerId, channelIds, windowStart, windowEnd)
             }.getOrElse { emptyMap() }
 
+            // 2. For channels not covered by resolution, fall back to legacy provider-native query
+            val unresolvedChannels = channels.filter { channel ->
+                val key = channel.guideLookupKey()
+                key == null || resolvedPrograms[key].isNullOrEmpty()
+            }
+            val legacyPrograms = if (unresolvedChannels.isNotEmpty()) {
+                val xmltvKeys = unresolvedChannels.mapNotNull {
+                    it.epgChannelId?.trim()?.takeIf(String::isNotEmpty)
+                }.distinct()
+                runCatching {
+                    if (xmltvKeys.isEmpty()) emptyMap()
+                    else epgRepository.getProgramsForChannels(providerId, xmltvKeys, windowStart, windowEnd).first()
+                }.getOrElse { emptyMap() }
+            } else {
+                emptyMap()
+            }
+
+            val programsByChannel = resolvedPrograms + legacyPrograms
+
+            // 3. Xtream on-demand fallback for still-missing channels
             val fallbackProgramsByChannel = fetchXtreamGuideFallback(
                 provider = provider,
                 providerId = providerId,

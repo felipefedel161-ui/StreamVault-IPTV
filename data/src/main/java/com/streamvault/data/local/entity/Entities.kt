@@ -682,3 +682,144 @@ data class MovieCategoryHydrationEntity(
     @ColumnInfo(name = "last_status") val lastStatus: String = "IDLE",
     @ColumnInfo(name = "last_error") val lastError: String? = null
 )
+
+// ── External EPG Source ────────────────────────────────────────────
+
+@Entity(
+    tableName = "epg_sources",
+    indices = [Index(value = ["url"], unique = true)]
+)
+data class EpgSourceEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val name: String,
+    val url: String,
+    val enabled: Boolean = true,
+    @ColumnInfo(name = "last_refresh_at") val lastRefreshAt: Long = 0,
+    @ColumnInfo(name = "last_success_at") val lastSuccessAt: Long = 0,
+    @ColumnInfo(name = "last_error") val lastError: String? = null,
+    val priority: Int = 0,
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+)
+
+// ── Provider ↔ EPG Source Assignment ───────────────────────────────
+
+@Entity(
+    tableName = "provider_epg_sources",
+    foreignKeys = [
+        ForeignKey(
+            entity = ProviderEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["provider_id"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = EpgSourceEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["epg_source_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["provider_id", "epg_source_id"], unique = true),
+        Index(value = ["epg_source_id"])
+    ]
+)
+data class ProviderEpgSourceEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "provider_id") val providerId: Long,
+    @ColumnInfo(name = "epg_source_id") val epgSourceId: Long,
+    val priority: Int = 0,
+    val enabled: Boolean = true
+)
+
+// ── EPG Channel (from external source) ─────────────────────────────
+
+@Entity(
+    tableName = "epg_channels",
+    foreignKeys = [ForeignKey(
+        entity = EpgSourceEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["epg_source_id"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [
+        Index(value = ["epg_source_id", "xmltv_channel_id"], unique = true),
+        Index(value = ["epg_source_id"]),
+        Index(value = ["normalized_name"])
+    ]
+)
+data class EpgChannelEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "epg_source_id") val epgSourceId: Long,
+    @ColumnInfo(name = "xmltv_channel_id") val xmltvChannelId: String,
+    @ColumnInfo(name = "display_name") val displayName: String,
+    @ColumnInfo(name = "normalized_name") val normalizedName: String = "",
+    @ColumnInfo(name = "icon_url") val iconUrl: String? = null
+)
+
+// ── EPG Programme (from external source) ───────────────────────────
+
+@Entity(
+    tableName = "epg_programmes",
+    foreignKeys = [ForeignKey(
+        entity = EpgSourceEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["epg_source_id"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [
+        Index(value = ["epg_source_id", "xmltv_channel_id", "start_time"]),
+        Index(value = ["epg_source_id", "xmltv_channel_id", "start_time", "end_time"], unique = true),
+        Index(value = ["epg_source_id"]),
+        Index(value = ["start_time"])
+    ]
+)
+data class EpgProgrammeEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "epg_source_id") val epgSourceId: Long,
+    @ColumnInfo(name = "xmltv_channel_id") val xmltvChannelId: String,
+    @ColumnInfo(name = "start_time") val startTime: Long = 0,
+    @ColumnInfo(name = "end_time") val endTime: Long = 0,
+    val title: String,
+    val subtitle: String? = null,
+    val description: String = "",
+    val category: String? = null,
+    val lang: String = "",
+    val rating: String? = null,
+    @ColumnInfo(name = "image_url") val imageUrl: String? = null,
+    @ColumnInfo(name = "episode_info") val episodeInfo: String? = null
+)
+
+// ── Channel EPG Mapping (resolved) ─────────────────────────────────
+
+@Entity(
+    tableName = "channel_epg_mappings",
+    foreignKeys = [ForeignKey(
+        entity = ProviderEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["provider_id"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [
+        Index(value = ["provider_id", "provider_channel_id"], unique = true),
+        Index(value = ["provider_id"])
+    ]
+)
+data class ChannelEpgMappingEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    @ColumnInfo(name = "provider_channel_id") val providerChannelId: Long,
+    @ColumnInfo(name = "provider_id") val providerId: Long,
+    @ColumnInfo(name = "source_type") val sourceType: String = "NONE",
+    @ColumnInfo(name = "epg_source_id") val epgSourceId: Long? = null,
+    @ColumnInfo(name = "xmltv_channel_id") val xmltvChannelId: String? = null,
+    @ColumnInfo(name = "match_type") val matchType: String? = null,
+    val confidence: Float = 0f,
+    @ColumnInfo(name = "is_manual_override") val isManualOverride: Boolean = false,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
+)

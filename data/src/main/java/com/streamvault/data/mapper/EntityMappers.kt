@@ -592,3 +592,113 @@ private fun String?.toPlaybackWatchedStatus(): PlaybackWatchedStatus =
     runCatching {
         this?.let(PlaybackWatchedStatus::valueOf)
     }.getOrNull() ?: PlaybackWatchedStatus.IN_PROGRESS
+
+// ── EPG Source ─────────────────────────────────────────────────────
+
+fun EpgSourceEntity.toDomain() = com.streamvault.domain.model.EpgSource(
+    id = id,
+    name = name,
+    url = url,
+    enabled = enabled,
+    lastRefreshAt = lastRefreshAt,
+    lastSuccessAt = lastSuccessAt,
+    lastError = lastError,
+    priority = priority,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)
+
+fun com.streamvault.domain.model.EpgSource.toEntity() = EpgSourceEntity(
+    id = id,
+    name = name,
+    url = url,
+    enabled = enabled,
+    lastRefreshAt = lastRefreshAt,
+    lastSuccessAt = lastSuccessAt,
+    lastError = lastError,
+    priority = priority,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)
+
+// ── Provider EPG Source Assignment ─────────────────────────────────
+
+fun com.streamvault.data.local.dao.ProviderEpgSourceWithDetails.toDomain() =
+    com.streamvault.domain.model.ProviderEpgSourceAssignment(
+        id = id,
+        providerId = providerId,
+        epgSourceId = epgSourceId,
+        priority = priority,
+        enabled = enabled,
+        epgSourceName = epgSourceName,
+        epgSourceUrl = epgSourceUrl
+    )
+
+fun com.streamvault.domain.model.ProviderEpgSourceAssignment.toEntity() = ProviderEpgSourceEntity(
+    id = id,
+    providerId = providerId,
+    epgSourceId = epgSourceId,
+    priority = priority,
+    enabled = enabled
+)
+
+// ── EPG Channel ────────────────────────────────────────────────────
+
+fun EpgChannelEntity.toDomain() = com.streamvault.domain.model.EpgChannelInfo(
+    id = id,
+    epgSourceId = epgSourceId,
+    xmltvChannelId = xmltvChannelId,
+    displayName = displayName,
+    normalizedName = normalizedName,
+    iconUrl = iconUrl
+)
+
+// ── EPG Programme → Program ────────────────────────────────────────
+
+fun EpgProgrammeEntity.toDomainProgram(providerId: Long = 0L) = Program(
+    id = id,
+    channelId = xmltvChannelId,
+    title = title,
+    description = buildString {
+        subtitle?.let { append(it); append("\n") }
+        append(description)
+    }.trim(),
+    startTime = startTime,
+    endTime = endTime,
+    lang = lang,
+    rating = rating,
+    imageUrl = imageUrl,
+    category = category,
+    providerId = providerId
+)
+
+// ── Channel EPG Mapping ────────────────────────────────────────────
+
+fun ChannelEpgMappingEntity.toDomain() = com.streamvault.domain.model.ChannelEpgMapping(
+    id = id,
+    providerChannelId = providerChannelId,
+    providerId = providerId,
+    sourceType = runCatching { com.streamvault.domain.model.EpgSourceType.valueOf(sourceType) }
+        .getOrDefault(com.streamvault.domain.model.EpgSourceType.NONE),
+    epgSourceId = epgSourceId,
+    xmltvChannelId = xmltvChannelId,
+    matchType = matchType?.let {
+        runCatching { com.streamvault.domain.model.EpgMatchType.valueOf(it) }.getOrNull()
+    },
+    confidence = confidence,
+    isManualOverride = isManualOverride,
+    updatedAt = updatedAt
+)
+
+fun com.streamvault.domain.model.ChannelEpgMapping.toEntity() = ChannelEpgMappingEntity(
+    id = id,
+    providerChannelId = providerChannelId,
+    providerId = providerId,
+    sourceType = sourceType.name,
+    epgSourceId = epgSourceId,
+    xmltvChannelId = xmltvChannelId,
+    matchType = matchType?.name,
+    confidence = confidence,
+    isManualOverride = isManualOverride,
+    updatedAt = updatedAt
+)

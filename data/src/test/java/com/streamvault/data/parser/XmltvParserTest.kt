@@ -224,4 +224,108 @@ class XmltvParserTest {
 
         assertThat(timestamps.distinct()).containsExactly(1_735_722_000_000L)
     }
+
+    // ── parseStreamingWithChannels ─────────────────────────────────
+
+    @Test
+    fun `parseStreamingWithChannels_yieldsChannelsAndProgrammes`() = runTest {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <tv>
+              <channel id="ch1">
+                <display-name>BBC One</display-name>
+                <icon src="http://example.com/bbc.png"/>
+              </channel>
+              <channel id="ch2">
+                <display-name>CNN</display-name>
+              </channel>
+              <programme start="20250101120000 +0000" stop="20250101130000 +0000" channel="ch1">
+                <title>News</title>
+                <desc>Daily news</desc>
+              </programme>
+              <programme start="20250101130000 +0000" stop="20250101140000 +0000" channel="ch2">
+                <title>Sports</title>
+              </programme>
+            </tv>
+        """.trimIndent()
+
+        val channels = mutableListOf<XmltvChannel>()
+        val programmes = mutableListOf<XmltvProgramme>()
+
+        parser.parseStreamingWithChannels(
+            inputStream = xml.byteInputStream(),
+            onChannel = { channels.add(it) },
+            onProgramme = { programmes.add(it) }
+        )
+
+        assertThat(channels).hasSize(2)
+        assertThat(channels[0].id).isEqualTo("ch1")
+        assertThat(channels[0].displayName).isEqualTo("BBC One")
+        assertThat(channels[0].iconUrl).isEqualTo("http://example.com/bbc.png")
+        assertThat(channels[1].id).isEqualTo("ch2")
+        assertThat(channels[1].displayName).isEqualTo("CNN")
+        assertThat(channels[1].iconUrl).isNull()
+
+        assertThat(programmes).hasSize(2)
+        assertThat(programmes[0].channelId).isEqualTo("ch1")
+        assertThat(programmes[0].title).isEqualTo("News")
+        assertThat(programmes[1].channelId).isEqualTo("ch2")
+        assertThat(programmes[1].title).isEqualTo("Sports")
+    }
+
+    @Test
+    fun `parseStreamingWithChannels_parsesSubtitleAndEpisodeInfo`() = runTest {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <tv>
+              <channel id="ch1">
+                <display-name>BBC One</display-name>
+              </channel>
+              <programme start="20250101120000 +0000" stop="20250101130000 +0000" channel="ch1">
+                <title>Doctor Who</title>
+                <sub-title>The Christmas Invasion</sub-title>
+                <episode-num system="xmltv_ns">1.2.0/1</episode-num>
+                <desc>A holiday special</desc>
+              </programme>
+            </tv>
+        """.trimIndent()
+
+        val programmes = mutableListOf<XmltvProgramme>()
+        parser.parseStreamingWithChannels(
+            inputStream = xml.byteInputStream(),
+            onChannel = { },
+            onProgramme = { programmes.add(it) }
+        )
+
+        assertThat(programmes).hasSize(1)
+        assertThat(programmes[0].subtitle).isEqualTo("The Christmas Invasion")
+        assertThat(programmes[0].episodeInfo).isEqualTo("1.2.0/1")
+    }
+
+    @Test
+    fun `parseStreamingWithChannels_emptyXml_yieldsNothing`() = runTest {
+        val xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <tv></tv>
+        """.trimIndent()
+
+        val channels = mutableListOf<XmltvChannel>()
+        val programmes = mutableListOf<XmltvProgramme>()
+
+        parser.parseStreamingWithChannels(
+            inputStream = xml.byteInputStream(),
+            onChannel = { channels.add(it) },
+            onProgramme = { programmes.add(it) }
+        )
+
+        assertThat(channels).isEmpty()
+        assertThat(programmes).isEmpty()
+    }
+
+    @Test
+    fun `maybeDecompressGzip_nonGzUrl_returnsOriginal`() {
+        val original = "hello".byteInputStream()
+        val result = parser.maybeDecompressGzip("http://example.com/epg.xml", original)
+        assertThat(result).isSameInstanceAs(original)
+    }
 }

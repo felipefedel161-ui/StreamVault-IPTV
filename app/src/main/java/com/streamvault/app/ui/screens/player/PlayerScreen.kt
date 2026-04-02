@@ -2,6 +2,7 @@ package com.streamvault.app.ui.screens.player
 
 import android.app.Activity
 import android.view.KeyEvent
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -233,6 +234,19 @@ fun PlayerScreen(
         onDispose {
             mainActivity?.clearPlayerPictureInPictureState()
             viewModel.onPlayerScreenDisposed()
+        }
+    }
+
+    // Prevent screen from sleeping during active playback
+    val playerWindow = mainActivity?.window
+    DisposableEffect(Unit) {
+        onDispose { playerWindow?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
+    LaunchedEffect(isPlaying, playbackState) {
+        if (isPlaying || playbackState == PlaybackState.BUFFERING) {
+            playerWindow?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            playerWindow?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 

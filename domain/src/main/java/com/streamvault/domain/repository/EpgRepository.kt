@@ -15,4 +15,12 @@ interface EpgRepository {
     fun getNowAndNext(providerId: Long, channelId: String): Flow<Pair<Program?, Program?>>
     suspend fun refreshEpg(providerId: Long, epgUrl: String): Result<Unit>
     suspend fun clearOldPrograms(beforeTime: Long)
+
+    /** Returns resolved EPG programmes using multi-source resolution (external + provider-native). */
+    suspend fun getResolvedProgramsForChannels(
+        providerId: Long,
+        channelIds: List<Long>,
+        startTime: Long,
+        endTime: Long
+    ): Map<String, List<Program>>
 }

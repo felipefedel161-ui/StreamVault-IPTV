@@ -1518,6 +1518,35 @@ interface ProgramDao {
     )
     suspend fun getNowPlayingForChannelsSync(providerId: Long, channelIds: List<String>, now: Long = System.currentTimeMillis()): List<ProgramBrowseEntity>
 
+    @Query(
+        """
+        SELECT
+            id,
+            provider_id,
+            channel_id,
+            title,
+            CASE
+                WHEN LENGTH(description) > 600 THEN SUBSTR(description, 1, 600) || '...'
+                ELSE description
+            END AS description,
+            start_time,
+            end_time,
+            lang,
+            NULL AS rating,
+            NULL AS image_url,
+            NULL AS genre,
+            NULL AS category,
+            has_archive
+        FROM programs
+        WHERE provider_id = :providerId
+          AND channel_id IN (:channelIds)
+          AND end_time > :startTime
+          AND start_time < :endTime
+        ORDER BY channel_id ASC, start_time ASC
+        """
+    )
+    suspend fun getForChannelsSync(providerId: Long, channelIds: List<String>, startTime: Long, endTime: Long): List<ProgramBrowseEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(programs: List<ProgramEntity>)
 
@@ -1663,3 +1692,197 @@ interface MovieCategoryHydrationDao {
     @Query("DELETE FROM movie_category_hydration WHERE provider_id = :providerId")
     suspend fun deleteByProvider(providerId: Long)
 }
+
+// ── EPG Source DAOs ────────────────────────────────────────────────
+
+@Dao
+interface EpgSourceDao {
+    @Query("SELECT * FROM epg_sources ORDER BY priority ASC, name ASC")
+    fun getAll(): Flow<List<EpgSourceEntity>>
+
+    @Query("SELECT * FROM epg_sources ORDER BY priority ASC, name ASC")
+    suspend fun getAllSync(): List<EpgSourceEntity>
+
+    @Query("SELECT * FROM epg_sources WHERE id = :id")
+    suspend fun getById(id: Long): EpgSourceEntity?
+
+    @Query("SELECT * FROM epg_sources WHERE url = :url LIMIT 1")
+    suspend fun getByUrl(url: String): EpgSourceEntity?
+
+    @Query("SELECT * FROM epg_sources WHERE enabled = 1 ORDER BY priority ASC, name ASC")
+    suspend fun getEnabled(): List<EpgSourceEntity>
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(source: EpgSourceEntity): Long
+
+    @Update
+    suspend fun update(source: EpgSourceEntity)
+
+    @Query("DELETE FROM epg_sources WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("UPDATE epg_sources SET enabled = :enabled, updated_at = :now WHERE id = :id")
+    suspend fun setEnabled(id: Long, enabled: Boolean, now: Long = System.currentTimeMillis())
+
+    @Query("UPDATE epg_sources SET last_refresh_at = :at, last_error = :error, updated_at = :at WHERE id = :id")
+    suspend fun updateRefreshStatus(id: Long, at: Long, error: String?)
+
+    @Query("UPDATE epg_sources SET last_refresh_at = :at, last_success_at = :at, last_error = NULL, updated_at = :at WHERE id = :id")
+    suspend fun updateRefreshSuccess(id: Long, at: Long)
+}
+
+@Dao
+interface ProviderEpgSourceDao {
+    @Query("""
+        SELECT pes.*, es.name AS epg_source_name, es.url AS epg_source_url
+        FROM provider_epg_sources pes
+        JOIN epg_sources es ON es.id = pes.epg_source_id
+        WHERE pes.provider_id = :providerId
+        ORDER BY pes.priority ASC
+    """)
+    fun getForProvider(providerId: Long): Flow<List<ProviderEpgSourceWithDetails>>
+
+    @Query("""
+        SELECT pes.*
+        FROM provider_epg_sources pes
+        JOIN epg_sources es ON es.id = pes.epg_source_id
+        WHERE pes.provider_id = :providerId AND pes.enabled = 1 AND es.enabled = 1
+        ORDER BY pes.priority ASC
+    """)
+    suspend fun getEnabledForProviderSync(providerId: Long): List<ProviderEpgSourceEntity>
+
+    @Query("""
+        SELECT pes.*
+        FROM provider_epg_sources pes
+        WHERE pes.provider_id = :providerId
+        ORDER BY pes.priority ASC
+    """)
+    suspend fun getForProviderSync(providerId: Long): List<ProviderEpgSourceEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(assignment: ProviderEpgSourceEntity): Long
+
+    @Update
+    suspend fun update(assignment: ProviderEpgSourceEntity)
+
+    @Query("DELETE FROM provider_epg_sources WHERE provider_id = :providerId AND epg_source_id = :epgSourceId")
+    suspend fun delete(providerId: Long, epgSourceId: Long)
+
+    @Query("DELETE FROM provider_epg_sources WHERE provider_id = :providerId")
+    suspend fun deleteByProvider(providerId: Long)
+}
+
+data class ProviderEpgSourceWithDetails(
+    val id: Long,
+    @ColumnInfo(name = "provider_id") val providerId: Long,
+    @ColumnInfo(name = "epg_source_id") val epgSourceId: Long,
+    val priority: Int,
+    val enabled: Boolean,
+    @ColumnInfo(name = "epg_source_name") val epgSourceName: String,
+    @ColumnInfo(name = "epg_source_url") val epgSourceUrl: String
+)
+
+@Dao
+interface EpgChannelDao {
+    @Query("SELECT * FROM epg_channels WHERE epg_source_id = :sourceId ORDER BY display_name ASC")
+    suspend fun getBySource(sourceId: Long): List<EpgChannelEntity>
+
+    @Query("SELECT * FROM epg_channels WHERE epg_source_id = :sourceId AND xmltv_channel_id = :channelId LIMIT 1")
+    suspend fun getBySourceAndChannelId(sourceId: Long, channelId: String): EpgChannelEntity?
+
+    @Query("SELECT * FROM epg_channels WHERE epg_source_id IN (:sourceIds)")
+    suspend fun getBySources(sourceIds: List<Long>): List<EpgChannelEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(channels: List<EpgChannelEntity>)
+
+    @Query("DELETE FROM epg_channels WHERE epg_source_id = :sourceId")
+    suspend fun deleteBySource(sourceId: Long)
+}
+
+@Dao
+interface EpgProgrammeDao {
+    @Query("""
+        SELECT * FROM epg_programmes
+        WHERE epg_source_id = :sourceId
+          AND xmltv_channel_id = :channelId
+          AND end_time > :startTime
+          AND start_time < :endTime
+        ORDER BY start_time ASC
+    """)
+    suspend fun getForChannel(sourceId: Long, channelId: String, startTime: Long, endTime: Long): List<EpgProgrammeEntity>
+
+    @Query("""
+        SELECT * FROM epg_programmes
+        WHERE epg_source_id = :sourceId
+          AND xmltv_channel_id IN (:channelIds)
+          AND end_time > :startTime
+          AND start_time < :endTime
+        ORDER BY xmltv_channel_id ASC, start_time ASC
+    """)
+    suspend fun getForChannels(sourceId: Long, channelIds: List<String>, startTime: Long, endTime: Long): List<EpgProgrammeEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(programmes: List<EpgProgrammeEntity>)
+
+    @Query("DELETE FROM epg_programmes WHERE epg_source_id = :sourceId")
+    suspend fun deleteBySource(sourceId: Long)
+
+    @Query("DELETE FROM epg_programmes WHERE end_time < :beforeTime")
+    suspend fun deleteOld(beforeTime: Long): Int
+
+    @Query("SELECT COUNT(*) FROM epg_programmes WHERE epg_source_id = :sourceId")
+    suspend fun countBySource(sourceId: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM epg_programmes
+        WHERE epg_source_id = :sourceId
+          AND xmltv_channel_id = :channelId
+          AND end_time > :now
+    """)
+    suspend fun countUpcomingForChannel(sourceId: Long, channelId: String, now: Long = System.currentTimeMillis()): Int
+}
+
+@Dao
+abstract class ChannelEpgMappingDao {
+    @Query("SELECT * FROM channel_epg_mappings WHERE provider_id = :providerId")
+    abstract suspend fun getForProvider(providerId: Long): List<ChannelEpgMappingEntity>
+
+    @Query("SELECT * FROM channel_epg_mappings WHERE provider_id = :providerId AND provider_channel_id = :channelId LIMIT 1")
+    abstract suspend fun getForChannel(providerId: Long, channelId: Long): ChannelEpgMappingEntity?
+
+    @Query("""
+        SELECT * FROM channel_epg_mappings
+        WHERE provider_id = :providerId
+          AND provider_channel_id IN (:channelIds)
+    """)
+    abstract suspend fun getForChannels(providerId: Long, channelIds: List<Long>): List<ChannelEpgMappingEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertAll(mappings: List<ChannelEpgMappingEntity>)
+
+    @Query("DELETE FROM channel_epg_mappings WHERE provider_id = :providerId")
+    abstract suspend fun deleteByProvider(providerId: Long)
+
+    @Transaction
+    open suspend fun replaceForProvider(providerId: Long, mappings: List<ChannelEpgMappingEntity>) {
+        deleteByProvider(providerId)
+        if (mappings.isNotEmpty()) {
+            insertAll(mappings)
+        }
+    }
+
+    @Query("""
+        SELECT source_type, match_type, COUNT(*) as cnt
+        FROM channel_epg_mappings
+        WHERE provider_id = :providerId
+        GROUP BY source_type, match_type
+    """)
+    abstract suspend fun getResolutionStats(providerId: Long): List<EpgResolutionStatRow>
+}
+
+data class EpgResolutionStatRow(
+    @ColumnInfo(name = "source_type") val sourceType: String,
+    @ColumnInfo(name = "match_type") val matchType: String?,
+    val cnt: Int
+)
