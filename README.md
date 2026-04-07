@@ -33,8 +33,8 @@ Add your own screenshots to `docs/images/` and update this section with the fina
 
 ## Download
 
-- [Download StreamVault.apk](releases/StreamVault.apk)
-- The repository currently tracks a built release APK so GitHub can serve it directly from the project page.
+- [Download StreamVault.apk](https://github.com/Davidona/StreamVault-IPTV/raw/refs/heads/master/releases/StreamVault.apk)
+- This link points to GitHub's raw file endpoint so clicking it starts the APK download instead of opening the broken preview page.
 
 ## Project Structure
 
