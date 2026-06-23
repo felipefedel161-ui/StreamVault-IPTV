@@ -374,14 +374,14 @@ fun PlayerAspectRatioToast(
     ) {
         Box(
             modifier = Modifier
-                .background(Primary.copy(alpha = 0.9f), RoundedCornerShape(24.dp))
-                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text(
                 text = stringResource(R.string.player_aspect_ratio_label, aspectRatioLabel),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.92f),
+                fontWeight = FontWeight.Medium
             )
         }
     }
