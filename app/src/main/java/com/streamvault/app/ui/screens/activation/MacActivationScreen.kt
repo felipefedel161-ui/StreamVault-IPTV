@@ -1,5 +1,8 @@
 package com.streamvault.app.ui.screens.activation
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -206,19 +210,35 @@ fun MacActivationScreen(
     }
 }
 
+private fun copyDeviceIdToClipboard(context: android.content.Context, deviceId: String) {
+    if (deviceId.isBlank()) return
+    context.getSystemService(ClipboardManager::class.java)
+        ?.setPrimaryClip(ClipData.newPlainText("Device ID", deviceId))
+    Toast.makeText(context, "ID copiado", Toast.LENGTH_SHORT).show()
+}
+
 @Composable
 private fun DeviceIdBox(deviceId: String) {
-    Surface(
+    val context = LocalContext.current
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = SurfaceDefaults.colors(containerColor = AppColors.Brand.copy(alpha = 0.12f))
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            text = deviceId,
-            style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
-            color = AppColors.Brand,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp)
-        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = SurfaceDefaults.colors(containerColor = AppColors.Brand.copy(alpha = 0.12f))
+        ) {
+            Text(
+                text = deviceId,
+                style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
+                color = AppColors.Brand,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp)
+            )
+        }
+        TvButton(onClick = { copyDeviceIdToClipboard(context, deviceId) }) {
+            Text("⧉ Copiar ID")
+        }
     }
 }
