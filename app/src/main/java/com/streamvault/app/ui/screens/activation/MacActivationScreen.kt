@@ -1,6 +1,6 @@
 package com.streamvault.app.ui.screens.activation
 
-import android.provider.Settings
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,55 +10,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
+import com.streamvault.app.activation.ActivationError
+import com.streamvault.app.activation.ActivationResult
+import com.streamvault.app.activation.InovaActivationManager
 import com.streamvault.app.ui.components.shell.StatusPill
 import com.streamvault.app.ui.design.AppColors
 import com.streamvault.app.ui.interaction.TvButton
+import com.streamvault.domain.model.ProviderEpgSyncMode
 import com.streamvault.domain.usecase.M3uProviderSetupCommand
 import com.streamvault.domain.usecase.ValidateAndAddProvider
-import com.streamvault.domain.usecase.ValidateAndAddProviderResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import javax.inject.Inject
-
-// ─── URL do servidor ──────────────────────────────────────────────────────────
-private const val SERVER_BASE_URL = "https://artsil121.eu.pythonanywhere.com"
-
-// ─── State ────────────────────────────────────────────────────────────────────
 
 sealed class ActivationState {
     object Checking : ActivationState()
     object NotActivated : ActivationState()
-    data class Error(val message: String) : ActivationState()
-    data class Activated(val m3uUrl: String, val expiresIn: Int) : ActivationState()
+    data class Error(val message: String, val isExpired: Boolean = false, val isFingerprintMismatch: Boolean = false) : ActivationState()
+    data class Activated(val m3uUrl: String, val expiresIn: Int, val expiracao: String) : ActivationState()
     object AddingProvider : ActivationState()
     object Done : ActivationState()
 }
 
-// ─── ViewModel ────────────────────────────────────────────────────────────────
-
 @HiltViewModel
 class MacActivationViewModel @Inject constructor(
+    private val inovaActivationManager: InovaActivationManager,
     private val validateAndAddProvider: ValidateAndAddProvider
-) : ViewModel() {
+) : androidx.lifecycle.ViewModel() {
 
     private val _state = MutableStateFlow<ActivationState>(ActivationState.Checking)
     val state: StateFlow<ActivationState> = _state.asStateFlow()
@@ -69,83 +59,41 @@ class MacActivationViewModel @Inject constructor(
     private val _syncProgress = MutableStateFlow<String?>(null)
     val syncProgress: StateFlow<String?> = _syncProgress.asStateFlow()
 
-    fun checkActivation(androidId: String) {
-        _deviceId.value = androidId
+    fun checkActivation() {
+        val id = inovaActivationManager.getDeviceId()
+        _deviceId.value = id
         _state.value = ActivationState.Checking
 
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val deviceId = androidId.uppercase()
-                val url = URL("$SERVER_BASE_URL/api/status/$deviceId")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.connectTimeout = 10_000
-                conn.readTimeout = 10_000
-                conn.setRequestProperty("User-Agent", "InovaPlayer/7.0")
-
-                val code = conn.responseCode
-                val body = try {
-                    conn.inputStream.bufferedReader().readText()
-                } catch (_: Exception) {
-                    conn.errorStream?.bufferedReader()?.readText() ?: ""
-                }
-                conn.disconnect()
-
-                val json = runCatching { JSONObject(body) }.getOrDefault(JSONObject())
-
-                when (code) {
-                    200 -> {
-                        val autorizado = json.optBoolean("autorizado", false)
-                        if (autorizado) {
-                            val m3uUrl = json.optString("m3u_url", "")
-                            val diasRestantes = json.optInt("dias_restantes", 0)
-                            if (m3uUrl.isBlank()) {
-                                withContext(Dispatchers.Main) {
-                                    _state.value = ActivationState.Error(
-                                        "Lista não configurada para este dispositivo.\nContacte o administrador."
-                                    )
-                                }
-                            } else {
-                                withContext(Dispatchers.Main) {
-                                    _state.value = ActivationState.Activated(m3uUrl, diasRestantes)
-                                }
-                            }
-                        } else {
-                            val mensagem = json.optString("mensagem", "Dispositivo não ativado.")
-                            withContext(Dispatchers.Main) {
-                                _state.value = ActivationState.NotActivated
-                            }
-                        }
-                    }
-                    403 -> {
-                        val msg = json.optString("mensagem", "")
-                        val errorMsg = when {
-                            msg.contains("expirada", ignoreCase = true) ->
-                                "Assinatura expirada.\nContacte o administrador."
-                            else -> "Acesso negado.\nContacte o administrador."
-                        }
-                        withContext(Dispatchers.Main) {
-                            _state.value = ActivationState.Error(errorMsg)
-                        }
-                    }
-                    404 -> {
-                        withContext(Dispatchers.Main) {
-                            _state.value = ActivationState.NotActivated
-                        }
-                    }
-                    else -> {
-                        withContext(Dispatchers.Main) {
-                            _state.value = ActivationState.Error(
-                                "Erro no servidor (HTTP $code).\nTente novamente."
-                            )
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _state.value = ActivationState.Error(
-                        "Sem conexão com o servidor.\nVerifique sua internet e tente novamente."
+        viewModelScope.launch {
+            when (val result = inovaActivationManager.checkActivation(id)) {
+                is ActivationResult.Success -> {
+                    _state.value = ActivationState.Activated(
+                        m3uUrl = result.m3uUrl,
+                        expiresIn = result.diasRestantes,
+                        expiracao = result.expiracao
                     )
+                }
+                is ActivationResult.Error -> {
+                    _state.value = when (result.error) {
+                        ActivationError.NOT_FOUND -> ActivationState.NotActivated
+                        ActivationError.EXPIRED -> ActivationState.Error(
+                            "Assinatura expirada.\nContacte o administrador para renovar.",
+                            isExpired = true
+                        )
+                        ActivationError.FINGERPRINT_MISMATCH -> ActivationState.Error(
+                            "Licença vinculada a outro aparelho.\nContacte o administrador para liberar.",
+                            isFingerprintMismatch = true
+                        )
+                        ActivationError.NO_M3U -> ActivationState.Error(
+                            "Dispositivo ativo mas sem lista configurada.\nContacte o administrador."
+                        )
+                        ActivationError.NETWORK -> ActivationState.Error(
+                            "Sem conexão com o servidor.\nVerifique sua internet e tente novamente."
+                        )
+                        ActivationError.GENERIC -> ActivationState.Error(
+                            "Erro ao verificar ativação.\nTente novamente."
+                        )
+                    }
                 }
             }
         }
@@ -155,54 +103,41 @@ class MacActivationViewModel @Inject constructor(
         _state.value = ActivationState.AddingProvider
         viewModelScope.launch {
             try {
-                val result = validateAndAddProvider.addM3u(
+                validateAndAddProvider.addM3u(
                     M3uProviderSetupCommand(
                         url = m3uUrl,
                         name = name,
-                        m3uVodClassificationEnabled = true
+                        httpUserAgent = "InovaPlayer/7.0",
+                        httpHeaders = "",
+                        epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+                        m3uVodClassificationEnabled = true,
+                        existingProviderId = null
                     ),
                     onProgress = { msg -> _syncProgress.value = msg }
                 )
-                // Navigate regardless of sync result — the provider is saved.
-                // If sync failed partially, the user can retry from Settings.
-                _state.value = ActivationState.Done
-            } catch (e: Exception) {
-                // Even on unexpected error, navigate to app.
-                // Provider may already be saved; user can retry sync.
-                _state.value = ActivationState.Done
-            }
+            } catch (_: Exception) {}
+            _state.value = ActivationState.Done
         }
     }
 }
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
 
 @Composable
 fun MacActivationScreen(
     onActivated: () -> Unit,
     viewModel: MacActivationViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val deviceId by viewModel.deviceId.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
 
-    LaunchedEffect(Unit) {
-        val androidId = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ANDROID_ID
-        ) ?: "UNKNOWN"
-        viewModel.checkActivation(androidId)
-    }
+    LaunchedEffect(Unit) { viewModel.checkActivation() }
 
     LaunchedEffect(state) {
         if (state is ActivationState.Activated) {
             val s = state as ActivationState.Activated
             viewModel.addProviderFromM3u(s.m3uUrl)
         }
-        if (state is ActivationState.Done) {
-            onActivated()
-        }
+        if (state is ActivationState.Done) onActivated()
     }
 
     Box(
@@ -210,130 +145,66 @@ fun MacActivationScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = 0.22f),
-                        AppColors.HeroTop,
-                        AppColors.HeroBottom
-                    )
+                    colors = listOf(AppColors.Canvas, AppColors.HeroTop, AppColors.HeroBottom)
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            modifier = Modifier
-                .widthIn(max = 620.dp)
-                .fillMaxWidth()
-                .padding(32.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = SurfaceDefaults.colors(containerColor = AppColors.Surface.copy(alpha = 0.92f))
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(32.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = SurfaceDefaults.colors(containerColor = AppColors.Surface.copy(alpha = 0.95f))
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 40.dp, vertical = 34.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                when (val s = state) {
-
-                    is ActivationState.Checking -> {
-                        StatusPill(label = "INOVA PLAYER", containerColor = AppColors.BrandMuted)
-                        Spacer(Modifier.height(4.dp))
-                        CircularProgressIndicator(color = AppColors.Brand)
-                        Text(
-                            text = "Verificando ativação...",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AppColors.TextPrimary,
-                            textAlign = TextAlign.Center
-                        )
-                        if (deviceId.isNotBlank()) {
-                            Text(
-                                text = "ID: ${deviceId.uppercase()}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppColors.TextSecondary,
-                                textAlign = TextAlign.Center
-                            )
+                AnimatedContent(targetState = state, label = "activation_state") { s ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when (s) {
+                            is ActivationState.Checking -> {
+                                StatusPill(label = "INOVA PLAYER", containerColor = AppColors.BrandMuted)
+                                CircularProgressIndicator(color = AppColors.Brand, modifier = Modifier.size(40.dp))
+                                Text("Verificando ativação...", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
+                                if (deviceId.isNotBlank()) Text("ID: $deviceId", style = MaterialTheme.typography.bodySmall, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+                            }
+                            is ActivationState.NotActivated -> {
+                                StatusPill(label = "NÃO ATIVADO", containerColor = AppColors.BrandMuted)
+                                Text("Dispositivo não ativado", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
+                                Text("Entre em contato com o administrador\ne informe seu ID:", style = MaterialTheme.typography.bodyLarge, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+                                DeviceIdBox(deviceId)
+                                TvButton(onClick = { viewModel.checkActivation() }) { Text("↻ Tentar novamente") }
+                            }
+                            is ActivationState.Error -> {
+                                StatusPill(label = if (s.isExpired) "EXPIRADO" else if (s.isFingerprintMismatch) "BLOQUEADO" else "ERRO", containerColor = AppColors.BrandMuted)
+                                Text(s.message, style = MaterialTheme.typography.bodyLarge, color = AppColors.TextSecondary, textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().background(AppColors.Brand.copy(alpha = 0.08f), RoundedCornerShape(12.dp)).padding(14.dp))
+                                if (deviceId.isNotBlank()) { Text("ID do dispositivo:", style = MaterialTheme.typography.bodySmall, color = AppColors.TextTertiary, textAlign = TextAlign.Center); DeviceIdBox(deviceId) }
+                                if (!s.isFingerprintMismatch) TvButton(onClick = { viewModel.checkActivation() }) { Text("↻ Tentar novamente") }
+                            }
+                            is ActivationState.Activated, is ActivationState.AddingProvider -> {
+                                StatusPill(label = "ATIVADO ✓", containerColor = AppColors.Brand)
+                                CircularProgressIndicator(color = AppColors.Brand, modifier = Modifier.size(40.dp))
+                                Text("Carregando sua lista...", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
+                                if (s is ActivationState.Activated && s.expiresIn >= 0)
+                                    Text("Expira em: ${s.expiracao} (${s.expiresIn} dias)", style = MaterialTheme.typography.bodySmall, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+                                syncProgress?.let {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = AppColors.Brand, trackColor = AppColors.BrandMuted)
+                                    Text(it, style = MaterialTheme.typography.bodySmall, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+                                }
+                            }
+                            is ActivationState.Done -> CircularProgressIndicator(color = AppColors.Brand)
                         }
-                    }
-
-                    is ActivationState.NotActivated -> {
-                        StatusPill(label = "NÃO ATIVADO", containerColor = AppColors.BrandMuted)
-                        Text(
-                            text = "Dispositivo não ativado",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AppColors.TextPrimary,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "Entre em contato com o administrador\ne informe seu ID:",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = AppColors.TextSecondary,
-                            textAlign = TextAlign.Center
-                        )
-                        DeviceIdBox(deviceId = deviceId)
-                        TvButton(onClick = { viewModel.checkActivation(deviceId) }) {
-                            Text("Tentar novamente")
-                        }
-                    }
-
-                    is ActivationState.Error -> {
-                        StatusPill(label = "ERRO", containerColor = AppColors.BrandMuted)
-                        Text(
-                            text = s.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = AppColors.TextSecondary,
-                            textAlign = TextAlign.Center
-                        )
-                        if (deviceId.isNotBlank()) {
-                            Text(
-                                text = "ID do dispositivo:",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppColors.TextSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                            DeviceIdBox(deviceId = deviceId)
-                        }
-                        TvButton(onClick = { viewModel.checkActivation(deviceId) }) {
-                            Text("Tentar novamente")
-                        }
-                    }
-
-                    is ActivationState.Activated,
-                    is ActivationState.AddingProvider -> {
-                        StatusPill(label = "ATIVADO", containerColor = AppColors.Brand)
-                        CircularProgressIndicator(color = AppColors.Brand)
-                        Text(
-                            text = "Carregando sua lista...",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AppColors.TextPrimary,
-                            textAlign = TextAlign.Center
-                        )
-                        val progressMsg = syncProgress
-                        if (progressMsg != null) {
-                            LinearProgressIndicator(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                color = AppColors.Brand,
-                                trackColor = AppColors.BrandMuted
-                            )
-                            Text(
-                                text = progressMsg,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AppColors.TextSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    is ActivationState.Done -> {
-                        CircularProgressIndicator(color = AppColors.Brand)
                     }
                 }
             }
         }
     }
 }
-
-// ─── DeviceIdBox ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun DeviceIdBox(deviceId: String) {
@@ -343,8 +214,8 @@ private fun DeviceIdBox(deviceId: String) {
         colors = SurfaceDefaults.colors(containerColor = AppColors.Brand.copy(alpha = 0.12f))
     ) {
         Text(
-            text = deviceId.uppercase(),
-            style = MaterialTheme.typography.titleMedium,
+            text = deviceId,
+            style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace),
             color = AppColors.Brand,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp)
