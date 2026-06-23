@@ -176,15 +176,6 @@ fun DashboardScreen(
                         )
                     }
                 }
-                uiState.updateNotice?.let { updateNotice ->
-                    item(key = "update_notice") {
-                        DashboardUpdateCard(
-                            notice = updateNotice,
-                            onOpenSettings = { onNavigate(Routes.SETTINGS) },
-                            onInstallUpdate = viewModel::installDownloadedUpdate
-                        )
-                    }
-                }
                 items(orderedSections, key = { it.storageValue }) { section ->
                     when (section) {
                     AppHomeDashboardShelf.LIVE_SHORTCUTS -> DashboardShortcutRow(
