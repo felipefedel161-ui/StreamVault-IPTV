@@ -91,7 +91,6 @@ import com.streamvault.app.ui.screens.player.overlay.PlayerNoticeBanner
 import com.streamvault.app.ui.screens.player.overlay.PlayerEpisodeSelectionDialog
 import com.streamvault.app.ui.screens.player.overlay.PlayerResumePrompt
 import com.streamvault.app.ui.screens.player.overlay.PlayerTrackSelectionDialog
-import com.streamvault.app.ui.screens.player.overlay.PlayerAspectRatioToast
 import com.streamvault.app.ui.screens.player.overlay.PlayerControlsOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerNumericInputOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerResolutionBadge
@@ -894,29 +893,14 @@ fun PlayerScreen(
         // Buffering indicator
         if (playbackState == PlaybackState.BUFFERING) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 64.dp),
-                contentAlignment = Alignment.TopCenter
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.62f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        color = Primary,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.player_buffering),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
-                    )
-                }
+                CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.85f),
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
 
@@ -1065,14 +1049,6 @@ fun PlayerScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 40.dp)
-        )
-
-        PlayerAspectRatioToast(
-            aspectRatioLabel = aspectRatio.modeName,
-            controlsVisible = showControls,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 32.dp)
         )
 
         PlayerResolutionBadge(
