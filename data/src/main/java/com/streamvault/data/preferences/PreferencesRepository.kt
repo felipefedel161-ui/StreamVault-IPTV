@@ -2046,6 +2046,7 @@ class PreferencesRepository @Inject constructor(
             .split(',')
             .asSequence()
             .mapNotNull { token -> AppHomeDashboardShelf.fromStorage(token.trim()) }
+            .filterNot { it == AppHomeDashboardShelf.LIVE_SHORTCUTS }
             .toList()
         return if (decoded.isEmpty()) {
             AppHomeDashboardShelf.defaultOrder

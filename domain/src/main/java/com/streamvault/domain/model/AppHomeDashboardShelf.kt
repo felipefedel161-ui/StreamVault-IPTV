@@ -6,7 +6,7 @@ enum class AppHomeDashboardShelf(
 ) {
     FAVORITE_CHANNELS("favorite_channels", defaultEnabled = true),
     RECENT_CHANNELS("recent_channels", defaultEnabled = true),
-    LIVE_SHORTCUTS("live_shortcuts", defaultEnabled = true),
+    LIVE_SHORTCUTS("live_shortcuts", defaultEnabled = false),
     CONTINUE_WATCHING("continue_watching", defaultEnabled = true),
     RECENT_MOVIES("recent_movies", defaultEnabled = true),
     RECENT_SERIES("recent_series", defaultEnabled = true),
