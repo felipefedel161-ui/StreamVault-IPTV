@@ -89,6 +89,7 @@ object Routes {
     const val MOVIE_DETAIL = "movie_detail/{movieId}?returnRoute={returnRoute}"
     const val SERIES_DETAIL = "series_detail/{seriesId}?returnRoute={returnRoute}"
     const val WELCOME = "welcome"
+    const val MAC_ACTIVATION = "mac_activation"
     const val PARENTAL_CONTROL_GROUPS = "parental_control_groups/{providerId}"
     const val MULTI_VIEW = "multi_view"
 
@@ -405,9 +406,21 @@ fun AppNavigation(mainActivity: MainActivity) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 },
+                // Sem provedores: vai para a tela de ativação por MAC
                 onNavigateToSetup = dropUnlessResumed {
-                    navController.navigate(Routes.providerSetup()) {
+                    navController.navigate(Routes.MAC_ACTIVATION) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // ── Tela de Ativação por MAC ──────────────────────────────────────
+        composable(Routes.MAC_ACTIVATION) {
+            com.streamvault.app.ui.screens.activation.MacActivationScreen(
+                onActivated = dropUnlessResumed {
+                    navController.navigate(landingRoute) {
+                        popUpTo(Routes.MAC_ACTIVATION) { inclusive = true }
                     }
                 }
             )
