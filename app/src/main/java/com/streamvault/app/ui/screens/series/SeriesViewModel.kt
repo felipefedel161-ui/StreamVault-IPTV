@@ -42,6 +42,7 @@ import com.streamvault.app.ui.screens.vod.setVodSearchQuery
 import com.streamvault.app.ui.screens.vod.setVodFavorite
 import com.streamvault.app.ui.screens.vod.updateVodGroupMembership
 import com.streamvault.app.ui.screens.vod.VodBrowseDefaults
+import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -79,8 +80,10 @@ class SeriesViewModel @Inject constructor(
     private val favoriteRepository: FavoriteRepository,
     private val getContinueWatching: GetContinueWatching,
     private val getCustomCategories: GetCustomCategories,
-    private val parentalControlManager: ParentalControlManager
+    private val parentalControlManager: ParentalControlManager,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    val categoryKeyword: String? = savedStateHandle.get<String>("categoryKeyword")
     private companion object {
         const val UNCATEGORIZED = "Uncategorized"
         const val MIN_SEARCH_QUERY_LENGTH = 2
@@ -168,6 +171,10 @@ class SeriesViewModel @Inject constructor(
                             } else {
                                 categories
                             }
+                        }.let { categories ->
+                            val kw = categoryKeyword
+                            if (kw.isNullOrBlank()) categories
+                            else categories.filter { it.name.contains(kw, ignoreCase = true) }
                         }
                         SeriesCatalogDependencies(
                             allFavorites = allFavorites,

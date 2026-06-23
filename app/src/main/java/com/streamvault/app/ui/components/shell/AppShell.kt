@@ -862,6 +862,9 @@ private fun AppTopLevelDestination.toDestinationItem(): DestinationItem = when (
     AppTopLevelDestination.MOVIES -> DestinationItem(Routes.MOVIES, R.string.nav_movies, Icons.Default.Star)
     AppTopLevelDestination.SERIES -> DestinationItem(Routes.SERIES, R.string.nav_series, Icons.Default.Menu)
     AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)
+    AppTopLevelDestination.NOVELAS -> DestinationItem(Routes.NOVELAS, R.string.nav_novelas, NovelaIcon)
+    AppTopLevelDestination.INFANTIL -> DestinationItem(Routes.INFANTIL, R.string.nav_infantil, ChildrenIcon)
+    AppTopLevelDestination.ANIMES -> DestinationItem(Routes.ANIMES, R.string.nav_animes, AnimeIcon)
     AppTopLevelDestination.GUIDE -> DestinationItem(Routes.EPG, R.string.nav_epg, Icons.Default.Info)
     AppTopLevelDestination.SEARCH -> DestinationItem(Routes.SEARCH, R.string.search_title, Icons.Default.Search)
     AppTopLevelDestination.PLUGINS -> DestinationItem(Routes.PLUGINS, R.string.nav_plugins, PluginBlocksIcon)
@@ -909,3 +912,85 @@ private val PluginBlocksIcon: ImageVector
     }
 
 private var _pluginBlocksIcon: ImageVector? = null
+
+private val NovelaIcon: ImageVector
+    get() {
+        if (_novelaIcon != null) return _novelaIcon!!
+        _novelaIcon = ImageVector.Builder(
+            name = "Novela",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Heart shape representing romantic drama/novela
+                moveTo(12f, 21f)
+                lineTo(3.5f, 12.5f)
+                curveTo(2.5f, 11.5f, 2f, 10.2f, 2f, 9f)
+                curveTo(2f, 6.24f, 4.24f, 4f, 7f, 4f)
+                curveTo(8.62f, 4f, 10.08f, 4.78f, 11f, 6f)
+                curveTo(11.92f, 4.78f, 13.38f, 4f, 15f, 4f)
+                curveTo(17.76f, 4f, 20f, 6.24f, 20f, 9f)
+                curveTo(20f, 10.2f, 19.5f, 11.5f, 18.5f, 12.5f)
+                lineTo(12f, 21f)
+                close()
+            }
+        }.build()
+        return _novelaIcon!!
+    }
+private var _novelaIcon: ImageVector? = null
+
+private val ChildrenIcon: ImageVector
+    get() {
+        if (_childrenIcon != null) return _childrenIcon!!
+        _childrenIcon = ImageVector.Builder(
+            name = "Children",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Star shape representing kids/infantil
+                moveTo(12f, 2f)
+                lineTo(15.09f, 8.26f)
+                lineTo(22f, 9.27f)
+                lineTo(17f, 14.14f)
+                lineTo(18.18f, 21.02f)
+                lineTo(12f, 17.77f)
+                lineTo(5.82f, 21.02f)
+                lineTo(7f, 14.14f)
+                lineTo(2f, 9.27f)
+                lineTo(8.91f, 8.26f)
+                close()
+            }
+        }.build()
+        return _childrenIcon!!
+    }
+private var _childrenIcon: ImageVector? = null
+
+private val AnimeIcon: ImageVector
+    get() {
+        if (_animeIcon != null) return _animeIcon!!
+        _animeIcon = ImageVector.Builder(
+            name = "Anime",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Lightning bolt representing anime energy
+                moveTo(13f, 2f)
+                lineTo(6f, 14f)
+                horizontalLineTo(11f)
+                lineTo(9f, 22f)
+                lineTo(20f, 9f)
+                horizontalLineTo(14f)
+                close()
+            }
+        }.build()
+        return _animeIcon!!
+    }
+private var _animeIcon: ImageVector? = null

@@ -235,6 +235,9 @@ private fun formatAppLandingDestinationLabel(
         AppLandingDestination.SERIES -> R.string.nav_series
         AppLandingDestination.GUIDE -> R.string.nav_epg
         AppLandingDestination.DOWNLOADS -> R.string.nav_downloads
+        AppLandingDestination.NOVELAS -> R.string.nav_novelas
+        AppLandingDestination.INFANTIL -> R.string.nav_infantil
+        AppLandingDestination.ANIMES -> R.string.nav_animes
         AppLandingDestination.PLUGINS -> R.string.nav_plugins
         AppLandingDestination.SETTINGS -> R.string.nav_settings
     }

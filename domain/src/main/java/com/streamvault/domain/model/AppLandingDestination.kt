@@ -7,6 +7,9 @@ enum class AppLandingDestination(val storageValue: String) {
     SERIES("series"),
     GUIDE("guide"),
     DOWNLOADS("downloads"),
+    NOVELAS("novelas"),
+    INFANTIL("infantil"),
+    ANIMES("animes"),
     PLUGINS("plugins"),
     SETTINGS("settings");
 

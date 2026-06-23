@@ -77,6 +77,12 @@ object Routes {
     const val LIVE_TV_DESTINATION = "live_tv?categoryId={categoryId}"
     const val MOVIES = "movies"
     const val SERIES = "series"
+    const val NOVELAS = "novelas"
+    const val INFANTIL = "infantil"
+    const val ANIMES = "animes"
+    const val SERIES_FILTERED = "series_filtered?categoryKeyword={categoryKeyword}"
+
+    fun seriesFiltered(categoryKeyword: String) = "series_filtered?categoryKeyword=$categoryKeyword"
     const val DOWNLOADS = "downloads"
     const val EPG = "epg"
     const val EPG_DESTINATION = "epg?categoryId={categoryId}&anchorTime={anchorTime}&favoritesOnly={favoritesOnly}"
@@ -308,6 +314,9 @@ internal fun AppLandingDestination.toAppRoute(): String = when (this) {
     AppLandingDestination.SERIES -> Routes.SERIES
     AppLandingDestination.GUIDE -> Routes.EPG
     AppLandingDestination.DOWNLOADS -> Routes.DOWNLOADS
+    AppLandingDestination.NOVELAS -> Routes.NOVELAS
+    AppLandingDestination.INFANTIL -> Routes.INFANTIL
+    AppLandingDestination.ANIMES -> Routes.ANIMES
     AppLandingDestination.PLUGINS -> Routes.PLUGINS
     AppLandingDestination.SETTINGS -> Routes.SETTINGS
 }
@@ -318,6 +327,9 @@ internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.MOVIES -> Routes.MOVIES
     AppTopLevelDestination.SERIES -> Routes.SERIES
     AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS
+    AppTopLevelDestination.NOVELAS -> Routes.NOVELAS
+    AppTopLevelDestination.INFANTIL -> Routes.INFANTIL
+    AppTopLevelDestination.ANIMES -> Routes.ANIMES
     AppTopLevelDestination.GUIDE -> Routes.EPG
     AppTopLevelDestination.SEARCH -> Routes.SEARCH
     AppTopLevelDestination.PLUGINS -> Routes.PLUGINS
@@ -590,11 +602,60 @@ fun AppNavigation(mainActivity: MainActivity) {
             )
         }
 
+        composable(
+            route = Routes.SERIES_FILTERED,
+            arguments = listOf(
+                navArgument("categoryKeyword") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val keyword = backStackEntry.arguments?.getString("categoryKeyword") ?: ""
+            val activeRoute = when {
+                keyword.equals("novela", ignoreCase = true) || keyword.equals("novelas", ignoreCase = true) -> Routes.NOVELAS
+                keyword.equals("infantil", ignoreCase = true) || keyword.equals("kids", ignoreCase = true) -> Routes.INFANTIL
+                keyword.equals("anime", ignoreCase = true) || keyword.equals("animes", ignoreCase = true) -> Routes.ANIMES
+                else -> Routes.SERIES
+            }
+            SeriesScreen(
+                onSeriesClick = { series ->
+                    navController.navigateToSeriesDetail(series, activeRoute)
+                },
+                onSeriesIdClick = { seriesId ->
+                    navController.navigateIfResumed(Routes.seriesDetail(seriesId, activeRoute))
+                },
+                onNavigate = { route -> tabNavigate(route) },
+                currentRoute = activeRoute
+            )
+        }
+
         composable(Routes.DOWNLOADS) {
             DownloadsScreen(
                 onNavigate = { route -> tabNavigate(route) },
                 currentRoute = Routes.DOWNLOADS
             )
+        }
+
+        composable(Routes.NOVELAS) {
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(Routes.seriesFiltered("novela")) {
+                    popUpTo(Routes.NOVELAS) { inclusive = true }
+                }
+            }
+        }
+
+        composable(Routes.INFANTIL) {
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(Routes.seriesFiltered("infantil")) {
+                    popUpTo(Routes.INFANTIL) { inclusive = true }
+                }
+            }
+        }
+
+        composable(Routes.ANIMES) {
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                navController.navigate(Routes.seriesFiltered("anime")) {
+                    popUpTo(Routes.ANIMES) { inclusive = true }
+                }
+            }
         }
 
         composable(
