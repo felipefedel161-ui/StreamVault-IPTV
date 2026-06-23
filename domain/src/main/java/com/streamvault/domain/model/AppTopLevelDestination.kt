@@ -24,7 +24,6 @@ enum class AppTopLevelDestination(
             DOWNLOADS,
             GUIDE,
             SEARCH,
-            PLUGINS,
             SETTINGS
         )
 
@@ -33,7 +32,7 @@ enum class AppTopLevelDestination(
 
         fun normalizeForStorage(destinations: List<AppTopLevelDestination>): List<AppTopLevelDestination> {
             val unique = linkedSetOf<AppTopLevelDestination>()
-            destinations.forEach(unique::add)
+            destinations.filterNot { it == PLUGINS }.forEach(unique::add)
             unique += SETTINGS
             return unique.toList()
         }
