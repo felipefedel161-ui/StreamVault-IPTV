@@ -65,6 +65,17 @@ internal fun ProviderDiagnosticsPanel(
             style = MaterialTheme.typography.labelSmall,
             color = OnSurface
         )
+        // Show the playlist URL for M3U providers so admins can diagnose sync failures
+        if (provider.type == ProviderType.M3U) {
+            val playlistUrl = provider.m3uUrl.ifBlank { provider.serverUrl }
+            if (playlistUrl.isNotBlank()) {
+                Text(
+                    text = "Playlist URL: $playlistUrl",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OnSurfaceDim
+                )
+            }
+        }
         diagnostics.healthSummary(provider.type, movieIndexInProgress)?.let { summary ->
             Text(
                 text = summary,
