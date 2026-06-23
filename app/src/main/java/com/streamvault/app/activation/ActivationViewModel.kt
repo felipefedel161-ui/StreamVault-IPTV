@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.streamvault.domain.model.ProviderEpgSyncMode
 import com.streamvault.domain.usecase.M3uProviderSetupCommand
 import com.streamvault.domain.usecase.ValidateAndAddProvider
-import com.streamvault.domain.usecase.ValidateAndAddProviderResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,16 +29,12 @@ class ActivationViewModel @Inject constructor(
     fun activate(name: String = "") {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    error = null,
-                    syncProgress = "Verificando ativação..."
-                )
+                it.copy(isLoading = true, error = null, syncProgress = "Verificando ativação...")
             }
 
             when (val result = inovaActivationManager.activate()) {
                 is ActivationResult.Success -> {
-                    val providerName = name.ifBlank { "Minha Lista" }
+                    val providerName = name.ifBlank { "INOVA PLAY" }
                     _uiState.update { it.copy(syncProgress = "Carregando canais...") }
 
                     try {
@@ -50,19 +45,15 @@ class ActivationViewModel @Inject constructor(
                                 httpUserAgent = "InovaPlayer/7.0",
                                 httpHeaders = "",
                                 epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
-                                m3uVodClassificationEnabled = false,
+                                m3uVodClassificationEnabled = true,
                                 existingProviderId = null
                             ),
                             onProgress = { msg ->
                                 _uiState.update { it.copy(syncProgress = msg) }
                             }
                         )
-                    } catch (_: Exception) {
-                        // Provider may already be saved — navigate anyway.
-                    }
+                    } catch (_: Exception) {}
 
-                    // Always navigate after server confirmed activation,
-                    // regardless of sync result. User can retry from Settings.
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -77,22 +68,20 @@ class ActivationViewModel @Inject constructor(
                 is ActivationResult.Error -> {
                     val errorMsg = when (result.error) {
                         ActivationError.EXPIRED ->
-                            "Assinatura expirada. Contacte o administrador."
+                            "⚠️ Assinatura expirada. Contacte o administrador."
                         ActivationError.NOT_FOUND ->
-                            "Dispositivo não cadastrado. Informe o ID ao seu revendedor:\n${_uiState.value.deviceId}"
+                            "❌ Dispositivo não cadastrado.\n\nInforme o ID ao seu revendedor:\n${_uiState.value.deviceId}"
                         ActivationError.NO_M3U ->
-                            "Lista não configurada para este dispositivo. Contacte o administrador."
+                            "⚠️ Dispositivo ativo mas sem lista configurada.\nContacte o administrador."
+                        ActivationError.FINGERPRINT_MISMATCH ->
+                            "🔒 Licença vinculada a outro aparelho.\nContacte o administrador para liberar."
                         ActivationError.NETWORK ->
-                            "Sem conexão com o servidor. Verifique sua internet."
+                            "📡 Sem conexão com o servidor.\nVerifique sua internet e tente novamente."
                         ActivationError.GENERIC ->
-                            "Erro ao verificar ativação. Tente novamente."
+                            "❌ Erro ao verificar ativação. Tente novamente."
                     }
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            syncProgress = null,
-                            error = errorMsg
-                        )
+                        it.copy(isLoading = false, syncProgress = null, error = errorMsg)
                     }
                 }
             }
