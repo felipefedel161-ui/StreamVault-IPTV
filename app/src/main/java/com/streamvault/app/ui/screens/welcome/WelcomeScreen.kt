@@ -134,7 +134,8 @@ fun WelcomeScreen(
     LaunchedEffect(hasProviders) {
         when (hasProviders) {
             true -> onNavigateToHome()
-            false -> Unit
+            // Sem provedores: vai direto para ativação por MAC, sem mostrar a tela de boas-vindas
+            false -> onNavigateToSetup()
             null -> Unit
         }
     }
