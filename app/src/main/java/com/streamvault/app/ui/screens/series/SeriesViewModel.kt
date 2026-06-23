@@ -84,11 +84,49 @@ class SeriesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     val categoryKeyword: String? = savedStateHandle.get<String>("categoryKeyword")
+
     private companion object {
         const val UNCATEGORIZED = "Uncategorized"
         const val MIN_SEARCH_QUERY_LENGTH = 2
         const val FAVORITE_ID_FETCH_BUFFER = 80
         const val INITIAL_PREVIEW_BATCH_SIZE = 6
+
+        /**
+         * Termos base usados pelas abas de categoria (Novelas/Infantil/Animes) e os
+         * sinônimos/variações comuns usados por provedores de IPTV em português.
+         * A busca é feita por substring (contains), então cada termo já cobre
+         * variações como plural automaticamente (ex: "novela" casa com "novelas").
+         */
+        val CATEGORY_KEYWORD_SYNONYMS: Map<String, List<String>> = mapOf(
+            "novela" to listOf(
+                "novela", "novelas", "telenovela", "telenovelas",
+                "soap opera", "dorama", "doramas", "novelinha"
+            ),
+            "infantil" to listOf(
+                "infantil", "infantis", "kids", "kid", "crianca", "criancas",
+                "desenho", "desenhos", "cartoon", "cartoons", "animacao",
+                "animacoes", "junior", "baby", "disney", "nickelodeon",
+                "cartoon network"
+            ),
+            "anime" to listOf(
+                "anime", "animes", "animee", "mangá", "manga"
+            )
+        )
+
+        /** Remove acentos para comparações tolerantes a variações de escrita. */
+        fun String.normalizeForMatch(): String =
+            java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
+                .replace(Regex("[\\p{InCombiningDiacriticalMarks}]"), "")
+                .lowercase()
+
+        fun matchesCategoryKeyword(categoryName: String, keyword: String): Boolean {
+            val normalizedCategory = categoryName.normalizeForMatch()
+            val baseKeyword = keyword.normalizeForMatch()
+            val candidates = CATEGORY_KEYWORD_SYNONYMS[baseKeyword]
+                ?.map { it.normalizeForMatch() }
+                ?: listOf(baseKeyword)
+            return candidates.any { normalizedCategory.contains(it) }
+        }
     }
 
     private val _uiState = MutableStateFlow(SeriesUiState())
@@ -174,7 +212,7 @@ class SeriesViewModel @Inject constructor(
                         }.let { categories ->
                             val kw = categoryKeyword
                             if (kw.isNullOrBlank()) categories
-                            else categories.filter { it.name.contains(kw, ignoreCase = true) }
+                            else categories.filter { matchesCategoryKeyword(it.name, kw) }
                         }
                         SeriesCatalogDependencies(
                             allFavorites = allFavorites,
