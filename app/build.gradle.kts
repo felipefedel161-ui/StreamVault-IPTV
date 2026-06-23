@@ -111,8 +111,12 @@ android {
             // Keep beta close to release behavior but faster for CI/test distribution.
             isMinifyEnabled = false
             isShrinkResources = false
-            if (keystorePropertiesFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
+            // Use release keystore if available; fall back to debug signing so the
+            // APK is always installable without a Play Store certificate.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
             matchingFallbacks += listOf("release")
         }
