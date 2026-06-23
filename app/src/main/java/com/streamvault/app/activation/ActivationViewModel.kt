@@ -27,10 +27,6 @@ class ActivationViewModel @Inject constructor(
         _uiState.update { it.copy(deviceId = inovaActivationManager.getDeviceId()) }
     }
 
-    /**
-     * Inicia a ativação apenas pelo MAC/Android ID — sem PIN.
-     * [name] é o nome amigável que o usuário dá à lista (opcional).
-     */
     fun activate(name: String = "") {
         viewModelScope.launch {
             _uiState.update {
@@ -46,50 +42,35 @@ class ActivationViewModel @Inject constructor(
                     val providerName = name.ifBlank { "Minha Lista" }
                     _uiState.update { it.copy(syncProgress = "Carregando canais...") }
 
-                    when (val addResult = validateAndAddProvider.addM3u(
-                        M3uProviderSetupCommand(
-                            url = result.m3uUrl,
-                            name = providerName,
-                            httpUserAgent = "InovaPlayer/7.0",
-                            httpHeaders = "",
-                            epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
-                            m3uVodClassificationEnabled = false,
-                            existingProviderId = null
-                        ),
-                        onProgress = { msg ->
-                            _uiState.update { it.copy(syncProgress = msg) }
-                        }
-                    )) {
-                        is ValidateAndAddProviderResult.Success,
-                        is ValidateAndAddProviderResult.SavedWithWarning -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    activationSuccess = true,
-                                    syncProgress = null,
-                                    diasRestantes = result.diasRestantes,
-                                    expiracao = result.expiracao
-                                )
+                    try {
+                        validateAndAddProvider.addM3u(
+                            M3uProviderSetupCommand(
+                                url = result.m3uUrl,
+                                name = providerName,
+                                httpUserAgent = "InovaPlayer/7.0",
+                                httpHeaders = "",
+                                epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+                                m3uVodClassificationEnabled = false,
+                                existingProviderId = null
+                            ),
+                            onProgress = { msg ->
+                                _uiState.update { it.copy(syncProgress = msg) }
                             }
-                        }
-                        is ValidateAndAddProviderResult.ValidationError -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    syncProgress = null,
-                                    error = addResult.message
-                                )
-                            }
-                        }
-                        is ValidateAndAddProviderResult.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    syncProgress = null,
-                                    error = "Ativação válida, mas erro ao carregar lista: ${addResult.message}"
-                                )
-                            }
-                        }
+                        )
+                    } catch (_: Exception) {
+                        // Provider may already be saved — navigate anyway.
+                    }
+
+                    // Always navigate after server confirmed activation,
+                    // regardless of sync result. User can retry from Settings.
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activationSuccess = true,
+                            syncProgress = null,
+                            diasRestantes = result.diasRestantes,
+                            expiracao = result.expiracao
+                        )
                     }
                 }
 

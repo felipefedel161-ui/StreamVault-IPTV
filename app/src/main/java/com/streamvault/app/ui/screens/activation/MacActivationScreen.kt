@@ -26,6 +26,7 @@ import com.streamvault.app.ui.design.AppColors
 import com.streamvault.app.ui.interaction.TvButton
 import com.streamvault.domain.usecase.M3uProviderSetupCommand
 import com.streamvault.domain.usecase.ValidateAndAddProvider
+import com.streamvault.domain.usecase.ValidateAndAddProviderResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,8 +39,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 
-// ─── URL do seu servidor ──────────────────────────────────────────────────────
-private const val SERVER_BASE_URL = "https://Artsil121.pythonanywhere.com"
+// ─── URL do servidor ──────────────────────────────────────────────────────────
+private const val SERVER_BASE_URL = "https://artsil121.eu.pythonanywhere.com"
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -74,35 +75,76 @@ class MacActivationViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val url = URL("$SERVER_BASE_URL/api/status/${androidId.uppercase()}")
+                val deviceId = androidId.uppercase()
+                val url = URL("$SERVER_BASE_URL/api/status/$deviceId")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
                 conn.connectTimeout = 10_000
                 conn.readTimeout = 10_000
+                conn.setRequestProperty("User-Agent", "InovaPlayer/7.0")
 
                 val code = conn.responseCode
-                val body = conn.inputStream.bufferedReader().readText()
+                val body = try {
+                    conn.inputStream.bufferedReader().readText()
+                } catch (_: Exception) {
+                    conn.errorStream?.bufferedReader()?.readText() ?: ""
+                }
                 conn.disconnect()
 
-                val json = JSONObject(body)
-                val autorizado = json.optBoolean("autorizado", false)
+                val json = runCatching { JSONObject(body) }.getOrDefault(JSONObject())
 
-                if (autorizado) {
-                    val m3uUrl = json.optString("m3u_url", "")
-                    val diasRestantes = json.optInt("dias_restantes", 0)
-                    withContext(Dispatchers.Main) {
-                        _state.value = ActivationState.Activated(m3uUrl, diasRestantes)
+                when (code) {
+                    200 -> {
+                        val autorizado = json.optBoolean("autorizado", false)
+                        if (autorizado) {
+                            val m3uUrl = json.optString("m3u_url", "")
+                            val diasRestantes = json.optInt("dias_restantes", 0)
+                            if (m3uUrl.isBlank()) {
+                                withContext(Dispatchers.Main) {
+                                    _state.value = ActivationState.Error(
+                                        "Lista não configurada para este dispositivo.\nContacte o administrador."
+                                    )
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    _state.value = ActivationState.Activated(m3uUrl, diasRestantes)
+                                }
+                            }
+                        } else {
+                            val mensagem = json.optString("mensagem", "Dispositivo não ativado.")
+                            withContext(Dispatchers.Main) {
+                                _state.value = ActivationState.NotActivated
+                            }
+                        }
                     }
-                } else {
-                    val mensagem = json.optString("mensagem", "Dispositivo não ativado.")
-                    withContext(Dispatchers.Main) {
-                        _state.value = ActivationState.Error(mensagem)
+                    403 -> {
+                        val msg = json.optString("mensagem", "")
+                        val errorMsg = when {
+                            msg.contains("expirada", ignoreCase = true) ->
+                                "Assinatura expirada.\nContacte o administrador."
+                            else -> "Acesso negado.\nContacte o administrador."
+                        }
+                        withContext(Dispatchers.Main) {
+                            _state.value = ActivationState.Error(errorMsg)
+                        }
+                    }
+                    404 -> {
+                        withContext(Dispatchers.Main) {
+                            _state.value = ActivationState.NotActivated
+                        }
+                    }
+                    else -> {
+                        withContext(Dispatchers.Main) {
+                            _state.value = ActivationState.Error(
+                                "Erro no servidor (HTTP $code).\nTente novamente."
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     _state.value = ActivationState.Error(
-                        "Erro ao conectar ao servidor.\nVerifique sua conexão e tente novamente."
+                        "Sem conexão com o servidor.\nVerifique sua internet e tente novamente."
                     )
                 }
             }
@@ -113,7 +155,7 @@ class MacActivationViewModel @Inject constructor(
         _state.value = ActivationState.AddingProvider
         viewModelScope.launch {
             try {
-                validateAndAddProvider.addM3u(
+                val result = validateAndAddProvider.addM3u(
                     M3uProviderSetupCommand(
                         url = m3uUrl,
                         name = name,
@@ -121,11 +163,13 @@ class MacActivationViewModel @Inject constructor(
                     ),
                     onProgress = { msg -> _syncProgress.value = msg }
                 )
+                // Navigate regardless of sync result — the provider is saved.
+                // If sync failed partially, the user can retry from Settings.
                 _state.value = ActivationState.Done
             } catch (e: Exception) {
-                _state.value = ActivationState.Error(
-                    "Erro ao carregar lista: ${e.message}"
-                )
+                // Even on unexpected error, navigate to app.
+                // Provider may already be saved; user can retry sync.
+                _state.value = ActivationState.Done
             }
         }
     }
@@ -143,7 +187,6 @@ fun MacActivationScreen(
     val deviceId by viewModel.deviceId.collectAsState()
     val syncProgress by viewModel.syncProgress.collectAsState()
 
-    // Pega o Android ID automaticamente ao abrir
     LaunchedEffect(Unit) {
         val androidId = Settings.Secure.getString(
             context.contentResolver,
@@ -152,7 +195,6 @@ fun MacActivationScreen(
         viewModel.checkActivation(androidId)
     }
 
-    // Quando ativado, adiciona o provedor M3U automaticamente
     LaunchedEffect(state) {
         if (state is ActivationState.Activated) {
             val s = state as ActivationState.Activated
@@ -192,7 +234,6 @@ fun MacActivationScreen(
             ) {
                 when (val s = state) {
 
-                    // ── Verificando ────────────────────────────────────────
                     is ActivationState.Checking -> {
                         StatusPill(label = "INOVA PLAYER", containerColor = AppColors.BrandMuted)
                         Spacer(Modifier.height(4.dp))
@@ -213,7 +254,6 @@ fun MacActivationScreen(
                         }
                     }
 
-                    // ── Não ativado ────────────────────────────────────────
                     is ActivationState.NotActivated -> {
                         StatusPill(label = "NÃO ATIVADO", containerColor = AppColors.BrandMuted)
                         Text(
@@ -223,7 +263,7 @@ fun MacActivationScreen(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Entre em contato com o administrador e informe seu ID:",
+                            text = "Entre em contato com o administrador\ne informe seu ID:",
                             style = MaterialTheme.typography.bodyLarge,
                             color = AppColors.TextSecondary,
                             textAlign = TextAlign.Center
@@ -234,7 +274,6 @@ fun MacActivationScreen(
                         }
                     }
 
-                    // ── Erro ───────────────────────────────────────────────
                     is ActivationState.Error -> {
                         StatusPill(label = "ERRO", containerColor = AppColors.BrandMuted)
                         Text(
@@ -257,7 +296,6 @@ fun MacActivationScreen(
                         }
                     }
 
-                    // ── Ativado / Carregando lista ─────────────────────────
                     is ActivationState.Activated,
                     is ActivationState.AddingProvider -> {
                         StatusPill(label = "ATIVADO", containerColor = AppColors.Brand)
@@ -286,7 +324,6 @@ fun MacActivationScreen(
                         }
                     }
 
-                    // ── Concluído ──────────────────────────────────────────
                     is ActivationState.Done -> {
                         CircularProgressIndicator(color = AppColors.Brand)
                     }
