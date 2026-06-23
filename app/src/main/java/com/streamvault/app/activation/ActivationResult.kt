@@ -15,5 +15,6 @@ enum class ActivationError {
     NOT_FOUND,
     NO_M3U,
     NETWORK,
+    FINGERPRINT_MISMATCH,
     GENERIC
 }
