@@ -116,7 +116,8 @@ class SeriesViewModel @Inject constructor(
                 "desenho", "desenhos", "cartoon", "cartoons",
                 "junior", "baby",
                 "nickelodeon", "gloob", "gloobinho",
-                "cartoon network",
+                "cartoon network", "tooncast",
+                "ratimbum", "ra tim bum",
                 "canais 24h", "canal 24h"
             ),
             // ── ABA: ANIMES ──────────────────────────────────────────────────────────────

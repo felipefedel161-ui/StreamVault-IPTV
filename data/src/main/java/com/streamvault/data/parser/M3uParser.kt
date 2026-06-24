@@ -550,7 +550,16 @@ class M3uParser {
                     normalizedGroup.contains("brasil paralelo") ||
                     normalizedGroup.contains("outras produtoras") ||
                     normalizedGroup.contains("univer") ||
-                    normalizedGroup.contains("programas de tv")
+                    normalizedGroup.contains("programas de tv") ||
+                    // ── ABA INFANTIL ─────────────────────────────────────────────────────────
+                    // Garante que grupos como "⛄ INFANTIS", "INFANTIL", "KIDS", etc. sejam
+                    // roteados para o catálogo de Séries (que alimenta a aba Infantil),
+                    // em vez de cair como Filmes avulsos.
+                    normalizedGroup.contains("infantil") ||
+                    normalizedGroup.contains("infantis") ||
+                    normalizedGroup.contains("kids") ||
+                    normalizedGroup.contains("cartoon") ||
+                    normalizedGroup.contains("desenho")
         }
 
         /**
