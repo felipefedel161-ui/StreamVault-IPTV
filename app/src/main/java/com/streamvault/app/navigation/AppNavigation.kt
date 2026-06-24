@@ -96,6 +96,7 @@ object Routes {
     const val SERIES_DETAIL = "series_detail/{seriesId}?returnRoute={returnRoute}"
     const val WELCOME = "welcome"
     const val MAC_ACTIVATION = "mac_activation"
+    const val PROFILE_SELECTION = "profile_selection"
     const val PARENTAL_CONTROL_GROUPS = "parental_control_groups/{providerId}"
     const val MULTI_VIEW = "multi_view"
 
@@ -414,7 +415,7 @@ fun AppNavigation(mainActivity: MainActivity) {
         composable(Routes.WELCOME) {
             WelcomeScreen(
                 onNavigateToHome = dropUnlessResumed {
-                    navController.navigate(landingRoute) {
+                    navController.navigate(Routes.PROFILE_SELECTION) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 },
@@ -431,8 +432,19 @@ fun AppNavigation(mainActivity: MainActivity) {
         composable(Routes.MAC_ACTIVATION) {
             com.streamvault.app.ui.screens.activation.MacActivationScreen(
                 onActivated = dropUnlessResumed {
-                    navController.navigate(landingRoute) {
+                    navController.navigate(Routes.PROFILE_SELECTION) {
                         popUpTo(Routes.MAC_ACTIVATION) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // ── Seleção de Perfil (estilo Netflix) ────────────────────────────
+        composable(Routes.PROFILE_SELECTION) {
+            com.streamvault.app.profiles.ProfileSelectionScreen(
+                onProfileSelected = dropUnlessResumed {
+                    navController.navigate(landingRoute) {
+                        popUpTo(Routes.PROFILE_SELECTION) { inclusive = true }
                     }
                 }
             )
