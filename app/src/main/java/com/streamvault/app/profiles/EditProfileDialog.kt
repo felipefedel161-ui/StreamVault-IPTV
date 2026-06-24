@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -59,12 +61,15 @@ fun EditProfileDialog(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
+                .fillMaxHeight(0.92f)
                 .padding(20.dp),
             shape = RoundedCornerShape(22.dp),
             colors = SurfaceDefaults.colors(containerColor = Color(0xFF0D1B2E))
         ) {
             Column(
-                modifier = Modifier.padding(28.dp),
+                modifier = Modifier
+                    .padding(28.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
