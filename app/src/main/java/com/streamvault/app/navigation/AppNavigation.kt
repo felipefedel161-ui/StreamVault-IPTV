@@ -442,7 +442,7 @@ fun AppNavigation(mainActivity: MainActivity) {
         // ── Seleção de Perfil (estilo Netflix) ────────────────────────────
         composable(Routes.PROFILE_SELECTION) {
             com.streamvault.app.profiles.ProfileSelectionScreen(
-                onProfileSelected = dropUnlessResumed {
+                onProfileSelected = { profile ->
                     navController.navigate(landingRoute) {
                         popUpTo(Routes.PROFILE_SELECTION) { inclusive = true }
                     }
