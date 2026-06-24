@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,7 +35,7 @@ import com.streamvault.app.ui.interaction.TvButton
 
 @Composable
 fun EditProfileDialog(
-    profile: UserProfile?,         // null = creating new
+    profile: UserProfile?,          // null = creating new
     canDelete: Boolean = true,
     onSave: (name: String, avatarIndex: Int, color: Long, pin: String?) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -48,23 +49,26 @@ fun EditProfileDialog(
     var pinError by remember { mutableStateOf<String?>(null) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
+    val accentColor = Color(selectedColor)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = true)
     ) {
         Surface(
             modifier = Modifier
-                .widthIn(max = 500.dp)
+                .widthIn(max = 520.dp)
                 .fillMaxWidth()
-                .padding(24.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = SurfaceDefaults.colors(containerColor = AppColors.SurfaceElevated)
+                .padding(20.dp),
+            shape = RoundedCornerShape(22.dp),
+            colors = SurfaceDefaults.colors(containerColor = Color(0xFF0D1B2E))
         ) {
             Column(
                 modifier = Modifier.padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
+                // Title
                 Text(
                     text = if (profile == null) "Novo Perfil" else "Editar Perfil",
                     style = MaterialTheme.typography.titleLarge.copy(
@@ -73,41 +77,56 @@ fun EditProfileDialog(
                     )
                 )
 
-                // Avatar preview
+                // Large avatar preview
                 Box(
                     modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(Color(selectedColor).copy(alpha = 0.25f))
-                        .border(2.dp, Color(selectedColor), CircleShape),
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    accentColor.copy(alpha = 0.30f),
+                                    accentColor.copy(alpha = 0.06f),
+                                    Color(0xFF0C1926)
+                                )
+                            )
+                        )
+                        .border(
+                            2.dp,
+                            accentColor.copy(alpha = 0.70f),
+                            RoundedCornerShape(14.dp)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = PROFILE_AVATARS.getOrElse(avatarIndex) { "👤" },
-                        fontSize = 32.sp
+                        fontSize = 40.sp
                     )
                 }
 
-                // Avatar picker
+                // Avatar picker — 8 columns × 2 rows
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(8),
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(PROFILE_AVATARS.indices.toList()) { idx ->
                         val isSelected = idx == avatarIndex
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (isSelected) Color(selectedColor).copy(alpha = 0.35f)
-                                    else AppColors.Surface
+                                    if (isSelected) accentColor.copy(alpha = 0.30f)
+                                    else AppColors.Surface.copy(alpha = 0.6f)
                                 )
                                 .border(
                                     width = if (isSelected) 2.dp else 0.dp,
-                                    color = if (isSelected) Color(selectedColor) else Color.Transparent,
-                                    shape = CircleShape
+                                    color = if (isSelected) accentColor else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable { avatarIndex = idx },
                             contentAlignment = Alignment.Center
@@ -123,20 +142,31 @@ fun EditProfileDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    PROFILE_COLORS.forEach { colorLong ->
-                        val c = Color(colorLong)
-                        val isSelected = colorLong == selectedColor
-                        Box(
-                            modifier = Modifier
-                                .size(if (isSelected) 32.dp else 26.dp)
-                                .clip(CircleShape)
-                                .background(c)
-                                .then(
-                                    if (isSelected) Modifier.border(2.dp, Color.White, CircleShape)
-                                    else Modifier
-                                )
-                                .clickable { selectedColor = colorLong }
-                        )
+                    Text(
+                        text = "Cor:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.TextTertiary,
+                        modifier = Modifier.width(36.dp)
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PROFILE_COLORS.forEach { colorLong ->
+                            val c = Color(colorLong)
+                            val isSelected = colorLong == selectedColor
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isSelected) 30.dp else 24.dp)
+                                    .clip(CircleShape)
+                                    .background(c)
+                                    .then(
+                                        if (isSelected) Modifier.border(2.dp, Color.White, CircleShape)
+                                        else Modifier
+                                    )
+                                    .clickable { selectedColor = colorLong }
+                            )
+                        }
                     }
                 }
 
@@ -148,42 +178,59 @@ fun EditProfileDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(selectedColor),
+                        focusedBorderColor = accentColor,
                         unfocusedBorderColor = AppColors.Outline,
                         focusedTextColor = AppColors.TextPrimary,
                         unfocusedTextColor = AppColors.TextPrimary,
-                        cursorColor = Color(selectedColor),
+                        cursorColor = accentColor,
                         focusedContainerColor = AppColors.Surface,
                         unfocusedContainerColor = AppColors.Surface
                     )
                 )
 
+                // Divider
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(AppColors.Divider)
+                )
+
                 // PIN section
                 Text(
-                    text = if (profile?.pinHash != null) "Novo PIN (deixe em branco para manter)"
-                    else "PIN (opcional, 4 dígitos)",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "🔐  PIN de acesso (opcional, 4 dígitos)",
+                    style = MaterialTheme.typography.labelMedium,
                     color = AppColors.TextTertiary,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (profile?.pinHash != null) {
+                    Text(
+                        text = "Este perfil já tem PIN. Preencha abaixo para alterar ou deixe em branco para manter.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.TextTertiary.copy(alpha = 0.75f),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
                         value = newPin,
                         onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) newPin = it },
-                        label = { Text("PIN", color = AppColors.TextSecondary) },
+                        label = { Text("Novo PIN", color = AppColors.TextSecondary) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(selectedColor),
+                            focusedBorderColor = accentColor,
                             unfocusedBorderColor = AppColors.Outline,
                             focusedTextColor = AppColors.TextPrimary,
                             unfocusedTextColor = AppColors.TextPrimary,
-                            cursorColor = Color(selectedColor),
+                            cursorColor = accentColor,
                             focusedContainerColor = AppColors.Surface,
                             unfocusedContainerColor = AppColors.Surface
                         )
@@ -197,15 +244,28 @@ fun EditProfileDialog(
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(selectedColor),
+                            focusedBorderColor = accentColor,
                             unfocusedBorderColor = AppColors.Outline,
                             focusedTextColor = AppColors.TextPrimary,
                             unfocusedTextColor = AppColors.TextPrimary,
-                            cursorColor = Color(selectedColor),
+                            cursorColor = accentColor,
                             focusedContainerColor = AppColors.Surface,
                             unfocusedContainerColor = AppColors.Surface
                         )
                     )
+                }
+
+                // Remove PIN option for existing locked profiles
+                if (profile?.pinHash != null && newPin.isEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { confirmPin = "REMOVE"; newPin = "REMOVE" }
+                    ) {
+                        // subtle remove PIN button handled via special sentinel
+                    }
                 }
 
                 pinError?.let {
@@ -213,15 +273,19 @@ fun EditProfileDialog(
                         text = it,
                         color = AppColors.Live,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(AppColors.Live.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
                     )
                 }
 
-                // Buttons
+                // Action buttons
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Delete
                     if (profile != null && canDelete && onDelete != null) {
                         if (showDeleteConfirm) {
                             TvButton(
@@ -245,7 +309,7 @@ fun EditProfileDialog(
                             // Validate PIN
                             if (newPin.isNotEmpty()) {
                                 if (newPin.length != 4) {
-                                    pinError = "O PIN deve ter 4 dígitos"
+                                    pinError = "O PIN deve ter exatamente 4 dígitos"
                                     return@TvButton
                                 }
                                 if (newPin != confirmPin) {
@@ -255,9 +319,9 @@ fun EditProfileDialog(
                             }
                             pinError = null
                             val pinValue: String? = when {
-                                newPin.isNotEmpty() -> newPin   // set new
-                                profile?.pinHash != null -> null // keep (signal = null)
-                                else -> ""                       // no PIN
+                                newPin.isNotEmpty() -> newPin          // set new PIN
+                                profile?.pinHash != null -> null       // keep existing (null = no change)
+                                else -> ""                             // no PIN at all
                             }
                             onSave(name, avatarIndex, selectedColor, pinValue)
                         },

@@ -2,7 +2,6 @@ package com.streamvault.app.profiles
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.streamvault.app.profiles.PROFILE_COLORS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,6 +26,14 @@ class UserProfileRepository @Inject constructor(
     private val _activeProfileId = MutableStateFlow<String?>(null)
     val activeProfileId: StateFlow<String?> = _activeProfileId.asStateFlow()
 
+    /** Returns SharedPreferences scoped to the currently active profile.
+     *  Use this for per-profile settings (last channel, category prefs, etc.). */
+    val activeProfilePrefs: SharedPreferences
+        get() {
+            val profileId = _activeProfileId.value ?: "default"
+            return context.getSharedPreferences("profile_prefs_$profileId", Context.MODE_PRIVATE)
+        }
+
     init {
         _profiles.value = loadProfiles()
         _activeProfileId.value = prefs.getString(KEY_ACTIVE_PROFILE, null)
@@ -44,6 +51,10 @@ class UserProfileRepository @Inject constructor(
         val updated = _profiles.value.filter { it.id != id }
         _profiles.value = updated
         persistProfiles(updated)
+        // If the active profile was deleted, clear active
+        if (_activeProfileId.value == id) {
+            clearActiveProfile()
+        }
     }
 
     fun setActiveProfile(id: String) {
@@ -54,6 +65,12 @@ class UserProfileRepository @Inject constructor(
     fun clearActiveProfile() {
         _activeProfileId.value = null
         prefs.edit().remove(KEY_ACTIVE_PROFILE).apply()
+    }
+
+    /** Returns the active UserProfile object, if any. */
+    fun getActiveProfile(): UserProfile? {
+        val id = _activeProfileId.value ?: return null
+        return _profiles.value.firstOrNull { it.id == id }
     }
 
     fun verifyPin(profile: UserProfile, pin: String): Boolean {

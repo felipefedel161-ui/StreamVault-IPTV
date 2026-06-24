@@ -1,23 +1,24 @@
 package com.streamvault.app.profiles
 
-import androidx.compose.ui.graphics.Color
-
 data class UserProfile(
     val id: String,
     val name: String,
-    val avatarIndex: Int,   // 0-7 predefined avatars
+    val avatarIndex: Int,   // index into PROFILE_AVATARS
     val pinHash: String?,   // null = no PIN
     val color: Long         // stored as Long to survive serialization
 )
 
-/** Built-in avatar sets — emoji strings rendered inside colored circles. */
+/** Built-in avatar set — emoji rendered inside themed cards. */
 val PROFILE_AVATARS = listOf(
-    "🎬", "🎮", "🎵", "📺", "🌟", "🦁", "🚀", "👑"
+    "🎬", "🎮", "🎵", "📺",
+    "🌟", "🦁", "🚀", "👑",
+    "🎭", "🏆", "🦊", "🐉",
+    "⚡", "🎯", "🌙", "🔥"
 )
 
-/** Accent colours for avatar circles. */
+/** Accent colours for avatar cards. */
 val PROFILE_COLORS = listOf(
-    0xFF69A8FF, // Blue  (brand)
+    0xFF69A8FF, // Blue   (brand)
     0xFFFF6B6B, // Red
     0xFF4FD39A, // Green
     0xFFFFAB40, // Orange
