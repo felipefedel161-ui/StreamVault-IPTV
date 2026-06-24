@@ -6,6 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
@@ -584,7 +589,6 @@ fun AppNavigation(mainActivity: MainActivity) {
                 initialCategoryId = initialCategoryId
             )
         }
-// ... (rest of file)
 
         composable(Routes.MOVIES) {
             MoviesScreen(
@@ -655,9 +659,30 @@ fun AppNavigation(mainActivity: MainActivity) {
         }
 
         composable(Routes.INFANTIL) {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(Routes.seriesFiltered("infantil")) {
-                    popUpTo(Routes.INFANTIL) { inclusive = true }
+            val resolverViewModel: com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel = hiltViewModel()
+            val resolveState by resolverViewModel.state.collectAsStateWithLifecycle()
+
+            LaunchedEffect(Unit) {
+                resolverViewModel.resolve("infantil")
+            }
+
+            when (val current = resolveState) {
+                is com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel.ResolveState.Loading -> {
+                    Box(
+                        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel.ResolveState.Resolved -> {
+                    LaunchedEffect(current.categoryId) {
+                        // Sem categoria correspondente: cai para a Home normal, sem filtro,
+                        // em vez de mostrar uma tela em branco sem explicação.
+                        navController.navigate(Routes.liveTv(current.categoryId)) {
+                            popUpTo(Routes.INFANTIL) { inclusive = true }
+                        }
+                    }
                 }
             }
         }

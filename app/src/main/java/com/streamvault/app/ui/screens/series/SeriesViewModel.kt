@@ -2,6 +2,7 @@ package com.streamvault.app.ui.screens.series
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamvault.app.ui.filter.matchesCategoryKeyword
 import com.streamvault.app.ui.model.applyProviderCategoryDisplayPreferences
 import com.streamvault.app.ui.model.VodViewMode
 import com.streamvault.data.preferences.PreferencesRepository
@@ -90,59 +91,6 @@ class SeriesViewModel @Inject constructor(
         const val MIN_SEARCH_QUERY_LENGTH = 2
         const val FAVORITE_ID_FETCH_BUFFER = 80
         const val INITIAL_PREVIEW_BATCH_SIZE = 6
-
-        /**
-         * Termos base usados pelas abas de categoria (Novelas/Infantil/Animes) e os
-         * sinônimos/variações comuns usados por provedores de IPTV em português.
-         * A busca é feita por substring (contains), então cada termo já cobre
-         * variações como plural automaticamente (ex: "novela" casa com "novelas").
-         */
-        val CATEGORY_KEYWORD_SYNONYMS: Map<String, List<String>> = mapOf(
-            // ── ABA: NOVELAS ────────────────────────────────────────────────────────────
-            // Cobre: ♦️ Novelas (43.660), ♦️ Novelas Turcas (6.497), ♦️ Doramas (15.379)
-            // ♦️ Legendadas (34.013) — séries legendadas em geral (telenovelas estrangeiras)
-            "novela" to listOf(
-                "novela", "novelas", "telenovela", "telenovelas", "novelinha",
-                "novela turca", "novelas turcas", "turca", "turcas",
-                "dorama", "doramas", "kdrama", "k-drama", "k drama",
-                "legendada", "legendadas", "legendados", "legendado"
-            ),
-            // ── ABA: INFANTIL ────────────────────────────────────────────────────────────
-            // Cobre: ⛄ INFANTIS (28 canais), CANAIS 24H (157 — maioria infantil),
-            // ♦️ PlutoTV (122 — Popeye, Looney Tunes), ♦️ Animacao ✔️ (992 — misto infantil/anime)
-            "infantil" to listOf(
-                "infantil", "infantis", "kids", "kid",
-                "crianca", "criancas", "criança", "crianças",
-                "desenho", "desenhos", "cartoon", "cartoons",
-                "junior", "baby",
-                "nickelodeon", "gloob", "gloobinho",
-                "cartoon network",
-                "canais 24h", "canal 24h"
-            ),
-            // ── ABA: ANIMES ──────────────────────────────────────────────────────────────
-            // Cobre: ♦️ Crunchyroll (6.619), ♦️ Funimation Now (982),
-            // ♦️ Animacao ✔️ (992 — anime/animação mista)
-            "anime" to listOf(
-                "anime", "animes", "animee", "mangá", "manga",
-                "animacao", "animacoes", "animação", "animações",
-                "crunchyroll", "funimation", "funimation now"
-            )
-        )
-
-        /** Remove acentos para comparações tolerantes a variações de escrita. */
-        fun String.normalizeForMatch(): String =
-            java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
-                .replace(Regex("[\\p{InCombiningDiacriticalMarks}]"), "")
-                .lowercase()
-
-        fun matchesCategoryKeyword(categoryName: String, keyword: String): Boolean {
-            val normalizedCategory = categoryName.normalizeForMatch()
-            val baseKeyword = keyword.normalizeForMatch()
-            val candidates = CATEGORY_KEYWORD_SYNONYMS[baseKeyword]
-                ?.map { it.normalizeForMatch() }
-                ?: listOf(baseKeyword)
-            return candidates.any { normalizedCategory.contains(it) }
-        }
     }
 
     private val _uiState = MutableStateFlow(SeriesUiState())
