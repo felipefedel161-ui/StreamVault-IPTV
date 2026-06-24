@@ -124,7 +124,7 @@ fun ProfileSelectionScreen(
                 // Profile cards row with staggered entrance
                 ProfileCardRow(
                     profiles = uiState.profiles,
-                    onProfileClick = { viewModel.onProfileSelected(it) },
+                    onProfileClick = { viewModel.onProfileSelected(it, onProfileSelected) },
                     onProfileLongClick = { viewModel.startEditProfile(it) },
                     onAddProfile = { viewModel.startCreateProfile() },
                     screenVisible = screenVisible
