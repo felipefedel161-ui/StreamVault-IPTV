@@ -3,6 +3,7 @@ package com.streamvault.data.sync
 import android.util.Log
 import com.streamvault.data.local.entity.ChannelEntity
 import com.streamvault.data.local.entity.MovieEntity
+import com.streamvault.data.local.entity.SeriesEntity
 import com.streamvault.data.parser.M3uParser
 import com.streamvault.data.remote.http.HttpRequestProfile
 import com.streamvault.data.remote.http.safeRequestIdentitySummary
@@ -62,13 +63,17 @@ internal class SyncManagerM3uImporter(
         val stableLongHasher = StableLongHasher()
         val liveCategories = CategoryAccumulator(provider.id, ContentType.LIVE, stableLongHasher)
         val movieCategories = CategoryAccumulator(provider.id, ContentType.MOVIE, stableLongHasher)
+        val seriesCategories = CategoryAccumulator(provider.id, ContentType.SERIES, stableLongHasher)
         val channelBatch = ArrayList<ChannelEntity>(batchSize)
         val movieBatch = ArrayList<MovieEntity>(batchSize)
+        val seriesBatch = ArrayList<SeriesEntity>(batchSize)
         val seenLiveStreamIds = if (includeLive) mutableSetOf<Long>() else null
         val seenMovieStreamIds = if (includeMovies) mutableSetOf<Long>() else null
+        val seenSeriesStreamIds = if (includeMovies) mutableSetOf<Long>() else null
         var header = M3uParser.M3uHeader()
         var liveCount = 0
         var movieCount = 0
+        var seriesCount = 0
         var parsedCount = 0
         var nextMilestone = M3U_PROGRESS_INTERVAL
         val warnings = mutableListOf<String>()
@@ -126,36 +131,72 @@ internal class SyncManagerM3uImporter(
                         if (provider.m3uVodClassificationEnabled && M3uParser.isVodEntry(entry)) {
                             if (!includeMovies) return@parseStreaming
                             val groupTitle = entry.groupTitle.ifBlank { "Uncategorized" }
-                            val stableStreamId = stableId(
-                                providerId = provider.id,
-                                contentType = ContentType.MOVIE,
-                                tvgId = entry.tvgId,
-                                url = entry.url,
-                                title = entry.name,
-                                groupTitle = groupTitle,
-                                hasher = stableLongHasher
-                            )
-                            if (seenMovieStreamIds?.add(stableStreamId) != true) return@parseStreaming
-                            val categoryId = movieCategories.idFor(groupTitle)
                             val isAdult = AdultContentClassifier.isAdultCategoryName(groupTitle)
-                            movieBatch.add(
-                                MovieEntity(
-                                    streamId = stableStreamId,
-                                    name = entry.name,
-                                    posterUrl = safeLogoUrl,
-                                    categoryId = categoryId,
-                                    categoryName = groupTitle,
-                                    streamUrl = entry.url,
+
+                            if (M3uParser.isSeriesEntry(entry)) {
+                                // Route to Series catalog
+                                val stableStreamId = stableId(
                                     providerId = provider.id,
-                                    rating = entry.rating?.toFloatOrNull() ?: 0f,
-                                    year = entry.year,
-                                    genre = entry.genre,
-                                    isAdult = isAdult
+                                    contentType = ContentType.SERIES,
+                                    tvgId = entry.tvgId,
+                                    url = entry.url,
+                                    title = entry.name,
+                                    groupTitle = groupTitle,
+                                    hasher = stableLongHasher
                                 )
-                            )
-                            movieCount++
-                            if (movieBatch.size >= batchSize) {
-                                flushMovieBatch(provider.id, sessionId, movieBatch)
+                                if (seenSeriesStreamIds?.add(stableStreamId) != true) return@parseStreaming
+                                val categoryId = seriesCategories.idFor(groupTitle)
+                                seriesBatch.add(
+                                    SeriesEntity(
+                                        seriesId = stableStreamId,
+                                        name = entry.name,
+                                        posterUrl = safeLogoUrl,
+                                        categoryId = categoryId,
+                                        categoryName = groupTitle,
+                                        providerId = provider.id,
+                                        rating = entry.rating?.toFloatOrNull() ?: 0f,
+                                        releaseDate = entry.year,
+                                        genre = entry.genre,
+                                        isAdult = isAdult,
+                                        cacheState = "M3U_LIVE"
+                                    )
+                                )
+                                seriesCount++
+                                if (seriesBatch.size >= batchSize) {
+                                    flushSeriesBatch(provider.id, sessionId, seriesBatch)
+                                }
+                            } else {
+                                // Route to Movie catalog
+                                val stableStreamId = stableId(
+                                    providerId = provider.id,
+                                    contentType = ContentType.MOVIE,
+                                    tvgId = entry.tvgId,
+                                    url = entry.url,
+                                    title = entry.name,
+                                    groupTitle = groupTitle,
+                                    hasher = stableLongHasher
+                                )
+                                if (seenMovieStreamIds?.add(stableStreamId) != true) return@parseStreaming
+                                val categoryId = movieCategories.idFor(groupTitle)
+                                movieBatch.add(
+                                    MovieEntity(
+                                        streamId = stableStreamId,
+                                        name = entry.name,
+                                        posterUrl = safeLogoUrl,
+                                        categoryId = categoryId,
+                                        categoryName = groupTitle,
+                                        streamUrl = entry.url,
+                                        providerId = provider.id,
+                                        rating = entry.rating?.toFloatOrNull() ?: 0f,
+                                        year = entry.year,
+                                        genre = entry.genre,
+                                        isAdult = isAdult
+                                    )
+                                )
+                                movieCount++
+                                if (movieBatch.size >= batchSize) {
+                                    flushMovieBatch(provider.id, sessionId, movieBatch)
+                                }
                             }
                         } else {
                             if (!includeLive) return@parseStreaming
@@ -203,19 +244,23 @@ internal class SyncManagerM3uImporter(
 
             flushChannelBatch(provider.id, sessionId, channelBatch)
             flushMovieBatch(provider.id, sessionId, movieBatch)
+            flushSeriesBatch(provider.id, sessionId, seriesBatch)
             // Only commit a section if it produced at least one entry. Committing an
             // empty stage with includeLive=true runs stale deletion and wipes the entire
             // live-TV catalog — even though the absence of entries may reflect a server
             // error or a filtered playlist rather than a legitimate empty provider.
             val effectiveLive = includeLive && liveCount > 0
             val effectiveMovies = includeMovies && movieCount > 0
+            val effectiveSeries = includeMovies && seriesCount > 0
             syncCatalogStore.finalizeStagedImport(
                 providerId = provider.id,
                 sessionId = sessionId,
                 liveCategories = if (effectiveLive) liveCategories.entities() else null,
                 movieCategories = if (effectiveMovies) movieCategories.entities() else null,
+                seriesCategories = if (effectiveSeries) seriesCategories.entities() else null,
                 includeLive = effectiveLive,
-                includeMovies = effectiveMovies
+                includeMovies = effectiveMovies,
+                includeSeries = effectiveSeries
             )
         } finally {
             syncCatalogStore.discardStagedImport(provider.id, sessionId)
@@ -229,6 +274,7 @@ internal class SyncManagerM3uImporter(
             header = header,
             liveCount = liveCount,
             movieCount = movieCount,
+            seriesCount = seriesCount,
             warnings = warnings
         )
     }
@@ -318,6 +364,12 @@ internal class SyncManagerM3uImporter(
     private suspend fun flushMovieBatch(providerId: Long, sessionId: Long, batch: MutableList<MovieEntity>) {
         if (batch.isEmpty()) return
         syncCatalogStore.stageMovieBatch(providerId, sessionId, batch)
+        batch.clear()
+    }
+
+    private suspend fun flushSeriesBatch(providerId: Long, sessionId: Long, batch: MutableList<SeriesEntity>) {
+        if (batch.isEmpty()) return
+        syncCatalogStore.stageSeriesBatch(providerId, sessionId, batch)
         batch.clear()
     }
 

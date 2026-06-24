@@ -434,14 +434,134 @@ class M3uParser {
             val url = entry.url.lowercase()
             val group = entry.groupTitle.lowercase()
 
-            return url.endsWith(".mp4") ||
-                    url.endsWith(".mkv") ||
-                    url.endsWith(".avi") ||
-                    url.contains("/movie/") ||
-                    group.contains("movie") ||
-                    group.contains("vod") ||
-                    group.contains("film")
+            // URL-based detection (most reliable)
+            if (url.endsWith(".mp4") || url.endsWith(".mkv") || url.endsWith(".avi") ||
+                url.contains("/movie/") || url.contains("/series/")) return true
+
+            // Group-based detection: normalize to strip emojis and diacritics for matching
+            val normalizedGroup = normalizeGroupTitle(group)
+
+            // VOD group keywords (movie + series)
+            return normalizedGroup.contains("movie") ||
+                    normalizedGroup.contains("vod") ||
+                    normalizedGroup.contains("film") ||
+                    normalizedGroup.contains("serie") ||
+                    normalizedGroup.contains("novela") ||
+                    normalizedGroup.contains("dorama") ||
+                    normalizedGroup.contains("anime") ||
+                    normalizedGroup.contains("animacao") ||
+                    normalizedGroup.contains("infantil") ||
+                    normalizedGroup.contains("infantis") ||
+                    normalizedGroup.contains("netflix") ||
+                    normalizedGroup.contains("prime video") ||
+                    normalizedGroup.contains("disney") ||
+                    normalizedGroup.contains("hbo max") ||
+                    normalizedGroup.contains("max") ||
+                    normalizedGroup.contains("globoplay") ||
+                    normalizedGroup.contains("paramount") ||
+                    normalizedGroup.contains("star+") ||
+                    normalizedGroup.contains("apple tv") ||
+                    normalizedGroup.contains("discovery+") ||
+                    normalizedGroup.contains("crunchyroll") ||
+                    normalizedGroup.contains("funimation") ||
+                    normalizedGroup.contains("pluto") ||
+                    normalizedGroup.contains("lionsgate") ||
+                    normalizedGroup.contains("amc plus") ||
+                    normalizedGroup.contains("diretv") ||
+                    normalizedGroup.contains("directv") ||
+                    normalizedGroup.contains("claro video") ||
+                    normalizedGroup.contains("sbt+") ||
+                    normalizedGroup.contains("brasil paralelo") ||
+                    normalizedGroup.contains("lancamento") ||
+                    normalizedGroup.contains("lançamento") ||
+                    normalizedGroup.contains("legenda") ||
+                    normalizedGroup.contains("nacional") ||
+                    normalizedGroup.contains("drama") ||
+                    normalizedGroup.contains("comedia") ||
+                    normalizedGroup.contains("acao") ||
+                    normalizedGroup.contains("ação") ||
+                    normalizedGroup.contains("terror") ||
+                    normalizedGroup.contains("suspense") ||
+                    normalizedGroup.contains("romance") ||
+                    normalizedGroup.contains("aventura") ||
+                    normalizedGroup.contains("fantasia") ||
+                    normalizedGroup.contains("faroeste") ||
+                    normalizedGroup.contains("ficcao") ||
+                    normalizedGroup.contains("guerra") ||
+                    normalizedGroup.contains("crime") ||
+                    normalizedGroup.contains("familia") ||
+                    normalizedGroup.contains("documentario") ||
+                    normalizedGroup.contains("religioso") ||
+                    normalizedGroup.contains("top 10") ||
+                    normalizedGroup.contains("cinema") ||
+                    normalizedGroup.contains("programas de tv") ||
+                    normalizedGroup.contains("outras produtoras") ||
+                    normalizedGroup.contains("univer")
         }
+
+        /**
+         * Returns true when the entry belongs to a series/episode group (has episodes S01E01 etc.),
+         * as opposed to a standalone movie. Used to route entries into the Series catalog
+         * instead of the Movie catalog during M3U import.
+         *
+         * Detection priority:
+         * 1. URL path: /series/ → always series
+         * 2. URL path: /movie/ → always movie (not series)
+         * 3. Name pattern: contains "S01", "E01", "S01E01" style → series
+         * 4. Group title keywords: streaming platforms and novela/dorama/anime groups → series
+         */
+        fun isSeriesEntry(entry: M3uEntry): Boolean {
+            val url = entry.url.lowercase()
+            val name = entry.name.lowercase()
+            val group = entry.groupTitle.lowercase()
+            val normalizedGroup = normalizeGroupTitle(group)
+
+            // URL path is definitive
+            if (url.contains("/series/")) return true
+            if (url.contains("/movie/")) return false
+
+            // Episode name pattern: "S01 E01", "S01E01", "S1E1", "S01 E001" etc.
+            val episodePattern = Regex("""s\d{1,2}\s*e\d{1,3}""")
+            if (episodePattern.containsMatchIn(name)) return true
+
+            // Group-based: streaming platforms that carry series in this list
+            return normalizedGroup.contains("novela") ||
+                    normalizedGroup.contains("dorama") ||
+                    normalizedGroup.contains("anime") ||
+                    normalizedGroup.contains("animacao") ||
+                    normalizedGroup.contains("crunchyroll") ||
+                    normalizedGroup.contains("funimation") ||
+                    normalizedGroup.contains("netflix") ||
+                    normalizedGroup.contains("prime video") ||
+                    normalizedGroup.contains("globoplay") ||
+                    normalizedGroup.contains("max") ||
+                    normalizedGroup.contains("disney+") ||
+                    normalizedGroup.contains("star+") ||
+                    normalizedGroup.contains("apple tv") ||
+                    normalizedGroup.contains("paramount+") ||
+                    normalizedGroup.contains("discovery+") ||
+                    normalizedGroup.contains("pluto") ||
+                    normalizedGroup.contains("lionsgate") ||
+                    normalizedGroup.contains("amc plus") ||
+                    normalizedGroup.contains("diretv") ||
+                    normalizedGroup.contains("directv") ||
+                    normalizedGroup.contains("claro video") ||
+                    normalizedGroup.contains("sbt+") ||
+                    normalizedGroup.contains("brasil paralelo") ||
+                    normalizedGroup.contains("outras produtoras") ||
+                    normalizedGroup.contains("univer") ||
+                    normalizedGroup.contains("programas de tv")
+        }
+
+        /**
+         * Strip emojis, leading/trailing symbols and diacritics from a group title
+         * to make keyword matching reliable regardless of decoration.
+         */
+        private fun normalizeGroupTitle(raw: String): String =
+            raw.replace(Regex("[^\\p{L}\\p{N}\\s+]"), " ")
+                .replace(Regex("\\s+"), " ")
+                .trim()
+                .lowercase()
 
         val knownAttributes = setOf(
             "tvg-id",

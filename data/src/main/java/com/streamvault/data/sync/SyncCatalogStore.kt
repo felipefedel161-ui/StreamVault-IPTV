@@ -363,8 +363,10 @@ internal class SyncCatalogStore(
         sessionId: Long,
         liveCategories: List<CategoryEntity>?,
         movieCategories: List<CategoryEntity>?,
+        seriesCategories: List<CategoryEntity>? = null,
         includeLive: Boolean,
-        includeMovies: Boolean
+        includeMovies: Boolean,
+        includeSeries: Boolean = false
     ) {
         transactionRunner.inTransaction {
             if (includeLive) {
@@ -378,6 +380,12 @@ internal class SyncCatalogStore(
                 applyCategories(providerId, sessionId, "MOVIE")
                 applyMovies(providerId, sessionId)
                 catalogSyncDao.rebuildMovieFts()
+            }
+            if (includeSeries) {
+                stageCategories(providerId, sessionId, seriesCategories.orEmpty())
+                applyCategories(providerId, sessionId, "SERIES")
+                applySeries(providerId, sessionId)
+                catalogSyncDao.rebuildSeriesFts()
             }
         }
         if (includeMovies) {

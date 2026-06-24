@@ -98,16 +98,30 @@ class SeriesViewModel @Inject constructor(
          * variações como plural automaticamente (ex: "novela" casa com "novelas").
          */
         val CATEGORY_KEYWORD_SYNONYMS: Map<String, List<String>> = mapOf(
+            // ── ABA: NOVELAS ────────────────────────────────────────────────────────────
+            // Cobre: ♦️ Novelas (43.660), ♦️ Novelas Turcas (6.497), ♦️ Doramas (15.379)
+            // ♦️ Legendadas (34.013) — séries legendadas em geral (telenovelas estrangeiras)
             "novela" to listOf(
-                "novela", "novelas", "telenovela", "telenovelas",
-                "soap opera", "novelinha", "novela turca", "novelas turcas",
-                "turca", "turcas", "dorama", "doramas", "kdrama", "k-drama"
+                "novela", "novelas", "telenovela", "telenovelas", "novelinha",
+                "novela turca", "novelas turcas", "turca", "turcas",
+                "dorama", "doramas", "kdrama", "k-drama", "k drama",
+                "legendada", "legendadas", "legendados", "legendado"
             ),
+            // ── ABA: INFANTIL ────────────────────────────────────────────────────────────
+            // Cobre: ⛄ INFANTIS (28 canais), CANAIS 24H (157 — maioria infantil),
+            // ♦️ PlutoTV (122 — Popeye, Looney Tunes), ♦️ Animacao ✔️ (992 — misto infantil/anime)
             "infantil" to listOf(
-                "infantil", "infantis", "kids", "kid", "crianca", "criancas",
+                "infantil", "infantis", "kids", "kid",
+                "crianca", "criancas", "criança", "crianças",
                 "desenho", "desenhos", "cartoon", "cartoons",
-                "junior", "baby", "nickelodeon"
+                "junior", "baby",
+                "nickelodeon", "gloob", "gloobinho",
+                "cartoon network",
+                "canais 24h", "canal 24h"
             ),
+            // ── ABA: ANIMES ──────────────────────────────────────────────────────────────
+            // Cobre: ♦️ Crunchyroll (6.619), ♦️ Funimation Now (982),
+            // ♦️ Animacao ✔️ (992 — anime/animação mista)
             "anime" to listOf(
                 "anime", "animes", "animee", "mangá", "manga",
                 "animacao", "animacoes", "animação", "animações",

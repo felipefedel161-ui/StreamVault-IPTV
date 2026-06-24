@@ -97,6 +97,7 @@ internal data class M3uImportStats(
     val header: M3uParser.M3uHeader,
     val liveCount: Int,
     val movieCount: Int,
+    val seriesCount: Int = 0,
     val warnings: List<String> = emptyList()
 )
 
