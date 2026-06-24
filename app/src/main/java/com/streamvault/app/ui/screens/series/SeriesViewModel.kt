@@ -100,16 +100,18 @@ class SeriesViewModel @Inject constructor(
         val CATEGORY_KEYWORD_SYNONYMS: Map<String, List<String>> = mapOf(
             "novela" to listOf(
                 "novela", "novelas", "telenovela", "telenovelas",
-                "soap opera", "dorama", "doramas", "novelinha"
+                "soap opera", "novelinha", "novela turca", "novelas turcas",
+                "turca", "turcas", "dorama", "doramas", "kdrama", "k-drama"
             ),
             "infantil" to listOf(
                 "infantil", "infantis", "kids", "kid", "crianca", "criancas",
-                "desenho", "desenhos", "cartoon", "cartoons", "animacao",
-                "animacoes", "junior", "baby", "disney", "nickelodeon",
-                "cartoon network"
+                "desenho", "desenhos", "cartoon", "cartoons",
+                "junior", "baby", "nickelodeon"
             ),
             "anime" to listOf(
-                "anime", "animes", "animee", "mangá", "manga"
+                "anime", "animes", "animee", "mangá", "manga",
+                "animacao", "animacoes", "animação", "animações",
+                "crunchyroll", "funimation", "funimation now"
             )
         )
 
