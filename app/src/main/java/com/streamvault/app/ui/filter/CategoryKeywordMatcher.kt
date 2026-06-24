@@ -26,7 +26,8 @@ val CATEGORY_KEYWORD_SYNONYMS: Map<String, List<String>> = mapOf(
         "desenho", "desenhos", "cartoon", "cartoons",
         "junior", "baby",
         "nickelodeon", "gloob", "gloobinho",
-        "cartoon network",
+        "cartoon network", "tooncast",
+        "ratimbum", "ra tim bum",
         "canais 24h", "canal 24h"
     ),
     "anime" to listOf(
