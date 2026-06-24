@@ -142,18 +142,20 @@ fun EditProfileDialog(
             modifier = Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
-                .padding(20.dp),
+                .fillMaxHeight(0.96f)
+                .padding(12.dp),
             shape = RoundedCornerShape(22.dp),
             colors = SurfaceDefaults.colors(containerColor = Color(0xFF0D1B2E))
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(28.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp)
-            ) {
+            Box {
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp, vertical = 18.dp)
+                        .verticalScroll(scrollState),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                 // Title
                 Text(
                     text = if (profile == null) "Novo Perfil" else "Editar Perfil",
@@ -163,11 +165,11 @@ fun EditProfileDialog(
                     )
                 )
 
-                // Large avatar preview
+                // Avatar preview
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             Brush.radialGradient(
                                 listOf(
@@ -180,13 +182,13 @@ fun EditProfileDialog(
                         .border(
                             2.dp,
                             accentColor.copy(alpha = 0.70f),
-                            RoundedCornerShape(14.dp)
+                            RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = PROFILE_AVATARS.getOrElse(avatarIndex) { "👤" },
-                        fontSize = 40.sp
+                        fontSize = 28.sp
                     )
                 }
 
@@ -195,7 +197,7 @@ fun EditProfileDialog(
                     columns = GridCells.Fixed(8),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp),
+                        .height(84.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -203,7 +205,7 @@ fun EditProfileDialog(
                         val isSelected = idx == avatarIndex
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(36.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     if (isSelected) accentColor.copy(alpha = 0.30f)
@@ -217,7 +219,7 @@ fun EditProfileDialog(
                                 .clickable { avatarIndex = idx },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = PROFILE_AVATARS[idx], fontSize = 20.sp)
+                            Text(text = PROFILE_AVATARS[idx], fontSize = 16.sp)
                         }
                     }
                 }
@@ -473,6 +475,37 @@ fun EditProfileDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) { Text("✓ Salvar") }
+                }
+                }
+
+                // Indicadores de que há mais conteúdo para rolar — importantes em telas
+                // baixas (ex: celular em modo paisagem) onde nem todo o conteúdo do
+                // formulário cabe de uma vez e não há scrollbar visível por padrão.
+                if (scrollState.value > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(20.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF0D1B2E), Color(0xFF0D1B2E).copy(alpha = 0f))
+                                )
+                            )
+                    )
+                }
+                if (scrollState.value < scrollState.maxValue) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(20.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF0D1B2E).copy(alpha = 0f), Color(0xFF0D1B2E))
+                                )
+                            )
+                    )
                 }
             }
         }

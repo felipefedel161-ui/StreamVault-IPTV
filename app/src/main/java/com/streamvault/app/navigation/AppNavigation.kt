@@ -627,7 +627,6 @@ fun AppNavigation(mainActivity: MainActivity) {
             val keyword = backStackEntry.arguments?.getString("categoryKeyword") ?: ""
             val activeRoute = when {
                 keyword.equals("novela", ignoreCase = true) || keyword.equals("novelas", ignoreCase = true) -> Routes.NOVELAS
-                keyword.equals("infantil", ignoreCase = true) || keyword.equals("kids", ignoreCase = true) -> Routes.INFANTIL
                 keyword.equals("anime", ignoreCase = true) || keyword.equals("animes", ignoreCase = true) -> Routes.ANIMES
                 else -> Routes.SERIES
             }
@@ -654,35 +653,6 @@ fun AppNavigation(mainActivity: MainActivity) {
             androidx.compose.runtime.LaunchedEffect(Unit) {
                 navController.navigate(Routes.seriesFiltered("novela")) {
                     popUpTo(Routes.NOVELAS) { inclusive = true }
-                }
-            }
-        }
-
-        composable(Routes.INFANTIL) {
-            val resolverViewModel: com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel = hiltViewModel()
-            val resolveState by resolverViewModel.state.collectAsStateWithLifecycle()
-
-            LaunchedEffect(Unit) {
-                resolverViewModel.resolve("infantil")
-            }
-
-            when (val current = resolveState) {
-                is com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel.ResolveState.Loading -> {
-                    Box(
-                        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is com.streamvault.app.ui.screens.home.LiveCategoryKeywordResolverViewModel.ResolveState.Resolved -> {
-                    LaunchedEffect(current.categoryId) {
-                        // Sem categoria correspondente: cai para a Home normal, sem filtro,
-                        // em vez de mostrar uma tela em branco sem explicação.
-                        navController.navigate(Routes.liveTv(current.categoryId)) {
-                            popUpTo(Routes.INFANTIL) { inclusive = true }
-                        }
-                    }
                 }
             }
         }
