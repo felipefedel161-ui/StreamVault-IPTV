@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.streamvault.app.R
-import com.streamvault.app.ui.theme.Primary
 
 private data class SettingsNavEntry(
     val label: String,
@@ -30,11 +29,6 @@ internal fun SettingsNavigationRail(
     onCategorySelected: (Int) -> Unit
 ) {
     val entries = listOf(
-        SettingsNavEntry(
-            label = stringResource(R.string.settings_providers),
-            icon = "P",
-            accent = Primary
-        ),
         SettingsNavEntry(
             label = stringResource(R.string.settings_playback),
             icon = ">",

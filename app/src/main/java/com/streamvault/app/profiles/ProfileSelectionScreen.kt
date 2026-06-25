@@ -330,27 +330,44 @@ private fun ProfileCard(
             modifier = Modifier
                 .size(CARD_SIZE)
                 .clip(RoundedCornerShape(CARD_RADIUS))
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.22f),
-                            accentColor.copy(alpha = 0.06f),
-                            Color(0xFF0C1926)
+        ) {
+            // Camada de fundo com efeito vidro (glassmorphism): gradiente +
+            // leve blur + véu translúcido esbranquiçado simulando vidro fosco.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                accentColor.copy(alpha = 0.22f),
+                                accentColor.copy(alpha = 0.06f),
+                                Color(0xFF0C1926)
+                            )
                         )
                     )
-                )
-                .border(
-                    width = 1.5.dp,
-                    brush = Brush.linearGradient(
-                        listOf(
-                            accentColor.copy(alpha = 0.70f),
-                            accentColor.copy(alpha = 0.20f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(CARD_RADIUS)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
+                    .blur(18.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .border(
+                        width = 1.5.dp,
+                        brush = Brush.linearGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.35f),
+                                accentColor.copy(alpha = 0.45f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(CARD_RADIUS)
+                    )
+            )
+
+            // Conteúdo do card (não borrado): avatar, glow, badge de PIN.
+            Box(
+                modifier = Modifier.matchParentSize(),
+                contentAlignment = Alignment.Center
+            ) {
             // Avatar emoji
             Text(
                 text = PROFILE_AVATARS.getOrElse(profile.avatarIndex) { "👤" },
@@ -387,6 +404,7 @@ private fun ProfileCard(
                 ) {
                     Text(text = "🔒", fontSize = 13.sp)
                 }
+            }
             }
         }
 
