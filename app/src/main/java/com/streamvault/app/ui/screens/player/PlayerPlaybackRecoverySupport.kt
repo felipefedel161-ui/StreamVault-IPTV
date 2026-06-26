@@ -14,6 +14,14 @@ internal fun classifyPlaybackError(error: PlayerError): PlayerRecoveryType = whe
             error.message.contains("playback path", ignoreCase = true)
         ) {
             PlayerRecoveryType.SOURCE
+        } else if (
+            error.message.contains("401", ignoreCase = true) ||
+            error.message.contains("403", ignoreCase = true) ||
+            error.message.contains("unauthorized", ignoreCase = true) ||
+            error.message.contains("forbidden", ignoreCase = true)
+        ) {
+            // 401/403 from the player engine (not from probe) = real auth issue
+            PlayerRecoveryType.SOURCE
         } else {
             PlayerRecoveryType.NETWORK
         }
@@ -32,27 +40,47 @@ internal fun classifyPlaybackError(error: PlayerError): PlayerRecoveryType = whe
 }
 
 internal fun resolvePlaybackErrorMessage(error: PlayerError): String = when (classifyPlaybackError(error)) {
-    PlayerRecoveryType.NETWORK -> "This stream is not responding right now. You can retry or try another source."
+    PlayerRecoveryType.NETWORK ->
+        "Este stream não está respondendo. Você pode tentar novamente ou tentar outra fonte."
+
     PlayerRecoveryType.SOURCE -> when {
         error.message.contains("HTTP 456", ignoreCase = true) ||
             error.message.contains("access denied", ignoreCase = true) ->
-            "This provider rejected playback for this channel. The MAC or subscription may not have access to this stream."
+            "O provedor rejeitou a reprodução deste canal. " +
+                "O MAC ou a assinatura pode não ter acesso a este stream."
 
         error.message.contains("HTTP 509", ignoreCase = true) ->
-            "Provider rejected playback, likely max connections or bandwidth limit."
+            "O provedor rejeitou a reprodução — provável limite de conexões simultâneas ou banda."
+
+        error.message.contains("401", ignoreCase = true) ||
+            error.message.contains("403", ignoreCase = true) ||
+            error.message.contains("unauthorized", ignoreCase = true) ||
+            error.message.contains("forbidden", ignoreCase = true) ->
+            "O servidor rejeitou a conexão (autenticação). " +
+                "Verifique se sua assinatura está ativa e tente novamente."
 
         error.message.contains("temporary link", ignoreCase = true) ->
-            "This portal issued an empty or invalid temporary link for playback."
+            "O portal emitiu um link temporário inválido. Tentar novamente pode corrigir."
 
         error.message.contains("playback path", ignoreCase = true) ->
-            "This portal requires a different playback path than the default stream command."
+            "Este portal requer um caminho de reprodução diferente do padrão."
 
-        else -> "We couldn't start this stream on the available paths."
+        else ->
+            "Não foi possível iniciar este stream nas fontes disponíveis."
     }
 
-    PlayerRecoveryType.DECODER -> "This stream could not play in the current decoder mode."
-    PlayerRecoveryType.DRM -> "Playback requires valid DRM credentials or a supported device security level."
-    PlayerRecoveryType.BUFFER_TIMEOUT -> "Playback stayed stuck buffering for too long on this stream."
-    PlayerRecoveryType.CATCH_UP -> "Replay is unavailable for the selected program."
-    PlayerRecoveryType.UNKNOWN -> error.message.ifBlank { "Playback failed for an unknown reason." }
+    PlayerRecoveryType.DECODER ->
+        "Este stream não pôde ser reproduzido no modo de decodificador atual."
+
+    PlayerRecoveryType.DRM ->
+        "A reprodução requer credenciais DRM válidas ou um nível de segurança de dispositivo compatível."
+
+    PlayerRecoveryType.BUFFER_TIMEOUT ->
+        "O buffering ficou parado por tempo excessivo neste stream."
+
+    PlayerRecoveryType.CATCH_UP ->
+        "A reprodução do replay está indisponível para o programa selecionado."
+
+    PlayerRecoveryType.UNKNOWN ->
+        error.message.ifBlank { "A reprodução falhou por uma razão desconhecida." }
 }

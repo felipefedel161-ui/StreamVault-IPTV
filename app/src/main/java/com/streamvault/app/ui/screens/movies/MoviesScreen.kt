@@ -66,6 +66,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import com.streamvault.app.ui.components.shell.BrowseSearchLaunchCard
+import com.streamvault.app.ui.components.shell.BrowseHeroPanel
 import com.streamvault.app.ui.components.shell.LoadMoreCard
 import com.streamvault.app.ui.components.shell.InfiniteScrollEffect
 import com.streamvault.app.ui.components.shell.AppNavigationChrome
@@ -507,20 +508,24 @@ private fun MoviesVodContent(
         ) {
             item(key = "hero") {
             if (heroMovie != null) {
-                VodHeroStrip(
-                        title = heroMovie.name,
-                        subtitle = heroMovie.plot?.takeIf { it.isNotBlank() }
-                            ?: heroMovie.year
-                            ?: stringResource(R.string.movies_library_lens_subtitle),
-                        actionLabel = stringResource(R.string.player_resume).substringBefore(" "),
-                        onClick = {
-                            val isLocked = isMovieLocked(heroMovie)
-                            if (isLocked) onProtectedMovieClick(heroMovie) else onMovieClick(heroMovie)
-                        },
-                        modifier = Modifier
-                            .padding(top = 8.dp, bottom = 6.dp)
-                            .focusRequester(initialFocusRequester)
-                    )
+                BrowseHeroPanel(
+                    title = heroMovie.name,
+                    subtitle = heroMovie.plot?.takeIf { it.isNotBlank() }
+                        ?: heroMovie.year
+                        ?: stringResource(R.string.movies_library_lens_subtitle),
+                    eyebrow = heroMovie.genre?.takeIf { it.isNotBlank() }
+                        ?: heroMovie.year?.takeIf { it.isNotBlank() },
+                    imageUrl = heroMovie.backdropUrl?.takeIf { it.isNotBlank() }
+                        ?: heroMovie.posterUrl?.takeIf { it.isNotBlank() },
+                    actionLabel = "▶  Assistir",
+                    onClick = {
+                        val isLocked = isMovieLocked(heroMovie)
+                        if (isLocked) onProtectedMovieClick(heroMovie) else onMovieClick(heroMovie)
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp, bottom = 6.dp)
+                        .focusRequester(initialFocusRequester)
+                )
             }
             }
             item(key = "actions") {

@@ -1299,13 +1299,26 @@ class PlayerViewModel @Inject constructor(
         if (probeBeforePlayback) {
             probePlaybackUrl(preparedStreamInfo)?.let { failure ->
                 if (!isActivePlaybackSession(requestVersion)) return false
+                if (failure.shouldBlockPlayback) {
+                    // Hard failure (404, 456, 5xx, 204) — surface error and abort.
+                    setLastFailureReason(failure.message)
+                    showPlayerNotice(
+                        message = failure.message,
+                        recoveryType = failure.recoveryType,
+                        actions = buildRecoveryActions(failure.recoveryType)
+                    )
+                    return false
+                }
+                // Soft / ambiguous failure (401, 403) — many IPTV providers send these
+                // on a plain GET probe but accept the stream when played by a media player.
+                // Log it and fall through to attempt playback; the player engine will
+                // surface a real error if the stream actually fails.
                 setLastFailureReason(failure.message)
-                showPlayerNotice(
-                    message = failure.message,
-                    recoveryType = failure.recoveryType,
-                    actions = buildRecoveryActions(failure.recoveryType)
+                android.util.Log.w(
+                    "PlayerVM",
+                    "Probe returned soft rejection (${failure.recoveryType}), " +
+                        "attempting playback anyway: ${failure.message}"
                 )
-                return false
             }
             probePassedPlaybackKeys.add(
                 resolvePlaybackProbeCacheKey(

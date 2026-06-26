@@ -20,15 +20,15 @@ internal fun resolveCatchUpFailureMessage(
     programHasArchive: Boolean
 ): String {
     if (!archiveRequested || channel == null) {
-        return "Catch-up playback needs a valid live channel context."
+        return "A reprodução de catch-up precisa de um contexto de canal ao vivo válido."
     }
     return when {
         !channel.catchUpSupported && !programHasArchive ->
-            "This channel does not advertise archive support on the current provider."
+            "Este canal não anuncia suporte a arquivo no provedor atual."
         channel.streamId <= 0L && channel.catchUpSource.isNullOrBlank() ->
-            "The provider advertises catch-up, but did not expose replay metadata for this channel."
+            "O provedor anuncia catch-up, mas não expôs metadados de replay para este canal."
         else ->
-            "Replay is unavailable for the selected program right now."
+            "O replay está indisponível para o programa selecionado no momento."
     }
 }
 

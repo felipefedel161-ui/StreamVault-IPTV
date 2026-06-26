@@ -507,20 +507,24 @@ private fun SeriesVodContent(
         ) {
             item(key = "hero") {
             if (heroSeries != null) {
-                VodHeroStrip(
-                        title = heroSeries.name,
-                        subtitle = heroSeries.plot?.takeIf { it.isNotBlank() }
-                            ?: heroSeries.genre
-                            ?: stringResource(R.string.series_library_lens_subtitle),
-                        actionLabel = stringResource(R.string.player_resume).substringBefore(" "),
-                        onClick = {
-                            val isLocked = isSeriesLocked(heroSeries)
-                            if (isLocked) onProtectedSeriesClick(heroSeries) else onSeriesClick(heroSeries)
-                        },
-                        modifier = Modifier
-                            .padding(top = 8.dp, bottom = 6.dp)
-                            .focusRequester(initialFocusRequester)
-                    )
+                BrowseHeroPanel(
+                    title = heroSeries.name,
+                    subtitle = heroSeries.plot?.takeIf { it.isNotBlank() }
+                        ?: heroSeries.genre
+                        ?: stringResource(R.string.series_library_lens_subtitle),
+                    eyebrow = heroSeries.genre?.takeIf { it.isNotBlank() }
+                        ?: heroSeries.categoryName?.takeIf { it.isNotBlank() },
+                    imageUrl = heroSeries.backdropUrl?.takeIf { it.isNotBlank() }
+                        ?: heroSeries.posterUrl?.takeIf { it.isNotBlank() },
+                    actionLabel = "▶  Assistir",
+                    onClick = {
+                        val isLocked = isSeriesLocked(heroSeries)
+                        if (isLocked) onProtectedSeriesClick(heroSeries) else onSeriesClick(heroSeries)
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp, bottom = 6.dp)
+                        .focusRequester(initialFocusRequester)
+                )
             }
             }
             item(key = "actions") {
