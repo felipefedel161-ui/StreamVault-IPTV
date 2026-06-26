@@ -31,6 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -152,10 +159,60 @@ fun DashboardScreen(
                 }
             }
 
+            // Track the current hero index at screen level so it survives recomposition
+            var heroIndex by remember { mutableIntStateOf(0) }
+            val heroFeatures = uiState.heroFeatures
+
+            if (heroFeatures.size > 1) {
+                LaunchedEffect(heroFeatures.size) {
+                    while (true) {
+                        delay(9_000L)
+                        heroIndex = (heroIndex + 1) % heroFeatures.size
+                    }
+                }
+            }
+
             androidx.compose.foundation.lazy.LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 28.dp)
             ) {
+                if (heroFeatures.isNotEmpty()) {
+                    item(key = "hero_banner") {
+                        val provider = uiState.provider
+                        if (provider != null) {
+                            AnimatedContent(
+                                targetState = heroIndex,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(durationMillis = 700)) togetherWith
+                                        fadeOut(animationSpec = tween(durationMillis = 500))
+                                },
+                                label = "hero_crossfade"
+                            ) { index ->
+                                val feature = heroFeatures.getOrElse(index) { heroFeatures.first() }
+                                DashboardHero(
+                                    providerName = provider.name,
+                                    feature = feature,
+                                    stats = uiState.stats,
+                                    showIndicators = heroFeatures.size > 1,
+                                    currentIndex = index,
+                                    totalCount = heroFeatures.size,
+                                    onOpenLiveTv = { onNavigate(Routes.LIVE_TV) },
+                                    onOpenGuide = { onNavigate(Routes.EPG) },
+                                    onOpenSearch = { onNavigate(Routes.SEARCH) },
+                                    onOpenSavedLibrary = { onNavigate(Routes.liveTv(com.streamvault.domain.model.VirtualCategoryIds.FAVORITES)) },
+                                    onFeatureAction = {
+                                        when (feature.actionType) {
+                                            DashboardFeatureAction.CONTINUE_WATCHING -> uiState.continueWatching.firstOrNull()?.let { onPlaybackHistoryClick(it) }
+                                            DashboardFeatureAction.MOVIES -> onNavigate(Routes.MOVIES)
+                                            DashboardFeatureAction.SERIES -> onNavigate(Routes.SERIES)
+                                            DashboardFeatureAction.LIVE -> onNavigate(Routes.LIVE_TV)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
                 if (uiState.isLoading && orderedSections.isEmpty()) {
                     item(key = "dashboard_loading") {
                         Box(
@@ -318,10 +375,14 @@ fun DashboardScreen(
     }
 }
 
+
 @Composable
 private fun DashboardHero(
     providerName: String,
     feature: DashboardFeature,
+    showIndicators: Boolean = false,
+    currentIndex: Int = 0,
+    totalCount: Int = 1,
     stats: DashboardStats,
     onOpenLiveTv: () -> Unit,
     onOpenGuide: () -> Unit,
@@ -396,8 +457,33 @@ private fun DashboardHero(
                         onClick = onFeatureAction
                     )
                 }
+            )
+        }
+
+        // Dot indicators for the rotating hero (bottom-right corner)
+        if (showIndicators && totalCount > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 36.dp, bottom = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                repeat(totalCount) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(if (index == currentIndex) 7.dp else 5.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                if (index == currentIndex) {
+                                    Color.White
+                                } else {
+                                    Color.White.copy(alpha = 0.4f)
+                                }
+                            )
+                    )
+                }
             }
-        )
+        }
     }
 }
 

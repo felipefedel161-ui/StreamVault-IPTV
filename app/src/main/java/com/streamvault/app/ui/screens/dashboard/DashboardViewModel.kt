@@ -302,6 +302,14 @@ class DashboardViewModel @Inject constructor(
                     recentMovies = snapshot.shelves.recentMovies,
                     recentSeries = snapshot.shelves.recentSeries
                 ),
+                heroFeatures = buildHeroFeatures(
+                    providerName = provider.name,
+                    recentChannels = snapshot.shelves.recentChannels,
+                    continueWatching = snapshot.shelves.continueWatching,
+                    continueWatchingDegraded = snapshot.shelves.continueWatchingDegraded,
+                    recentMovies = snapshot.shelves.recentMovies,
+                    recentSeries = snapshot.shelves.recentSeries
+                ),
                 providerHealth = DashboardProviderHealth(
                     status = provider.status,
                     type = provider.type,
@@ -694,6 +702,84 @@ class DashboardViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Builds a list of hero features for the rotating banner. Each entry becomes one
+     * slide in the auto-advancing carousel on the dashboard. The list is capped at 5
+     * items to keep rotation cycles short enough to feel alive without being distracting.
+     */
+    private fun buildHeroFeatures(
+        providerName: String,
+        recentChannels: List<Channel>,
+        continueWatching: List<PlaybackHistory>,
+        continueWatchingDegraded: Boolean,
+        recentMovies: List<Movie>,
+        recentSeries: List<Series>
+    ): List<DashboardFeature> {
+        val features = mutableListOf<DashboardFeature>()
+
+        // First slot: resume item if available (highest priority)
+        if (continueWatching.isNotEmpty() || continueWatchingDegraded) {
+            features.add(
+                buildFeature(
+                    providerName = providerName,
+                    recentChannels = emptyList(),
+                    continueWatching = continueWatching,
+                    continueWatchingDegraded = continueWatchingDegraded,
+                    recentMovies = emptyList(),
+                    recentSeries = emptyList()
+                )
+            )
+        }
+
+        // Add up to 2 recent movies with artwork
+        recentMovies
+            .filter { !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank() }
+            .take(2)
+            .forEach { movie ->
+                features.add(
+                    DashboardFeature(
+                        title = movie.name,
+                        summary = movie.year ?: appContext.getString(R.string.dashboard_fresh_movie_pick),
+                        artworkUrl = movie.backdropUrl ?: movie.posterUrl,
+                        actionLabel = appContext.getString(R.string.dashboard_open_movies),
+                        actionType = DashboardFeatureAction.MOVIES
+                    )
+                )
+            }
+
+        // Add up to 2 recent series with artwork
+        recentSeries
+            .filter { !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank() }
+            .take(2)
+            .forEach { series ->
+                features.add(
+                    DashboardFeature(
+                        title = series.name,
+                        summary = appContext.getString(R.string.dashboard_updated_series),
+                        artworkUrl = series.backdropUrl ?: series.posterUrl,
+                        actionLabel = appContext.getString(R.string.dashboard_open_series),
+                        actionType = DashboardFeatureAction.SERIES
+                    )
+                )
+            }
+
+        // Fall back to the single buildFeature result if nothing was assembled
+        if (features.isEmpty()) {
+            features.add(
+                buildFeature(
+                    providerName = providerName,
+                    recentChannels = recentChannels,
+                    continueWatching = continueWatching,
+                    continueWatchingDegraded = continueWatchingDegraded,
+                    recentMovies = recentMovies,
+                    recentSeries = recentSeries
+                )
+            )
+        }
+
+        return features.take(5)
+    }
+
     private fun movieFreshnessScore(movie: Movie): Long {
         return parseDateScore(movie.releaseDate)
             ?: movie.year?.toIntOrNull()?.toLong()
@@ -841,6 +927,7 @@ data class DashboardUiState(
     val lastLiveCategory: Category? = null,
     val liveShortcuts: List<DashboardLiveShortcut> = emptyList(),
     val feature: DashboardFeature = DashboardFeature(),
+    val heroFeatures: List<DashboardFeature> = emptyList(),
     val providerHealth: DashboardProviderHealth = DashboardProviderHealth(),
     val providerWarnings: List<String> = emptyList(),
     val currentCombinedProfileId: Long? = null,
