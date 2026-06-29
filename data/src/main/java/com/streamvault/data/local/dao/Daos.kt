@@ -3120,6 +3120,9 @@ abstract class FavoriteDao {
     @Query("DELETE FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId)")
     abstract suspend fun delete(providerId: Long, contentId: Long, contentType: String, groupId: Long?, profileId: String = "")
 
+    @Query("DELETE FROM favorites WHERE profile_id = :profileId")
+    abstract suspend fun deleteAllForProfile(profileId: String)
+
     @Query("DELETE FROM favorites WHERE content_type = 'LIVE' AND content_id NOT IN (SELECT id FROM channels)")
     abstract suspend fun deleteMissingLiveFavorites(): Int
 

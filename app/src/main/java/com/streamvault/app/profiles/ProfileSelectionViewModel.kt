@@ -2,6 +2,8 @@ package com.streamvault.app.profiles
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamvault.domain.repository.FavoriteRepository
+import com.streamvault.domain.repository.PlaybackHistoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,9 @@ data class ProfileSelectionUiState(
 
 @HiltViewModel
 class ProfileSelectionViewModel @Inject constructor(
-    val repository: UserProfileRepository
+    val repository: UserProfileRepository,
+    private val favoriteRepository: FavoriteRepository,
+    private val playbackHistoryRepository: PlaybackHistoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileSelectionUiState())
@@ -105,9 +109,17 @@ class ProfileSelectionViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(editingProfile = null, isCreatingNew = false)
     }
 
+    /**
+     * Deleta o perfil e limpa todos os dados associados no banco (favoritos + histórico).
+     * Os dados legados (profile_id = "") não são afetados.
+     */
     fun deleteProfile(id: String) {
         repository.deleteProfile(id)
         _uiState.value = _uiState.value.copy(editingProfile = null)
+        viewModelScope.launch {
+            favoriteRepository.deleteAllForProfile(id)
+            playbackHistoryRepository.deleteAllForProfile(id)
+        }
     }
 
     private fun activate(profile: UserProfile) {

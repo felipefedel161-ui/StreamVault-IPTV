@@ -258,6 +258,10 @@ class FavoriteRepositoryImpl @Inject constructor(
         Result.error("Failed to rename group: ${e.message}", e)
     }
 
+    override suspend fun deleteAllForProfile(profileId: String) {
+        favoriteDao.deleteAllForProfile(profileId)
+    }
+
     private fun buildReorderUpdates(favorites: List<Favorite>): List<Favorite> {
         if (favorites.size < 2) return emptyList()
 

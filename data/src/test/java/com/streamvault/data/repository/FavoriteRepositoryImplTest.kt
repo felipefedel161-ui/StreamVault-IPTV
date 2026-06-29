@@ -33,11 +33,15 @@ class FavoriteRepositoryImplTest {
     private val transactionRunner = object : DatabaseTransactionRunner {
         override suspend fun <T> inTransaction(block: suspend () -> T): T = block()
     }
+    private val fakeProfileProvider = object : com.streamvault.domain.repository.ActiveProfileProvider {
+        override fun activeProfileId() = ""
+    }
 
     private val repository = FavoriteRepositoryImpl(
         favoriteDao = favoriteDao,
         virtualGroupDao = virtualGroupDao,
-        transactionRunner = transactionRunner
+        transactionRunner = transactionRunner,
+        activeProfileProvider = fakeProfileProvider
     )
 
     @Test
@@ -75,7 +79,8 @@ class FavoriteRepositoryImplTest {
         val repository = FavoriteRepositoryImpl(
             favoriteDao = favoriteDao,
             virtualGroupDao = virtualGroupDao,
-            transactionRunner = transactionRunner
+            transactionRunner = transactionRunner,
+            activeProfileProvider = fakeProfileProvider
         )
 
         val result = repository.addFavorite(

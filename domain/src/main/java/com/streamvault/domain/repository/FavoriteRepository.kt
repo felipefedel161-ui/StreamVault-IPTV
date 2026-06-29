@@ -42,4 +42,6 @@ interface FavoriteRepository {
     suspend fun createGroup(providerId: Long, name: String, iconEmoji: String? = null, contentType: ContentType): Result<VirtualGroup>
     suspend fun deleteGroup(groupId: Long): Result<Unit>
     suspend fun renameGroup(groupId: Long, newName: String): Result<Unit>
+    /** Remove todos os favoritos do perfil especificado. Chamado ao excluir um perfil. */
+    suspend fun deleteAllForProfile(profileId: String)
 }

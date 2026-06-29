@@ -34,12 +34,17 @@ class PlaybackHistoryRepositoryImplTest {
         override suspend fun <T> inTransaction(block: suspend () -> T): T = block()
     }
 
+    private val fakeProfileProvider = object : com.streamvault.domain.repository.ActiveProfileProvider {
+        override fun activeProfileId() = ""
+    }
+
     private fun repository() = PlaybackHistoryRepositoryImpl(
         dao = historyDao,
         preferencesRepository = preferencesRepository,
         movieDao = movieDao,
         episodeDao = episodeDao,
-        transactionRunner = transactionRunner
+        transactionRunner = transactionRunner,
+        activeProfileProvider = fakeProfileProvider
     )
 
     private fun movieHistory(

@@ -258,6 +258,20 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
         Result.error("Failed to clear live playback history", e)
     }
 
+    override suspend fun deleteAllForProfile(profileId: String): Result<Unit> = try {
+        // Limpa também os updates pendentes em memória para esse perfil
+        pendingResumeUpdates.keys.removeIf {
+            // PlaybackHistoryKey não tem profileId, mas ao trocar/deletar perfil
+            // o activeProfileProvider já mudou — as entradas pendentes são do perfil
+            // antigo e seriam salvas com o id errado; descartamos todas com segurança.
+            true
+        }
+        dao.deleteAllForProfile(profileId)
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.error("Failed to delete history for profile $profileId", e)
+    }
+
     override suspend fun flushPendingProgress(): Result<Unit> = try {
         flushPendingResumeUpdates()
         Result.success(Unit)
