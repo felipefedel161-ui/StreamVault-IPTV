@@ -259,13 +259,9 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteAllForProfile(profileId: String): Result<Unit> = try {
-        // Limpa também os updates pendentes em memória para esse perfil
-        pendingResumeUpdates.keys.removeIf {
-            // PlaybackHistoryKey não tem profileId, mas ao trocar/deletar perfil
-            // o activeProfileProvider já mudou — as entradas pendentes são do perfil
-            // antigo e seriam salvas com o id errado; descartamos todas com segurança.
-            true
-        }
+        // Descarta updates em memória pendentes — ao deletar/trocar perfil eles seriam
+        // gravados com o activeProfileId já alterado, corrompendo dados do novo perfil.
+        pendingResumeUpdates.clear()
         dao.deleteAllForProfile(profileId)
         Result.success(Unit)
     } catch (e: Exception) {

@@ -29,7 +29,8 @@ internal fun SettingsNavigationRail(
     selectedCategory: Int,
     focusRequester: FocusRequester,
     onCategorySelected: (Int) -> Unit,
-    onSwitchProfile: () -> Unit = {}
+    onSwitchProfile: () -> Unit = {},
+    activeProfileName: String? = null
 ) {
     val entries = listOf(
         SettingsNavEntry(
@@ -103,7 +104,7 @@ internal fun SettingsNavigationRail(
         // Botão "Trocar Perfil" — não faz parte das categorias numeradas
         item {
             SettingsNavItem(
-                label = "Trocar Perfil",
+                label = if (activeProfileName != null) "Perfil: $activeProfileName" else "Trocar Perfil",
                 badgeChar = "P",
                 accentColor = Color(0xFF69A8FF),
                 isSelected = false,

@@ -123,11 +123,19 @@ class SettingsViewModel @Inject constructor(
     private val gitHubReleaseChecker: GitHubReleaseChecker,
     private val appUpdateInstaller: AppUpdateInstaller,
     private val getCustomCategories: GetCustomCategories,
-    private val audioCompatibilityMemoryStore: AudioCompatibilityMemoryStore
+    private val audioCompatibilityMemoryStore: AudioCompatibilityMemoryStore,
+    private val userProfileRepository: com.streamvault.app.profiles.UserProfileRepository
 ) : ViewModel() {
     private val appContext = application
     private val exportBackup = ExportBackup(backupManager)
     private val importBackup = ImportBackup(backupManager)
+
+    /** Nome do perfil ativo, para exibir no botão "Trocar Perfil" das configurações. */
+    val activeProfileName: StateFlow<String?> = userProfileRepository.profiles
+        .combine(userProfileRepository.activeProfileId) { profiles, activeId ->
+            profiles.firstOrNull { it.id == activeId }?.name
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()

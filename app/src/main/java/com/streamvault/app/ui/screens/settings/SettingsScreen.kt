@@ -69,6 +69,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activeProfileName by viewModel.activeProfileName.collectAsStateWithLifecycle()
     val settingsNavFocusRequester = remember { FocusRequester() }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -276,7 +277,8 @@ fun SettingsScreen(
                     selectedCategory = dialogState.selectedCategory,
                     focusRequester = settingsNavFocusRequester,
                     onCategorySelected = { dialogState.selectedCategory = it },
-                    onSwitchProfile = onSwitchProfile
+                    onSwitchProfile = onSwitchProfile,
+                    activeProfileName = activeProfileName
                 )
 
                 // Thin vertical separator
