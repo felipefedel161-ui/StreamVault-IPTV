@@ -474,6 +474,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     init {
+        registerNetworkReconnectCallback(appContext)
         viewModelScope.launch {
             activePlayerEngineFlow.flatMapLatest { it.error }.collect { error ->
                 if (error != null) {
@@ -1654,6 +1655,10 @@ class PlayerViewModel @Inject constructor(
     // Store current URL to find index later
     internal var currentStreamUrl: String = ""
 
+    // ── Reconexão automática de rede ─────────────────────────────────────────
+    internal var _networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
+    internal var _connectivityManager: android.net.ConnectivityManager? = null
+
     private fun resolveCurrentLiveChannelIndex(): Int {
         currentChannelIndex = resolveLiveChannelIndex(
             channelList = channelList,
@@ -1749,6 +1754,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        unregisterNetworkReconnectCallback()
         cleanupAfterCleared(mainPlayerEngine)
     }
 }

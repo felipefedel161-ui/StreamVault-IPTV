@@ -659,9 +659,10 @@ data class ProgramBrowseEntity(
         )
     ],
     indices = [
-        Index(value = ["provider_id", "content_id", "content_type", "group_key"], unique = true),
+        Index(value = ["profile_id", "provider_id", "content_id", "content_type", "group_key"], unique = true),
         Index(value = ["provider_id", "content_type", "group_id"]),
-        Index(value = ["group_id", "position"])
+        Index(value = ["group_id", "position"]),
+        Index(value = ["profile_id"])
     ]
 )
 data class FavoriteEntity(
@@ -673,7 +674,9 @@ data class FavoriteEntity(
     val position: Int = 0,
     @ColumnInfo(name = "group_id") val groupId: Long? = null,
     @ColumnInfo(name = "group_key") val groupKey: Long = groupId ?: 0L,
-    @ColumnInfo(name = "added_at") val addedAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "added_at") val addedAt: Long = System.currentTimeMillis(),
+    /** UUID do perfil de usuário dono deste favorito. String vazia = dados legados (compartilhados). */
+    @ColumnInfo(name = "profile_id") val profileId: String = ""
 )
 
 @Entity(
@@ -715,9 +718,10 @@ data class CategoryCount(
         onDelete = ForeignKey.CASCADE
     )],
     indices = [
-        Index(value = ["content_id", "content_type", "provider_id"], unique = true),
+        Index(value = ["profile_id", "content_id", "content_type", "provider_id"], unique = true),
         Index(value = ["last_watched_at"]),
         Index(value = ["provider_id"]),
+        Index(value = ["profile_id"]),
         Index(name = "index_playback_history_provider_id_content_type_content_id", value = ["provider_id", "content_type", "content_id"]),
         Index(name = "index_playback_history_provider_id_content_type_last_watched_at", value = ["provider_id", "content_type", "last_watched_at"])
     ]
@@ -738,7 +742,9 @@ data class PlaybackHistoryEntity(
     @ColumnInfo(name = "watched_status") val watchedStatus: String = "IN_PROGRESS",
     @ColumnInfo(name = "series_id") val seriesId: Long? = null,
     @ColumnInfo(name = "season_number") val seasonNumber: Int? = null,
-    @ColumnInfo(name = "episode_number") val episodeNumber: Int? = null
+    @ColumnInfo(name = "episode_number") val episodeNumber: Int? = null,
+    /** UUID do perfil de usuário. String vazia = dados legados (compartilhados). */
+    @ColumnInfo(name = "profile_id") val profileId: String = ""
 )
 
 @Entity(

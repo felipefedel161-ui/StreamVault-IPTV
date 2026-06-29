@@ -63,6 +63,7 @@ fun SettingsScreen(
     onAddProvider: () -> Unit = {},
     onEditProvider: (Provider) -> Unit = {},
     onNavigateToParentalControl: (Long) -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
     currentRoute: String,
     initialBackupImportUri: String? = null,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -274,7 +275,8 @@ fun SettingsScreen(
                 SettingsNavigationRail(
                     selectedCategory = dialogState.selectedCategory,
                     focusRequester = settingsNavFocusRequester,
-                    onCategorySelected = { dialogState.selectedCategory = it }
+                    onCategorySelected = { dialogState.selectedCategory = it },
+                    onSwitchProfile = onSwitchProfile
                 )
 
                 // Thin vertical separator

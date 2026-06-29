@@ -8,6 +8,7 @@ import com.streamvault.data.mapper.toDomain
 import com.streamvault.data.mapper.toEntity
 import com.streamvault.domain.model.*
 import kotlinx.coroutines.flow.first
+import com.streamvault.domain.repository.ActiveProfileProvider
 import com.streamvault.domain.repository.FavoriteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -19,7 +20,8 @@ import javax.inject.Singleton
 class FavoriteRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val virtualGroupDao: VirtualGroupDao,
-    private val transactionRunner: DatabaseTransactionRunner
+    private val transactionRunner: DatabaseTransactionRunner,
+    private val activeProfileProvider: ActiveProfileProvider
 ) : FavoriteRepository {
     private companion object {
         const val POSITION_STEP = 1_024
@@ -27,9 +29,9 @@ class FavoriteRepositoryImpl @Inject constructor(
 
     override fun getFavorites(providerId: Long, contentType: ContentType?): Flow<List<Favorite>> {
         val flow = if (contentType != null) {
-            favoriteDao.getGlobalByType(providerId, contentType.name)
+            favoriteDao.getGlobalByType(providerId, contentType.name, activeProfileProvider.activeProfileId())
         } else {
-            favoriteDao.getAllGlobal(providerId)
+            favoriteDao.getAllGlobal(providerId, activeProfileProvider.activeProfileId())
         }
         return flow.map { entities -> entities.map { it.toDomain() } }
     }
@@ -37,9 +39,9 @@ class FavoriteRepositoryImpl @Inject constructor(
     override fun getFavorites(providerIds: List<Long>, contentType: ContentType?): Flow<List<Favorite>> {
         if (providerIds.isEmpty()) return flowOf(emptyList())
         val flow = if (contentType != null) {
-            favoriteDao.getGlobalByTypeForProviders(providerIds, contentType.name)
+            favoriteDao.getGlobalByTypeForProviders(providerIds, contentType.name, activeProfileProvider.activeProfileId())
         } else {
-            favoriteDao.getAllGlobalByProviders(providerIds)
+            favoriteDao.getAllGlobalByProviders(providerIds, activeProfileProvider.activeProfileId())
         }
         return flow.map { entities -> entities.map { it.toDomain() } }
     }
@@ -71,15 +73,15 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override fun getGlobalFavoriteCount(providerId: Long, contentType: ContentType): Flow<Int> =
-        favoriteDao.getGlobalFavoriteCount(providerId, contentType.name)
+        favoriteDao.getGlobalFavoriteCount(providerId, contentType.name, activeProfileProvider.activeProfileId())
 
     override fun getGroupFavoriteCounts(providerId: Long, contentType: ContentType): Flow<Map<Long, Int>> =
-        favoriteDao.getGroupFavoriteCounts(providerId, contentType.name)
+        favoriteDao.getGroupFavoriteCounts(providerId, contentType.name, activeProfileProvider.activeProfileId())
             .map { list -> list.associate { it.categoryId to it.item_count } }
 
     override fun getGroupFavoriteCounts(providerIds: List<Long>, contentType: ContentType): Flow<Map<Long, Int>> {
         if (providerIds.isEmpty()) return flowOf(emptyMap())
-        return favoriteDao.getGroupFavoriteCountsForProviders(providerIds, contentType.name)
+        return favoriteDao.getGroupFavoriteCountsForProviders(providerIds, contentType.name, activeProfileProvider.activeProfileId())
             .map { list -> list.associate { it.categoryId to it.item_count } }
     }
 
@@ -91,10 +93,10 @@ class FavoriteRepositoryImpl @Inject constructor(
     ): Result<Unit> = try {
         transactionRunner.inTransaction {
             validateGroupAssignment(providerId, contentType, groupId)
-            if (favoriteDao.get(providerId, contentId, contentType.name, groupId) != null) {
+            if (favoriteDao.get(providerId, contentId, contentType.name, groupId, activeProfileProvider.activeProfileId()) != null) {
                 return@inTransaction
             }
-            val maxPos = favoriteDao.getMaxPosition(providerId, groupId) ?: -1
+            val maxPos = favoriteDao.getMaxPosition(providerId, groupId, activeProfileProvider.activeProfileId()) ?: -1
             val favorite = Favorite(
                 providerId = providerId,
                 contentId = contentId,
@@ -102,7 +104,7 @@ class FavoriteRepositoryImpl @Inject constructor(
                 position = if (maxPos < 0) 0 else maxPos + POSITION_STEP,
                 groupId = groupId
             )
-            favoriteDao.insert(favorite.toEntity())
+            favoriteDao.insert(favorite.toEntity().copy(profileId = activeProfileProvider.activeProfileId()))
         }
         Result.success(Unit)
     } catch (e: Exception) {
@@ -110,7 +112,7 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun removeFavorite(providerId: Long, contentId: Long, contentType: ContentType, groupId: Long?): Result<Unit> = try {
-        favoriteDao.delete(providerId, contentId, contentType.name, groupId)
+        favoriteDao.delete(providerId, contentId, contentType.name, groupId, activeProfileProvider.activeProfileId())
         Result.success(Unit)
     } catch (e: Exception) {
         Result.error("Failed to remove favorite: ${e.message}", e)
@@ -130,11 +132,11 @@ class FavoriteRepositoryImpl @Inject constructor(
 
         transactionRunner.inTransaction {
             validateGroupAssignment(providerId, contentType, targetGroupId)
-            val sourceFavorite = favoriteDao.get(providerId, contentId, contentType.name, fromGroupId)
+            val sourceFavorite = favoriteDao.get(providerId, contentId, contentType.name, fromGroupId, activeProfileProvider.activeProfileId())
                 ?: throw IllegalArgumentException("Favorite $contentId is not saved in the requested source group")
-            val targetFavorite = favoriteDao.get(providerId, contentId, contentType.name, targetGroupId)
+            val targetFavorite = favoriteDao.get(providerId, contentId, contentType.name, targetGroupId, activeProfileProvider.activeProfileId())
             if (targetFavorite != null) {
-                favoriteDao.delete(providerId, contentId, contentType.name, fromGroupId)
+                favoriteDao.delete(providerId, contentId, contentType.name, fromGroupId, activeProfileProvider.activeProfileId())
             } else {
                 favoriteDao.updateGroup(sourceFavorite.id, targetGroupId)
             }
@@ -166,10 +168,11 @@ class FavoriteRepositoryImpl @Inject constructor(
                     providerId = favorite.providerId,
                     contentId = favorite.contentId,
                     contentType = favorite.contentType.name,
-                    groupId = targetGroupId
+                    groupId = targetGroupId,
+                    profileId = activeProfileProvider.activeProfileId()
                 )
                 if (targetFavorite != null) {
-                    favoriteDao.delete(favorite.providerId, favorite.contentId, favorite.contentType.name, sourceGroupId)
+                    favoriteDao.delete(favorite.providerId, favorite.contentId, favorite.contentType.name, sourceGroupId, activeProfileProvider.activeProfileId())
                 } else {
                     favoriteDao.updateGroup(favorite.id, targetGroupId)
                 }
@@ -195,10 +198,10 @@ class FavoriteRepositoryImpl @Inject constructor(
 
     // Checks if content is in Global Favorites (groupId = null)
     override suspend fun isFavorite(providerId: Long, contentId: Long, contentType: ContentType): Boolean =
-        favoriteDao.get(providerId, contentId, contentType.name, null) != null
+        favoriteDao.get(providerId, contentId, contentType.name, null, activeProfileProvider.activeProfileId()) != null
 
     override suspend fun getGroupMemberships(providerId: Long, contentId: Long, contentType: ContentType): List<Long> =
-        favoriteDao.getGroupMemberships(providerId, contentId, contentType.name)
+        favoriteDao.getGroupMemberships(providerId, contentId, contentType.name, activeProfileProvider.activeProfileId())
 
     override suspend fun createGroup(providerId: Long, name: String, iconEmoji: String?, contentType: ContentType): Result<VirtualGroup> = try {
         val position = (virtualGroupDao.getMaxPosition(providerId, contentType.name) ?: -POSITION_STEP) + POSITION_STEP
@@ -232,10 +235,11 @@ class FavoriteRepositoryImpl @Inject constructor(
                     providerId = favorite.providerId,
                     contentId = favorite.contentId,
                     contentType = favorite.contentType.name,
-                    groupId = null
+                    groupId = null,
+                    profileId = activeProfileProvider.activeProfileId()
                 )
                 if (globalFavorite != null) {
-                    favoriteDao.delete(favorite.providerId, favorite.contentId, favorite.contentType.name, groupId)
+                    favoriteDao.delete(favorite.providerId, favorite.contentId, favorite.contentType.name, groupId, activeProfileProvider.activeProfileId())
                 } else {
                     favoriteDao.updateGroup(favorite.id, null)
                 }

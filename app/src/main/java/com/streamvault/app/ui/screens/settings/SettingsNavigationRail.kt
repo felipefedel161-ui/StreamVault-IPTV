@@ -3,7 +3,9 @@ package com.streamvault.app.ui.screens.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -26,7 +28,8 @@ private data class SettingsNavEntry(
 internal fun SettingsNavigationRail(
     selectedCategory: Int,
     focusRequester: FocusRequester,
-    onCategorySelected: (Int) -> Unit
+    onCategorySelected: (Int) -> Unit,
+    onSwitchProfile: () -> Unit = {}
 ) {
     val entries = listOf(
         SettingsNavEntry(
@@ -82,6 +85,29 @@ internal fun SettingsNavigationRail(
                 isSelected = selectedCategory == index,
                 modifier = if (selectedCategory == index) Modifier.focusRequester(focusRequester) else Modifier,
                 onClick = { onCategorySelected(index) }
+            )
+        }
+
+        // Divisor visual antes do botão de trocar perfil
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.08f))
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Botão "Trocar Perfil" — não faz parte das categorias numeradas
+        item {
+            SettingsNavItem(
+                label = "Trocar Perfil",
+                badgeChar = "P",
+                accentColor = Color(0xFF69A8FF),
+                isSelected = false,
+                onClick = onSwitchProfile
             )
         }
     }

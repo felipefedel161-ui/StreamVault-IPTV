@@ -447,9 +447,11 @@ fun AppNavigation(mainActivity: MainActivity) {
         // ── Seleção de Perfil (estilo Netflix) ────────────────────────────
         composable(Routes.PROFILE_SELECTION) {
             com.streamvault.app.profiles.ProfileSelectionScreen(
-                onProfileSelected = { profile ->
+                onProfileSelected = { _ ->
                     navController.navigate(landingRoute) {
-                        popUpTo(Routes.PROFILE_SELECTION) { inclusive = true }
+                        // Remove todo o back stack até a raiz — sem voltar à tela de perfil
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -736,6 +738,13 @@ fun AppNavigation(mainActivity: MainActivity) {
                 },
                 onNavigateToParentalControl = { providerId ->
                     navController.navigateIfResumed(Routes.parentalControlGroups(providerId))
+                },
+                onSwitchProfile = dropUnlessResumed {
+                    navController.navigate(Routes.PROFILE_SELECTION) {
+                        // Mantém o back stack — ao selecionar perfil, volta direto ao home
+                        popUpTo(navController.graph.startDestinationId) { inclusive = false }
+                        launchSingleTop = true
+                    }
                 },
                 currentRoute = Routes.SETTINGS,
                 initialBackupImportUri = backupUri

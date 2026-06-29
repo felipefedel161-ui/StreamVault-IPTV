@@ -50,7 +50,7 @@ import com.streamvault.data.local.entity.*
         XtreamLiveOnboardingStateEntity::class,
         DownloadEntity::class
     ],
-    version = 61,
+    version = 62,
     exportSchema = true   // ← was false; schema JSON now tracked in version control
 )
 @TypeConverters(RoomEnumConverters::class)
@@ -2681,6 +2681,57 @@ abstract class StreamVaultDatabase : RoomDatabase() {
                     columnDefinition = "TEXT NOT NULL DEFAULT ''"
                 )
                 validateForeignKeys(database, "providers")
+            }
+        }
+
+        /**
+         * Migration 61 → 62: Isolamento de conteúdo por perfil de usuário.
+         *
+         * Adiciona `profile_id TEXT NOT NULL DEFAULT ''` nas tabelas `favorites` e
+         * `playback_history`. String vazia representa dados legados visíveis a todos os
+         * perfis para compatibilidade retroativa.
+         *
+         * O índice único de `favorites` é recriado incluindo `profile_id` para que cada
+         * perfil possa ter seus próprios favoritos independentes.
+         * O mesmo vale para `playback_history`.
+         */
+        val MIGRATION_61_62 = object : Migration(61, 62) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // ── favorites ────────────────────────────────────────────────
+                addColumnIfMissing(
+                    database,
+                    tableName = "favorites",
+                    columnName = "profile_id",
+                    columnDefinition = "TEXT NOT NULL DEFAULT ''"
+                )
+                // Recriar índice único incluindo profile_id
+                database.execSQL("DROP INDEX IF EXISTS `index_favorites_provider_id_content_id_content_type_group_key`")
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_favorites_profile_id_provider_id_content_id_content_type_group_key` " +
+                        "ON `favorites` (`profile_id`, `provider_id`, `content_id`, `content_type`, `group_key`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_favorites_profile_id` ON `favorites` (`profile_id`)"
+                )
+
+                // ── playback_history ─────────────────────────────────────────
+                addColumnIfMissing(
+                    database,
+                    tableName = "playback_history",
+                    columnName = "profile_id",
+                    columnDefinition = "TEXT NOT NULL DEFAULT ''"
+                )
+                // Recriar índice único incluindo profile_id
+                database.execSQL("DROP INDEX IF EXISTS `index_playback_history_content_id_content_type_provider_id`")
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_playback_history_profile_id_content_id_content_type_provider_id` " +
+                        "ON `playback_history` (`profile_id`, `content_id`, `content_type`, `provider_id`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_playback_history_profile_id` ON `playback_history` (`profile_id`)"
+                )
             }
         }
 

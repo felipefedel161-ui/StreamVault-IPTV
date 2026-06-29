@@ -3061,17 +3061,17 @@ data class FavoriteGroupConstraint(
 
 @Dao
 abstract class FavoriteDao {
-    @Query("SELECT * FROM favorites WHERE provider_id = :providerId AND group_id IS NULL ORDER BY position ASC")
-    abstract fun getAllGlobal(providerId: Long): Flow<List<FavoriteEntity>>
+    @Query("SELECT * FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND group_id IS NULL ORDER BY position ASC")
+    abstract fun getAllGlobal(providerId: Long, profileId: String = ""): Flow<List<FavoriteEntity>>
 
-    @Query("SELECT * FROM favorites WHERE provider_id IN (:providerIds) AND group_id IS NULL ORDER BY provider_id ASC, position ASC")
-    abstract fun getAllGlobalByProviders(providerIds: List<Long>): Flow<List<FavoriteEntity>>
+    @Query("SELECT * FROM favorites WHERE profile_id = :profileId AND provider_id IN (:providerIds) AND group_id IS NULL ORDER BY provider_id ASC, position ASC")
+    abstract fun getAllGlobalByProviders(providerIds: List<Long>, profileId: String = ""): Flow<List<FavoriteEntity>>
 
-    @Query("SELECT * FROM favorites WHERE provider_id = :providerId AND content_type = :contentType AND group_id IS NULL ORDER BY position ASC")
-    abstract fun getGlobalByType(providerId: Long, contentType: String): Flow<List<FavoriteEntity>>
+    @Query("SELECT * FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND content_type = :contentType AND group_id IS NULL ORDER BY position ASC")
+    abstract fun getGlobalByType(providerId: Long, contentType: String, profileId: String = ""): Flow<List<FavoriteEntity>>
 
-    @Query("SELECT * FROM favorites WHERE provider_id IN (:providerIds) AND content_type = :contentType AND group_id IS NULL ORDER BY provider_id ASC, position ASC")
-    abstract fun getGlobalByTypeForProviders(providerIds: List<Long>, contentType: String): Flow<List<FavoriteEntity>>
+    @Query("SELECT * FROM favorites WHERE profile_id = :profileId AND provider_id IN (:providerIds) AND content_type = :contentType AND group_id IS NULL ORDER BY provider_id ASC, position ASC")
+    abstract fun getGlobalByTypeForProviders(providerIds: List<Long>, contentType: String, profileId: String = ""): Flow<List<FavoriteEntity>>
 
     @Query("SELECT * FROM favorites WHERE provider_id = :providerId AND content_type = :contentType ORDER BY position ASC")
     abstract fun getAllByType(providerId: Long, contentType: String): Flow<List<FavoriteEntity>>
@@ -3093,23 +3093,23 @@ abstract class FavoriteDao {
     )
     abstract fun getByGroup(groupId: Long): Flow<List<FavoriteEntity>>
 
-    @Query("SELECT * FROM favorites WHERE provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId) LIMIT 1")
-    abstract suspend fun get(providerId: Long, contentId: Long, contentType: String, groupId: Long?): FavoriteEntity?
+    @Query("SELECT * FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId) LIMIT 1")
+    abstract suspend fun get(providerId: Long, contentId: Long, contentType: String, groupId: Long?, profileId: String = ""): FavoriteEntity?
 
-    @Query("SELECT COUNT(*) FROM favorites WHERE provider_id = :providerId AND group_id IS NULL AND content_type = :contentType")
-    abstract fun getGlobalFavoriteCount(providerId: Long, contentType: String): Flow<Int>
+    @Query("SELECT COUNT(*) FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND group_id IS NULL AND content_type = :contentType")
+    abstract fun getGlobalFavoriteCount(providerId: Long, contentType: String, profileId: String = ""): Flow<Int>
 
-    @Query("SELECT group_id as category_id, COUNT(*) as item_count FROM favorites WHERE provider_id = :providerId AND group_id IS NOT NULL AND content_type = :contentType GROUP BY group_id")
-    abstract fun getGroupFavoriteCounts(providerId: Long, contentType: String): Flow<List<CategoryCount>>
+    @Query("SELECT group_id as category_id, COUNT(*) as item_count FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND group_id IS NOT NULL AND content_type = :contentType GROUP BY group_id")
+    abstract fun getGroupFavoriteCounts(providerId: Long, contentType: String, profileId: String = ""): Flow<List<CategoryCount>>
 
-    @Query("SELECT group_id as category_id, COUNT(*) as item_count FROM favorites WHERE provider_id IN (:providerIds) AND group_id IS NOT NULL AND content_type = :contentType GROUP BY group_id")
-    abstract fun getGroupFavoriteCountsForProviders(providerIds: List<Long>, contentType: String): Flow<List<CategoryCount>>
+    @Query("SELECT group_id as category_id, COUNT(*) as item_count FROM favorites WHERE profile_id = :profileId AND provider_id IN (:providerIds) AND group_id IS NOT NULL AND content_type = :contentType GROUP BY group_id")
+    abstract fun getGroupFavoriteCountsForProviders(providerIds: List<Long>, contentType: String, profileId: String = ""): Flow<List<CategoryCount>>
 
-    @Query("SELECT group_id FROM favorites WHERE provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND group_id IS NOT NULL")
-    abstract suspend fun getGroupMemberships(providerId: Long, contentId: Long, contentType: String): List<Long>
+    @Query("SELECT group_id FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND group_id IS NOT NULL")
+    abstract suspend fun getGroupMemberships(providerId: Long, contentId: Long, contentType: String, profileId: String = ""): List<Long>
 
-    @Query("SELECT MAX(position) FROM favorites WHERE provider_id = :providerId AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId)")
-    abstract suspend fun getMaxPosition(providerId: Long, groupId: Long?): Int?
+    @Query("SELECT MAX(position) FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId)")
+    abstract suspend fun getMaxPosition(providerId: Long, groupId: Long?, profileId: String = ""): Int?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     protected abstract suspend fun insertDirect(favorite: FavoriteEntity)
@@ -3117,8 +3117,8 @@ abstract class FavoriteDao {
     @Update
     abstract suspend fun updateAll(favorites: List<FavoriteEntity>)
 
-    @Query("DELETE FROM favorites WHERE provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId)")
-    abstract suspend fun delete(providerId: Long, contentId: Long, contentType: String, groupId: Long?)
+    @Query("DELETE FROM favorites WHERE profile_id = :profileId AND provider_id = :providerId AND content_id = :contentId AND content_type = :contentType AND (:groupId IS NULL AND group_id IS NULL OR group_id = :groupId)")
+    abstract suspend fun delete(providerId: Long, contentId: Long, contentType: String, groupId: Long?, profileId: String = "")
 
     @Query("DELETE FROM favorites WHERE content_type = 'LIVE' AND content_id NOT IN (SELECT id FROM channels)")
     abstract suspend fun deleteMissingLiveFavorites(): Int
@@ -3207,23 +3207,23 @@ interface VirtualGroupDao {
 @Dao
 @RewriteQueriesToDropUnusedColumns
 interface PlaybackHistoryDao {
-    @Query("SELECT * FROM playback_history ORDER BY last_watched_at DESC LIMIT :limit")
-    fun getRecentlyWatched(limit: Int = 100): Flow<List<PlaybackHistoryLiteEntity>>
+    @Query("SELECT * FROM playback_history WHERE profile_id = :profileId ORDER BY last_watched_at DESC LIMIT :limit")
+    fun getRecentlyWatched(limit: Int = 100, profileId: String = ""): Flow<List<PlaybackHistoryLiteEntity>>
 
-    @Query("SELECT * FROM playback_history WHERE provider_id = :providerId ORDER BY last_watched_at DESC LIMIT :limit")
-    fun getRecentlyWatchedByProvider(providerId: Long, limit: Int = 100): Flow<List<PlaybackHistoryLiteEntity>>
+    @Query("SELECT * FROM playback_history WHERE profile_id = :profileId AND provider_id = :providerId ORDER BY last_watched_at DESC LIMIT :limit")
+    fun getRecentlyWatchedByProvider(providerId: Long, limit: Int = 100, profileId: String = ""): Flow<List<PlaybackHistoryLiteEntity>>
 
-    @Query("SELECT * FROM playback_history WHERE provider_id IN (:providerIds) ORDER BY last_watched_at DESC LIMIT :limit")
-    fun getRecentlyWatchedByProviders(providerIds: Set<Long>, limit: Int = 100): Flow<List<PlaybackHistoryLiteEntity>>
+    @Query("SELECT * FROM playback_history WHERE profile_id = :profileId AND provider_id IN (:providerIds) ORDER BY last_watched_at DESC LIMIT :limit")
+    fun getRecentlyWatchedByProviders(providerIds: Set<Long>, limit: Int = 100, profileId: String = ""): Flow<List<PlaybackHistoryLiteEntity>>
 
-    @Query("SELECT * FROM playback_history WHERE provider_id = :providerId ORDER BY last_watched_at DESC")
-    fun getByProvider(providerId: Long): Flow<List<PlaybackHistoryLiteEntity>>
+    @Query("SELECT * FROM playback_history WHERE profile_id = :profileId AND provider_id = :providerId ORDER BY last_watched_at DESC")
+    fun getByProvider(providerId: Long, profileId: String = ""): Flow<List<PlaybackHistoryLiteEntity>>
 
     @Query("SELECT * FROM playback_history ORDER BY last_watched_at DESC")
     suspend fun getAllSync(): List<PlaybackHistoryEntity>
 
-    @Query("SELECT * FROM playback_history WHERE content_id = :contentId AND content_type = :contentType AND provider_id = :providerId")
-    suspend fun get(contentId: Long, contentType: String, providerId: Long): PlaybackHistoryEntity?
+    @Query("SELECT * FROM playback_history WHERE profile_id = :profileId AND content_id = :contentId AND content_type = :contentType AND provider_id = :providerId")
+    suspend fun get(contentId: Long, contentType: String, providerId: Long, profileId: String = ""): PlaybackHistoryEntity?
 
     @Query(
         """
@@ -3294,8 +3294,11 @@ interface PlaybackHistoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(history: PlaybackHistoryEntity)
 
-    @Query("DELETE FROM playback_history WHERE content_id = :contentId AND content_type = :contentType AND provider_id = :providerId")
-    suspend fun delete(contentId: Long, contentType: String, providerId: Long)
+    @Query("DELETE FROM playback_history WHERE profile_id = :profileId AND content_id = :contentId AND content_type = :contentType AND provider_id = :providerId")
+    suspend fun delete(contentId: Long, contentType: String, providerId: Long, profileId: String = "")
+
+    @Query("DELETE FROM playback_history WHERE profile_id = :profileId")
+    suspend fun deleteAllForProfile(profileId: String)
 
     @Query("DELETE FROM playback_history")
     suspend fun deleteAll()
