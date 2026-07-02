@@ -157,6 +157,8 @@ fun PlayerControlsOverlay(
     onSeekPreviewPositionChanged: (Long?) -> Unit = {},
     clockLabelOverride: String? = null,
     onUserInteraction: () -> Unit = {},
+    isCinemaMode: Boolean = false,
+    onToggleCinemaMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -187,6 +189,8 @@ fun PlayerControlsOverlay(
                 contentType = contentType,
                 clockLabelOverride = clockLabelOverride,
                 onClose = onClose,
+                isCinemaMode = isCinemaMode,
+                onToggleCinemaMode = onToggleCinemaMode,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
@@ -415,6 +419,8 @@ private fun PlayerTopBar(
     contentType: String,
     clockLabelOverride: String?,
     onClose: () -> Unit,
+    isCinemaMode: Boolean = false,
+    onToggleCinemaMode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -502,6 +508,22 @@ private fun PlayerTopBar(
                     color = Color.White.copy(alpha = 0.8f),
                     modifier = Modifier.padding(end = 16.dp)
                 )
+
+                TvClickableSurface(
+                    onClick = onToggleCinemaMode,
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = if (isCinemaMode) Primary.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.12f),
+                        focusedContainerColor = Primary.copy(alpha = 0.9f)
+                    ),
+                    modifier = Modifier.padding(end = 10.dp)
+                ) {
+                    Text(
+                        text = if (isCinemaMode) stringResource(R.string.player_cinema_mode_on) else stringResource(R.string.player_cinema_mode_off),
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
+                }
 
                 TvClickableSurface(
                     onClick = onClose,

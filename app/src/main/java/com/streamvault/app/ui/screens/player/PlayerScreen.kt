@@ -164,6 +164,7 @@ fun PlayerScreen(
     val isPlaying by playerEngine.isPlaying.collectAsStateWithLifecycle()
     val renderSurfaceType by playerEngine.renderSurfaceType.collectAsStateWithLifecycle()
     val showControls by viewModel.showControls.collectAsStateWithLifecycle()
+    val isCinemaMode by viewModel.isCinemaMode.collectAsStateWithLifecycle()
     val videoFormat by viewModel.videoFormat.collectAsStateWithLifecycle()
     val playerError by viewModel.playerError.collectAsStateWithLifecycle()
     val currentProgram by viewModel.currentProgram.collectAsStateWithLifecycle()
@@ -472,9 +473,13 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(showControls, showTrackSelection, showVariantSelection, showSpeedSelection, showAudioVideoOffsetDialog, showStopPlaybackTimerDialog, showIdleStandbyTimerDialog, showProgramHistory, showSplitDialog, showEpisodePicker) {
+    LaunchedEffect(showControls, showTrackSelection, showVariantSelection, showSpeedSelection, showAudioVideoOffsetDialog, showStopPlaybackTimerDialog, showIdleStandbyTimerDialog, showProgramHistory, showSplitDialog, showEpisodePicker, isCinemaMode) {
         if (!showControls) {
             viewModel.cancelControlsAutoHide()
+        } else if (isCinemaMode) {
+            // Cinema Mode: controls appeared from a tap but must hide immediately after
+            // a very short grace period — no lingering UI.
+            viewModel.hideControlsAfterDelay()
         } else if (showTrackSelection != null || showVariantSelection || showSpeedSelection || showAudioVideoOffsetDialog || showStopPlaybackTimerDialog || showIdleStandbyTimerDialog || showProgramHistory || showSplitDialog || showEpisodePicker) {
             viewModel.cancelControlsAutoHide()
         } else {
@@ -1037,6 +1042,8 @@ fun PlayerScreen(
             onSetScrubbingMode = viewModel::setScrubbingMode,
             seekPreview = seekPreview,
             onSeekPreviewPositionChanged = viewModel::updateSeekPreview,
+            isCinemaMode = isCinemaMode,
+            onToggleCinemaMode = viewModel::toggleCinemaMode,
             onUserInteraction = {
                 viewModel.notifyUserActivity()
                 viewModel.refreshControlsAutoHide()
@@ -1432,7 +1439,9 @@ private fun PlayerControlsOverlayHost(
     onSetScrubbingMode: (Boolean) -> Unit,
     seekPreview: SeekPreviewState,
     onSeekPreviewPositionChanged: (Long?) -> Unit,
-    onUserInteraction: () -> Unit
+    onUserInteraction: () -> Unit,
+    isCinemaMode: Boolean = false,
+    onToggleCinemaMode: () -> Unit = {}
 ) {
     val currentPosition by playerEngine.currentPosition.collectAsStateWithLifecycle()
     val duration by playerEngine.duration.collectAsStateWithLifecycle()
@@ -1495,6 +1504,8 @@ private fun PlayerControlsOverlayHost(
         onSetScrubbingMode = onSetScrubbingMode,
         seekPreview = seekPreview,
         onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
+        isCinemaMode = isCinemaMode,
+        onToggleCinemaMode = onToggleCinemaMode,
         onUserInteraction = onUserInteraction
     )
 }

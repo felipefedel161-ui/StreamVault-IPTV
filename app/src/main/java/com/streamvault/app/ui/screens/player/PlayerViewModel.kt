@@ -135,6 +135,9 @@ class PlayerViewModel @Inject constructor(
     internal val showControlsFlow = MutableStateFlow(false)
     val showControls: StateFlow<Boolean> = showControlsFlow.asStateFlow()
 
+    internal val isCinemaModeFlow = MutableStateFlow(false)
+    val isCinemaMode: StateFlow<Boolean> = isCinemaModeFlow.asStateFlow()
+
     private val _isCatchUpPlayback = MutableStateFlow(false)
     val isCatchUpPlayback: StateFlow<Boolean> = _isCatchUpPlayback.asStateFlow()
 

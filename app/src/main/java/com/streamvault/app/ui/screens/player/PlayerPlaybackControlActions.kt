@@ -54,6 +54,17 @@ fun PlayerViewModel.toggleMute() {
     }
 }
 
+fun PlayerViewModel.toggleCinemaMode() {
+    val entering = !isCinemaModeFlow.value
+    isCinemaModeFlow.value = entering
+    if (entering) {
+        // Hide controls immediately and cancel the auto-hide job so Cinema Mode
+        // holds the UI invisible until the user taps the screen.
+        showControlsFlow.value = false
+        cancelControlsAutoHide()
+    }
+}
+
 fun PlayerViewModel.toggleControls() {
     closeChannelInfoOverlay()
     showControlsFlow.value = !showControlsFlow.value

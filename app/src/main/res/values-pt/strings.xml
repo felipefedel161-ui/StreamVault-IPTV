@@ -775,6 +775,8 @@
     <string name="player_type_movie">Filme</string>
     <string name="player_type_series">Série</string>
     <string name="player_close">Fechar</string>
+    <string name="player_cinema_mode_off">Cinema</string>
+    <string name="player_cinema_mode_on">✦ Cinema</string>
     <string name="player_play">Jogar</string>
     <string name="player_pause">Pausa</string>
     <string name="player_playback_label">Reprodução</string>

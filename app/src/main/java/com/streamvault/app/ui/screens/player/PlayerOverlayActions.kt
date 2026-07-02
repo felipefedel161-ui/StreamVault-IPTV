@@ -146,6 +146,10 @@ fun PlayerViewModel.closeOverlays() {
     clearDiagnosticsAutoHide()
 }
 
+fun PlayerViewModel.exitCinemaMode() {
+    isCinemaModeFlow.value = false
+}
+
 fun PlayerViewModel.toggleDiagnostics() {
     showDiagnosticsFlow.value = !showDiagnosticsFlow.value
     if (showDiagnosticsFlow.value) {
