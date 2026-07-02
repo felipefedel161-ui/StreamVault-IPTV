@@ -31,6 +31,7 @@ import com.streamvault.domain.repository.SeriesRepository
 import com.streamvault.domain.usecase.ContinueWatchingResult
 import com.streamvault.domain.usecase.ContinueWatchingScope
 import com.streamvault.domain.usecase.GetContinueWatching
+import com.streamvault.domain.usecase.GetTrendingNow
 import com.streamvault.domain.usecase.GetCustomCategories
 import com.streamvault.domain.manager.RecordingManager
 import com.streamvault.domain.model.RecordingStatus
@@ -71,6 +72,7 @@ class DashboardViewModel @Inject constructor(
     private val seriesRepository: SeriesRepository,
     private val preferencesRepository: PreferencesRepository,
     private val getContinueWatching: GetContinueWatching,
+    private val getTrendingNow: GetTrendingNow,
     private val getCustomCategories: GetCustomCategories,
     private val syncManager: SyncManager,
     private val appUpdateInstaller: AppUpdateInstaller,
@@ -227,15 +229,22 @@ class DashboardViewModel @Inject constructor(
                 continueWatchingSeriesItems = continueWatchingSeriesItems
             )
         }
+        val trendingNowShelf = getTrendingNow(
+            providerIds = liveProviderIds.toSet(),
+            limit = 20,
+            windowDays = 7
+        )
+
         val contentShelves = contentShelvesWithFavorites
             .combine(topRatedMovieShelf.onStart { emit(emptyList()) }) { shelves, topRatedMovies ->
                 shelves.copy(topRatedMovies = topRatedMovies)
             }
             .combine(recommendedMovieShelf.onStart { emit(emptyList()) }) { shelves, recommendedMovies ->
-            shelves.copy(
-                recommendedMovies = recommendedMovies
-            )
-        }
+                shelves.copy(recommendedMovies = recommendedMovies)
+            }
+            .combine(trendingNowShelf.onStart { emit(emptyList()) }) { shelves, trendingNow ->
+                shelves.copy(trendingNow = trendingNow)
+            }
 
         val baseSnapshot = combine(
             contentShelves,
@@ -310,6 +319,7 @@ class DashboardViewModel @Inject constructor(
                     recentMovies = snapshot.shelves.recentMovies,
                     recentSeries = snapshot.shelves.recentSeries
                 ),
+                trendingNow = snapshot.shelves.trendingNow,
                 providerHealth = DashboardProviderHealth(
                     status = provider.status,
                     type = provider.type,
@@ -895,7 +905,8 @@ private data class DashboardContentShelves(
     val recentMovies: List<Movie>,
     val recentSeries: List<Series>,
     val topRatedMovies: List<Movie> = emptyList(),
-    val recommendedMovies: List<Movie> = emptyList()
+    val recommendedMovies: List<Movie> = emptyList(),
+    val trendingNow: List<PlaybackHistory> = emptyList()
 )
 
 private data class DashboardSnapshot(
@@ -928,6 +939,7 @@ data class DashboardUiState(
     val liveShortcuts: List<DashboardLiveShortcut> = emptyList(),
     val feature: DashboardFeature = DashboardFeature(),
     val heroFeatures: List<DashboardFeature> = emptyList(),
+    val trendingNow: List<PlaybackHistory> = emptyList(),
     val providerHealth: DashboardProviderHealth = DashboardProviderHealth(),
     val providerWarnings: List<String> = emptyList(),
     val currentCombinedProfileId: Long? = null,

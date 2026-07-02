@@ -353,6 +353,18 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            // "Em Alta Agora" — fixed shelf outside the customisable order,
+            // shown at the bottom of the feed when there's trending data.
+            if (uiState.trendingNow.isNotEmpty()) {
+                item(key = "trending_now") {
+                    ContinueWatchingRow(
+                        title = stringResource(R.string.dashboard_trending_now),
+                        items = uiState.trendingNow,
+                        onItemClick = onPlaybackHistoryClick
+                    )
+                }
+            }
             }
         }
 

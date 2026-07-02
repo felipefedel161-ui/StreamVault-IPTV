@@ -113,6 +113,7 @@
     <string name="dashboard_recent_series">Recently Updated Series</string>
     <string name="dashboard_top_rated_movies">Top Rated Movies</string>
     <string name="dashboard_recommended_movies">Recommended Movies</string>
+    <string name="dashboard_trending_now">Em Alta Agora</string>
     <string name="dashboard_search_library">Search Library</string>
     <string name="dashboard_live_shortcuts">Live Shortcuts</string>
     <string name="dashboard_live_shortcuts_subtitle">Favorites, recent channels, and last group.</string>
