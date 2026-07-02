@@ -74,6 +74,7 @@ import com.streamvault.app.ui.components.shell.StatusPill
 import com.streamvault.app.ui.design.AppColors
 import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.app.ui.time.createDateTimeFormat
+import com.streamvault.app.ui.time.createTimeFormat
 import com.streamvault.app.ui.design.AppColors.Brand as Primary
 import com.streamvault.app.ui.design.AppColors.Focus as FocusBorder
 import com.streamvault.app.ui.design.AppColors.SurfaceElevated as SurfaceElevated
@@ -459,6 +460,27 @@ private fun DashboardHero(
                 }
             )
         }
+
+        // Clock pill — top-right corner of the hero, updates every 60 s
+        val appTimeFormat = LocalAppTimeFormat.current
+        val timeFormat = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
+        val clockText = remember(appTimeFormat) { mutableStateOf(timeFormat.format(Date())) }
+        LaunchedEffect(appTimeFormat) {
+            while (true) {
+                clockText.value = timeFormat.format(Date())
+                delay(60_000L)
+            }
+        }
+        StatusPill(
+            label = clockText.value,
+            containerColor = Color.Black.copy(alpha = 0.52f),
+            contentColor = Color.White,
+            horizontalPadding = 12.dp,
+            verticalPadding = 6.dp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 20.dp, end = 28.dp)
+        )
 
         // Dot indicators for the rotating hero (bottom-right corner)
         if (showIndicators && totalCount > 1) {
