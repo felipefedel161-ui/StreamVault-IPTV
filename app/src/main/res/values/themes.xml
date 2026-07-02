@@ -7,6 +7,15 @@
         <item name="android:windowBackground">@android:color/black</item>
     </style>
 
+    <!-- Splash screen theme: shown by the OS during cold start, then replaced by
+         Theme.StreamVault once installSplashScreen() runs in MainActivity. -->
+    <style name="Theme.StreamVault.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_vault_art</item>
+        <item name="windowSplashScreenAnimationDuration">500</item>
+        <item name="postSplashScreenTheme">@style/Theme.StreamVault</item>
+    </style>
+
     <style name="Theme.StreamVault.CastChooser" parent="Theme.AppCompat.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>

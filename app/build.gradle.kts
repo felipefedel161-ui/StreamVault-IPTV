@@ -231,6 +231,7 @@ dependencies {
 
     // Core
     implementation(libs.core.ktx)
+    implementation(libs.core.splashscreen)
     implementation(libs.documentfile)
     implementation(libs.coroutines.android)
     implementation(libs.appcompat)

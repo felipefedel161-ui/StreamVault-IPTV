@@ -52,6 +52,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -95,6 +102,41 @@ class MainActivity : ComponentActivity() {
     private var playerPictureInPictureState = PlayerPictureInPictureState()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must be called before super.onCreate() so the splash screen
+        // is installed before the window is attached to the activity.
+        val splashScreen = installSplashScreen()
+
+        splashScreen.setOnExitAnimationListener { splashViewProvider ->
+            val view = splashViewProvider.view
+            val iconView = splashViewProvider.iconView
+
+            // Icon: scale up with overshoot + fade out
+            val iconScaleX = ObjectAnimator.ofFloat(iconView, "scaleX", 1f, 1.25f, 0f)
+            val iconScaleY = ObjectAnimator.ofFloat(iconView, "scaleY", 1f, 1.25f, 0f)
+            val iconAlpha = ObjectAnimator.ofFloat(iconView, "alpha", 1f, 0f)
+            iconScaleX.duration = 450
+            iconScaleY.duration = 450
+            iconAlpha.duration = 350
+            iconAlpha.startDelay = 100
+            iconScaleX.interpolator = OvershootInterpolator(1.5f)
+            iconScaleY.interpolator = OvershootInterpolator(1.5f)
+
+            // Background: fade out after icon finishes
+            val bgAlpha = ObjectAnimator.ofFloat(view, "alpha", 1f, 0f)
+            bgAlpha.duration = 200
+            bgAlpha.startDelay = 300
+            bgAlpha.interpolator = DecelerateInterpolator()
+
+            val set = AnimatorSet()
+            set.playTogether(iconScaleX, iconScaleY, iconAlpha, bgAlpha)
+            set.addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    splashViewProvider.remove()
+                }
+            })
+            set.start()
+        }
+
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(
                 StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build()

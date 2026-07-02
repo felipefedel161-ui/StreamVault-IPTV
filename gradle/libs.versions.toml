@@ -28,6 +28,7 @@ kotlinx-serialization = "1.9.0"
 leakcanary = "2.14"
 work = "2.11.1"
 appcompat = "1.7.1"
+core-splashscreen = "1.0.1"
 mediarouter = "1.8.1"
 play-services-cast-framework = "22.1.0"
 play-services-auth = "21.4.0"
@@ -110,6 +111,7 @@ security-crypto = { group = "androidx.security", name = "security-crypto", versi
 
 # Core
 core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.18.0" }
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 documentfile = { group = "androidx.documentfile", name = "documentfile", version = "1.1.0" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
