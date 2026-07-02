@@ -410,6 +410,18 @@ private fun DashboardHero(
         !isTelevisionDevice && screenWidth < 1280.dp -> 196.dp
         else -> 220.dp
     }
+
+    // Clock state — hoisted above Box so remember/LaunchedEffect are at @Composable scope
+    val appTimeFormat = LocalAppTimeFormat.current
+    val timeFormat = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
+    val clockText = remember(appTimeFormat) { mutableStateOf(timeFormat.format(Date())) }
+    LaunchedEffect(appTimeFormat) {
+        while (true) {
+            clockText.value = timeFormat.format(Date())
+            delay(60_000L)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -470,19 +482,10 @@ private fun DashboardHero(
                         onClick = onFeatureAction
                     )
                 }
-            )
-        }
-
-        // Clock pill — top-right corner of the hero, updates every 60 s
-        val appTimeFormat = LocalAppTimeFormat.current
-        val timeFormat = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
-        val clockText = remember(appTimeFormat) { mutableStateOf(timeFormat.format(Date())) }
-        LaunchedEffect(appTimeFormat) {
-            while (true) {
-                clockText.value = timeFormat.format(Date())
-                delay(60_000L)
             }
-        }
+        )
+
+        // Clock pill — top-right corner of the hero
         StatusPill(
             label = clockText.value,
             containerColor = Color.Black.copy(alpha = 0.52f),
@@ -494,7 +497,7 @@ private fun DashboardHero(
                 .padding(top = 20.dp, end = 28.dp)
         )
 
-        // Dot indicators for the rotating hero (bottom-right corner)
+        // Dot indicators — bottom-right corner of the hero
         if (showIndicators && totalCount > 1) {
             Row(
                 modifier = Modifier
@@ -508,11 +511,8 @@ private fun DashboardHero(
                             .size(if (index == currentIndex) 7.dp else 5.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(
-                                if (index == currentIndex) {
-                                    Color.White
-                                } else {
-                                    Color.White.copy(alpha = 0.4f)
-                                }
+                                if (index == currentIndex) Color.White
+                                else Color.White.copy(alpha = 0.4f)
                             )
                     )
                 }
