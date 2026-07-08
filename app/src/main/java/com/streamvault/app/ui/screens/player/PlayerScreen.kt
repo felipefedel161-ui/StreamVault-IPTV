@@ -174,6 +174,7 @@ fun PlayerScreen(
     val currentSeries by viewModel.currentSeries.collectAsStateWithLifecycle()
     val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()
     val autoPlayCountdown by viewModel.autoPlayCountdown.collectAsStateWithLifecycle()
+    val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()
     val playbackTitle by viewModel.playbackTitle.collectAsStateWithLifecycle()
     val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
     val currentSeriesSeasons = remember(currentSeries) {
@@ -378,6 +379,21 @@ fun PlayerScreen(
         currentChannel?.selectedVariantId
     ) {
         viewModel.recordLiveVariantObservation(playbackState, videoFormat)
+    }
+
+    // Live buffering watchdog: if the player stays in BUFFERING for more than
+    // 30 seconds on a live stream, trigger an automatic retry so the user
+    // never gets stuck on a spinner indefinitely.
+    LaunchedEffect(playbackState, contentType) {
+        if (playbackState == PlaybackState.BUFFERING && contentType == "LIVE") {
+            delay(30_000L)
+            if (playbackState == PlaybackState.BUFFERING) {
+                viewModel.retryStream(
+                    streamUrl = viewModel.currentStreamUrl,
+                    epgChannelId = viewModel.currentChannel.value?.epgChannelId
+                )
+            }
+        }
     }
 
     if (!isInPictureInPictureMode && showProgramHistory) {
@@ -1044,6 +1060,8 @@ fun PlayerScreen(
             onSeekPreviewPositionChanged = viewModel::updateSeekPreview,
             isCinemaMode = isCinemaMode,
             onToggleCinemaMode = viewModel::toggleCinemaMode,
+            nextEpisodeTitle = nextEpisode?.title,
+            onPlayNextEpisode = viewModel::playNextEpisodeNow,
             onUserInteraction = {
                 viewModel.notifyUserActivity()
                 viewModel.refreshControlsAutoHide()
@@ -1439,9 +1457,11 @@ private fun PlayerControlsOverlayHost(
     onSetScrubbingMode: (Boolean) -> Unit,
     seekPreview: SeekPreviewState,
     onSeekPreviewPositionChanged: (Long?) -> Unit,
-    onUserInteraction: () -> Unit,
     isCinemaMode: Boolean = false,
-    onToggleCinemaMode: () -> Unit = {}
+    onToggleCinemaMode: () -> Unit = {},
+    nextEpisodeTitle: String? = null,
+    onPlayNextEpisode: () -> Unit = {},
+    onUserInteraction: () -> Unit
 ) {
     val currentPosition by playerEngine.currentPosition.collectAsStateWithLifecycle()
     val duration by playerEngine.duration.collectAsStateWithLifecycle()
@@ -1506,6 +1526,8 @@ private fun PlayerControlsOverlayHost(
         onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
         isCinemaMode = isCinemaMode,
         onToggleCinemaMode = onToggleCinemaMode,
+        nextEpisodeTitle = nextEpisodeTitle,
+        onPlayNextEpisode = onPlayNextEpisode,
         onUserInteraction = onUserInteraction
     )
 }

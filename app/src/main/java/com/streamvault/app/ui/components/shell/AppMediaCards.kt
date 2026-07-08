@@ -386,6 +386,7 @@ fun EpisodeRowCard(
     val durationMs = episode.durationSeconds.toLong() * 1000L
     val showProgress = episode.watchProgress > 5000L && durationMs > 0L &&
         !isPlaybackComplete(episode.watchProgress, durationMs)
+    val isWatched = durationMs > 0L && isPlaybackComplete(episode.watchProgress, durationMs)
     val displayUrl = episode.coverUrl.takeIf { !it.isNullOrBlank() } ?: fallbackImageUrl
     Box(
         modifier = modifier
@@ -417,15 +418,49 @@ fun EpisodeRowCard(
                             contentScale = ContentScale.Crop
                         )
                     }
+                    // Watched overlay — dim thumbnail and show checkmark
+                    if (isWatched) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.55f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.player_episode_watched),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = episode.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AppColors.TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = episode.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isWatched) AppColors.TextSecondary else AppColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (isWatched) {
+                            Box(
+                                modifier = Modifier
+                                    .background(AppColors.Brand.copy(alpha = 0.18f), RoundedCornerShape(999.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "✓",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AppColors.Brand
+                                )
+                            }
+                        }
+                    }
                     ContentMetadataStrip(
                         values = listOf(stringResource(R.string.label_episode_full, episode.episodeNumber), episode.duration ?: "")
                     )

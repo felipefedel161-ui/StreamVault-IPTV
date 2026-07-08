@@ -1117,6 +1117,8 @@
     <string name="player_type_series">Series</string>
     <string name="player_close">Close</string>
     <string name="player_cinema_mode_off">Cinema</string>
+    <string name="player_next_episode">Próximo ep.</string>
+    <string name="player_episode_watched">✓ Assistido</string>
     <string name="player_cinema_mode_on">✦ Cinema</string>
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>

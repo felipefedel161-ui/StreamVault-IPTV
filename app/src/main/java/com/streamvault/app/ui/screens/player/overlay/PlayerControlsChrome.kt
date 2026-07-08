@@ -159,6 +159,8 @@ fun PlayerControlsOverlay(
     onUserInteraction: () -> Unit = {},
     isCinemaMode: Boolean = false,
     onToggleCinemaMode: () -> Unit = {},
+    nextEpisodeTitle: String? = null,
+    onPlayNextEpisode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -191,6 +193,8 @@ fun PlayerControlsOverlay(
                 onClose = onClose,
                 isCinemaMode = isCinemaMode,
                 onToggleCinemaMode = onToggleCinemaMode,
+                nextEpisodeTitle = nextEpisodeTitle,
+                onPlayNextEpisode = onPlayNextEpisode,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
@@ -508,6 +512,25 @@ private fun PlayerTopBar(
                     color = Color.White.copy(alpha = 0.8f),
                     modifier = Modifier.padding(end = 16.dp)
                 )
+
+                // Next Episode button — only shown during series playback
+                if (!nextEpisodeTitle.isNullOrBlank()) {
+                    TvClickableSurface(
+                        onClick = onPlayNextEpisode,
+                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                        colors = ClickableSurfaceDefaults.colors(
+                            containerColor = Color.White.copy(alpha = 0.12f),
+                            focusedContainerColor = Primary.copy(alpha = 0.9f)
+                        ),
+                        modifier = Modifier.padding(end = 10.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.player_next_episode),
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+                }
 
                 TvClickableSurface(
                     onClick = onToggleCinemaMode,
