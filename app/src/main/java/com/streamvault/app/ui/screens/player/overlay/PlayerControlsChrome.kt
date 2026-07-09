@@ -240,6 +240,8 @@ fun PlayerControlsOverlay(
                 audioVideoSyncEnabled = audioVideoSyncEnabled,
                 showEpisodesAction = showEpisodesAction,
                 onOpenEpisodes = onOpenEpisodes,
+                nextEpisodeTitle = nextEpisodeTitle,
+                onPlayNextEpisode = onPlayNextEpisode,
                 onOpenSplitScreen = onOpenSplitScreen,
                 onEnterPictureInPicture = onEnterPictureInPicture,
                 onToggleMute = onToggleMute,
@@ -590,6 +592,8 @@ private fun PlayerBottomBar(
     audioVideoSyncEnabled: Boolean,
     showEpisodesAction: Boolean,
     onOpenEpisodes: () -> Unit,
+    nextEpisodeTitle: String? = null,
+    onPlayNextEpisode: () -> Unit = {},
     onOpenSplitScreen: () -> Unit,
     onEnterPictureInPicture: () -> Unit,
     onToggleMute: () -> Unit,
@@ -729,6 +733,8 @@ private fun PlayerBottomBar(
                         audioVideoSyncEnabled = audioVideoSyncEnabled,
                         showEpisodesAction = showEpisodesAction,
                         onOpenEpisodes = onOpenEpisodes,
+                        nextEpisodeTitle = nextEpisodeTitle,
+                        onPlayNextEpisode = onPlayNextEpisode,
                         onEnterPictureInPicture = onEnterPictureInPicture,
                         onToggleMute = onToggleMute,
                         isCastConnected = isCastConnected,
@@ -1027,6 +1033,8 @@ private fun PlayerVodInfo(
     onOpenAudioVideoSync: () -> Unit,
     showEpisodesAction: Boolean,
     onOpenEpisodes: () -> Unit,
+    nextEpisodeTitle: String? = null,
+    onPlayNextEpisode: () -> Unit = {},
     onEnterPictureInPicture: () -> Unit,
     onToggleMute: () -> Unit,
     isCastConnected: Boolean,
@@ -1089,6 +1097,9 @@ private fun PlayerVodInfo(
         }
         if (showEpisodesAction) {
             add(PlayerActionSpec(stringResource(R.string.player_episodes), onOpenEpisodes))
+        }
+        if (!nextEpisodeTitle.isNullOrBlank()) {
+            add(PlayerActionSpec(stringResource(R.string.player_next_episode), onPlayNextEpisode))
         }
         if (showExternalPlayerAction) {
             add(PlayerActionSpec(stringResource(R.string.player_open_in_external_player), onOpenExternalPlayer))
