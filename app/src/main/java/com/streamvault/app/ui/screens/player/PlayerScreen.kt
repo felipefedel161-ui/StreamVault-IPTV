@@ -66,6 +66,9 @@ import javax.inject.Inject
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.tv.material3.MaterialTheme
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.Slider
@@ -1095,6 +1098,46 @@ fun PlayerScreen(
                 onExtendIdleTimer = { viewModel.extendIdleStandbyTimer() },
                 onDisableIdleTimer = viewModel::disableIdleStandbyTimer
             )
+        }
+
+        // Persistent Next Episode button — visible during series playback,
+        // docked to bottom-right, disappears when countdown takes over.
+        val showNextEpisodeButton = !isInPictureInPictureMode
+            && nextEpisode != null
+            && autoPlayCountdown == null
+            && contentType == "SERIES_EPISODE"
+        AnimatedVisibility(
+            visible = showNextEpisodeButton,
+            enter = fadeIn() + slideInHorizontally(initialOffsetX = { it }),
+            exit = fadeOut() + slideOutHorizontally(targetOffsetX = { it }),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 32.dp, bottom = 32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .clickable { viewModel.playNextEpisodeNow() }
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.player_next_episode),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        text = "▶▶",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
         }
 
         // Auto-Play Next Episode countdown overlay
