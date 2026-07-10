@@ -64,6 +64,8 @@ import com.streamvault.app.navigation.Routes
 import com.streamvault.app.ui.components.CategoryRow
 import com.streamvault.app.ui.components.ChannelCard
 import com.streamvault.app.ui.components.ContinueWatchingRow
+import com.streamvault.app.ui.components.ContentDetailSheet
+import com.streamvault.app.ui.components.DetailSheetContent
 import com.streamvault.app.ui.components.MovieCard
 import com.streamvault.app.ui.components.rememberCrossfadeImageModel
 import com.streamvault.app.ui.components.SeriesCard
@@ -104,7 +106,9 @@ fun DashboardScreen(
     onRecentChannelClick: (Channel, Long?) -> Unit,
     onFavoriteChannelClick: (Channel, Long?) -> Unit,
     onMovieClick: (Movie) -> Unit,
+    onMovieDetail: (Movie) -> Unit = onMovieClick,
     onSeriesClick: (Series) -> Unit,
+    onSeriesDetail: (Series) -> Unit = onSeriesClick,
     onPlaybackHistoryClick: (PlaybackHistory) -> Unit,
     currentRoute: String,
     viewModel: DashboardViewModel = hiltViewModel()
@@ -124,6 +128,9 @@ fun DashboardScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Detail sheet state
+        var detailSheetContent by remember { mutableStateOf<DetailSheetContent?>(null) }
+
         AppScreenScaffold(
             currentRoute = currentRoute,
             onNavigate = onNavigate,
@@ -296,7 +303,7 @@ fun DashboardScreen(
                         SeriesCard(
                             series = series,
                             subtitle = series.releaseDate ?: stringResource(R.string.dashboard_updated_series_badge),
-                            onClick = { onSeriesClick(series) }
+                            onClick = { detailSheetContent = DetailSheetContent.ForSeries(series) }
                         )
                     }
 
@@ -306,7 +313,7 @@ fun DashboardScreen(
                         keySelector = { it.id },
                         onSeeAll = { onNavigate(Routes.MOVIES) }
                     ) { movie ->
-                        MovieCard(movie = movie, onClick = { onMovieClick(movie) })
+                        MovieCard(movie = movie, onClick = { detailSheetContent = DetailSheetContent.ForMovie(movie) })
                     }
 
                     AppHomeDashboardShelf.FAVORITE_SERIES -> CategoryRow(
@@ -318,7 +325,7 @@ fun DashboardScreen(
                         SeriesCard(
                             series = series,
                             subtitle = series.releaseDate ?: stringResource(R.string.dashboard_updated_series_badge),
-                            onClick = { onSeriesClick(series) }
+                            onClick = { detailSheetContent = DetailSheetContent.ForSeries(series) }
                         )
                     }
 
@@ -340,7 +347,7 @@ fun DashboardScreen(
                         keySelector = { it.id },
                         onSeeAll = { onNavigate(Routes.MOVIES) }
                     ) { movie ->
-                        MovieCard(movie = movie, onClick = { onMovieClick(movie) })
+                        MovieCard(movie = movie, onClick = { detailSheetContent = DetailSheetContent.ForMovie(movie) })
                     }
 
                     AppHomeDashboardShelf.RECOMMENDED_MOVIES -> CategoryRow(
@@ -349,7 +356,7 @@ fun DashboardScreen(
                         keySelector = { it.id },
                         onSeeAll = { onNavigate(Routes.MOVIES) }
                     ) { movie ->
-                        MovieCard(movie = movie, onClick = { onMovieClick(movie) })
+                        MovieCard(movie = movie, onClick = { detailSheetContent = DetailSheetContent.ForMovie(movie) })
                     }
                 }
             }

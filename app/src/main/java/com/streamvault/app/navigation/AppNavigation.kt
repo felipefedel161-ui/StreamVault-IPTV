@@ -516,6 +516,12 @@ fun AppNavigation(mainActivity: MainActivity) {
                 onSeriesClick = { series ->
                     navController.navigateToSeriesDetail(series, Routes.HOME)
                 },
+                onMovieDetail = { movie ->
+                    navController.navigateToMovieDetail(movie, Routes.HOME)
+                },
+                onSeriesDetail = { series ->
+                    navController.navigateToSeriesDetail(series, Routes.HOME)
+                },
                 onPlaybackHistoryClick = { history ->
                     val route = when (history.contentType) {
                         com.streamvault.domain.model.ContentType.LIVE -> {

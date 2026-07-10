@@ -778,6 +778,7 @@
     <string name="player_close">Fechar</string>
     <string name="player_cinema_mode_off">Cinema</string>
     <string name="player_next_episode">Próximo ep.</string>
+    <string name="content_detail_full">Ver detalhes</string>
     <string name="player_episode_watched">✓ Assistido</string>
     <string name="player_cinema_mode_on">✦ Cinema</string>
     <string name="player_play">Jogar</string>
