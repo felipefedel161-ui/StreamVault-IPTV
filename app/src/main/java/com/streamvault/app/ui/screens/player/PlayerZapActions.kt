@@ -106,6 +106,41 @@ internal fun shouldPreloadAdjacentChannel(
     }
 }
 
+fun PlayerViewModel.zapWithPreview(direction: Int) {
+    if (channelList.isEmpty()) return
+    val targetIndex = wrappedChannelIndex(direction)
+    if (targetIndex == -1) return
+    val targetChannel = channelList[targetIndex]
+
+    // If already previewing this same channel, commit immediately
+    val existing = _zapPreview.value
+    if (existing != null && existing.channel.id == targetChannel.id) {
+        confirmZapPreview()
+        return
+    }
+
+    // Show preview and auto-commit after 1.5s of no further input
+    _zapPreview.value = ZapPreviewState(channel = targetChannel, direction = direction)
+    zapPreviewJob?.cancel()
+    zapPreviewJob = viewModelScope.launch {
+        delay(1_500L)
+        confirmZapPreview()
+    }
+}
+
+fun PlayerViewModel.confirmZapPreview() {
+    zapPreviewJob?.cancel()
+    val preview = _zapPreview.value ?: return
+    _zapPreview.value = null
+    val index = channelList.indexOfFirst { it.id == preview.channel.id }
+    if (index != -1) changeChannel(index)
+}
+
+fun PlayerViewModel.cancelZapPreview() {
+    zapPreviewJob?.cancel()
+    _zapPreview.value = null
+}
+
 fun PlayerViewModel.playNext() {
     clearNumericChannelInput()
     if (channelList.isEmpty()) return

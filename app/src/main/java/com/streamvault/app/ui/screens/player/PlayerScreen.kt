@@ -178,6 +178,7 @@ fun PlayerScreen(
     val currentEpisode by viewModel.currentEpisode.collectAsStateWithLifecycle()
     val autoPlayCountdown by viewModel.autoPlayCountdown.collectAsStateWithLifecycle()
     val nextEpisode by viewModel.nextEpisode.collectAsStateWithLifecycle()
+    val zapPreview by viewModel.zapPreview.collectAsStateWithLifecycle()
     val playbackTitle by viewModel.playbackTitle.collectAsStateWithLifecycle()
     val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
     val currentSeriesSeasons = remember(currentSeries) {
@@ -628,7 +629,7 @@ fun PlayerScreen(
                         if (showChannelInfoOverlay || showDiagnostics) {
                             viewModel.onLiveOverlayInteraction()
                         }
-                        viewModel.playNext()
+                        viewModel.zapWithPreview(+1)
                         true
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN,
@@ -637,7 +638,7 @@ fun PlayerScreen(
                         if (showChannelInfoOverlay || showDiagnostics) {
                             viewModel.onLiveOverlayInteraction()
                         }
-                        viewModel.playPrevious()
+                        viewModel.zapWithPreview(-1)
                         true
                     }
                     else -> false
@@ -1100,6 +1101,26 @@ fun PlayerScreen(
             )
         }
 
+        // Zap channel preview overlay
+        val zapPreviewState = zapPreview
+        AnimatedVisibility(
+            visible = zapPreviewState != null && !isInPictureInPictureMode,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 40.dp)
+        ) {
+            if (zapPreviewState != null) {
+                ZapPreviewCard(
+                    channel = zapPreviewState.channel,
+                    direction = zapPreviewState.direction,
+                    onConfirm = viewModel::confirmZapPreview,
+                    onCancel = viewModel::cancelZapPreview
+                )
+            }
+        }
+
         // Auto-Play Next Episode countdown overlay
         val countdownState = autoPlayCountdown
         if (!isInPictureInPictureMode && countdownState != null) {
@@ -1539,4 +1560,71 @@ private tailrec fun android.content.Context.findMainActivity(): MainActivity? = 
     is MainActivity -> this
     is android.content.ContextWrapper -> baseContext.findMainActivity()
     else -> null
+}
+
+
+@Composable
+private fun ZapPreviewCard(
+    channel: com.streamvault.domain.model.Channel,
+    direction: Int,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    androidx.compose.foundation.layout.Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xCC0C1624))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = if (direction > 0) "▲ Próximo canal" else "▼ Canal anterior",
+            color = Color.White.copy(alpha = 0.55f),
+            style = androidx.tv.material3.MaterialTheme.typography.labelSmall
+        )
+        if (!channel.logoUrl.isNullOrBlank()) {
+            coil3.compose.AsyncImage(
+                model = channel.logoUrl,
+                contentDescription = channel.name,
+                modifier = Modifier
+                    .width(72.dp)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.08f)),
+                contentScale = ContentScale.Fit
+            )
+        }
+        Text(
+            text = channel.name,
+            color = Color.White,
+            style = androidx.tv.material3.MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(com.streamvault.app.ui.design.AppColors.Brand.copy(alpha = 0.85f))
+                    .clickable(onClick = onConfirm)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("▶ Ir", color = Color.White,
+                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge)
+            }
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.12f))
+                    .clickable(onClick = onCancel)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Cancelar", color = Color.White.copy(alpha = 0.75f),
+                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
 }

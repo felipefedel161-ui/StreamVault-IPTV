@@ -143,6 +143,15 @@ class PlayerViewModel @Inject constructor(
 
     internal val showZapOverlayFlow = MutableStateFlow(false)
     val showZapOverlay: StateFlow<Boolean> = showZapOverlayFlow.asStateFlow()
+
+    // Zap preview: shows next/prev channel info before committing the switch
+    data class ZapPreviewState(
+        val channel: com.streamvault.domain.model.Channel,
+        val direction: Int // +1 = next, -1 = prev
+    )
+    private val _zapPreview = MutableStateFlow<ZapPreviewState?>(null)
+    val zapPreview: StateFlow<ZapPreviewState?> = _zapPreview.asStateFlow()
+    internal var zapPreviewJob: kotlinx.coroutines.Job? = null
     
     private val _currentProgram = MutableStateFlow<Program?>(null)
     val currentProgram: StateFlow<Program?> = _currentProgram.asStateFlow()
