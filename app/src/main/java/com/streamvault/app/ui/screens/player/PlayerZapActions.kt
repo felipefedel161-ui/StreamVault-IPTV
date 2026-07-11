@@ -120,7 +120,7 @@ fun PlayerViewModel.zapWithPreview(direction: Int) {
     }
 
     // Show preview and auto-commit after 1.5s of no further input
-    _zapPreview.value = ZapPreviewState(channel = targetChannel, direction = direction)
+    _zapPreview.value = PlayerViewModel.ZapPreviewState(channel = targetChannel, direction = direction)
     zapPreviewJob?.cancel()
     zapPreviewJob = viewModelScope.launch {
         delay(1_500L)

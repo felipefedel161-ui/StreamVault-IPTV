@@ -159,6 +159,8 @@ fun PlayerControlsOverlay(
     onUserInteraction: () -> Unit = {},
     isCinemaMode: Boolean = false,
     onToggleCinemaMode: () -> Unit = {},
+    nextEpisodeTitle: String? = null,
+    onPlayNextEpisode: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(

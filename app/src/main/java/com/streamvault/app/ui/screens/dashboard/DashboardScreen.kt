@@ -57,6 +57,12 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.toBitmap
+import androidx.compose.ui.platform.LocalContext
+import com.streamvault.app.ui.design.DynamicThemeProvider
+import com.streamvault.app.ui.design.LocalDynamicAccent
 import com.streamvault.app.R
 import com.streamvault.app.device.rememberIsTelevisionDevice
 import com.streamvault.app.ui.components.ChannelLogoBadge
@@ -197,26 +203,44 @@ fun DashboardScreen(
                                 label = "hero_crossfade"
                             ) { index ->
                                 val feature = heroFeatures.getOrElse(index) { heroFeatures.first() }
-                                DashboardHero(
-                                    providerName = provider.name,
-                                    feature = feature,
-                                    stats = uiState.stats,
-                                    showIndicators = heroFeatures.size > 1,
-                                    currentIndex = index,
-                                    totalCount = heroFeatures.size,
-                                    onOpenLiveTv = { onNavigate(Routes.LIVE_TV) },
-                                    onOpenGuide = { onNavigate(Routes.EPG) },
-                                    onOpenSearch = { onNavigate(Routes.SEARCH) },
-                                    onOpenSavedLibrary = { onNavigate(Routes.liveTv(com.streamvault.domain.model.VirtualCategoryIds.FAVORITES)) },
-                                    onFeatureAction = {
-                                        when (feature.actionType) {
-                                            DashboardFeatureAction.CONTINUE_WATCHING -> uiState.continueWatching.firstOrNull()?.let { onPlaybackHistoryClick(it) }
-                                            DashboardFeatureAction.MOVIES -> onNavigate(Routes.MOVIES)
-                                            DashboardFeatureAction.SERIES -> onNavigate(Routes.SERIES)
-                                            DashboardFeatureAction.LIVE -> onNavigate(Routes.LIVE_TV)
+                                val ctx = LocalContext.current
+                                var heroBitmap by remember(feature.artworkUrl) {
+                                    mutableStateOf<android.graphics.Bitmap?>(null)
+                                }
+                                LaunchedEffect(feature.artworkUrl) {
+                                    if (feature.artworkUrl.isNullOrBlank()) { heroBitmap = null; return@LaunchedEffect }
+                                    heroBitmap = runCatching {
+                                        val loader = coil3.ImageLoader(ctx)
+                                        val req = coil3.request.ImageRequest.Builder(ctx)
+                                            .data(feature.artworkUrl)
+                                            .size(128)
+                                            .allowHardware(false)
+                                            .build()
+                                        loader.execute(req).image?.toBitmap()
+                                    }.getOrNull()
+                                }
+                                DynamicThemeProvider(bitmap = heroBitmap) {
+                                    DashboardHero(
+                                        providerName = provider.name,
+                                        feature = feature,
+                                        stats = uiState.stats,
+                                        showIndicators = heroFeatures.size > 1,
+                                        currentIndex = index,
+                                        totalCount = heroFeatures.size,
+                                        onOpenLiveTv = { onNavigate(Routes.LIVE_TV) },
+                                        onOpenGuide = { onNavigate(Routes.EPG) },
+                                        onOpenSearch = { onNavigate(Routes.SEARCH) },
+                                        onOpenSavedLibrary = { onNavigate(Routes.liveTv(com.streamvault.domain.model.VirtualCategoryIds.FAVORITES)) },
+                                        onFeatureAction = {
+                                            when (feature.actionType) {
+                                                DashboardFeatureAction.CONTINUE_WATCHING -> uiState.continueWatching.firstOrNull()?.let { onPlaybackHistoryClick(it) }
+                                                DashboardFeatureAction.MOVIES -> onNavigate(Routes.MOVIES)
+                                                DashboardFeatureAction.SERIES -> onNavigate(Routes.SERIES)
+                                                DashboardFeatureAction.LIVE -> onNavigate(Routes.LIVE_TV)
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
