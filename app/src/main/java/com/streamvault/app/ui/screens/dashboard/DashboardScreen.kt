@@ -214,7 +214,7 @@ fun DashboardScreen(
                                         val req = coil3.request.ImageRequest.Builder(ctx)
                                             .data(feature.artworkUrl)
                                             .size(128)
-                                            .allowHardware(false)
+                                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
                                             .build()
                                         loader.execute(req).image?.toBitmap()
                                     }.getOrNull()
