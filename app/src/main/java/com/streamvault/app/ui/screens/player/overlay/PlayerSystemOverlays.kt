@@ -88,6 +88,7 @@ import com.streamvault.player.PlayerTrack
 import com.streamvault.player.TrackType
 import com.streamvault.player.AUDIO_VIDEO_OFFSET_MAX_MS
 import com.streamvault.player.AUDIO_VIDEO_OFFSET_MIN_MS
+import com.streamvault.player.PlayerStats
 import java.util.Locale
 import com.streamvault.app.ui.interaction.TvClickableSurface
 import com.streamvault.app.ui.interaction.TvButton
@@ -1655,6 +1656,89 @@ fun NextEpisodeCountdownOverlay(
                         textAlign = TextAlign.Center
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Mini signal/quality HUD shown in the bottom-left corner during live playback.
+ *
+ * Displays bitrate and buffer depth without requiring the user to open the full
+ * diagnostics panel. Fades out when the player controls are visible so it doesn't
+ * compete with the control chrome, and hides entirely when the stream hasn't
+ * started yet (bitrate == 0).
+ *
+ * @param stats        Current [PlayerStats] from the player engine.
+ * @param visible      Whether the HUD should be shown (false when controls are open).
+ * @param modifier     Modifier applied to the outermost Box.
+ */
+@Composable
+fun PlayerSignalHud(
+    stats: PlayerStats,
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // Only show once the stream has actual data
+    val hasData = stats.videoBitrate > 0 || stats.bufferedDurationMs > 0L
+    AnimatedVisibility(
+        visible = visible && hasData,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            // Bitrate pill
+            if (stats.videoBitrate > 0) {
+                val bitrateLabel = when {
+                    stats.videoBitrate >= 1_000_000 -> String.format(
+                        Locale.US, "%.1f Mbps", stats.videoBitrate / 1_000_000f
+                    )
+                    else -> "${stats.videoBitrate / 1000} kbps"
+                }
+                // Colour: green ≥ 2 Mbps, amber 500 kbps–2 Mbps, red < 500 kbps
+                val bitrateColor = when {
+                    stats.videoBitrate >= 2_000_000 -> Color(0xFF4CAF50)
+                    stats.videoBitrate >= 500_000 -> Color(0xFFFFC107)
+                    else -> Color(0xFFF44336)
+                }
+                Text(
+                    text = bitrateLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = bitrateColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Buffer depth pill
+            if (stats.bufferedDurationMs > 0L) {
+                val bufferSec = stats.bufferedDurationMs / 1000L
+                val bufferLabel = "${bufferSec}s buf"
+                val bufferColor = when {
+                    bufferSec >= 10 -> Color(0xFF4CAF50)
+                    bufferSec >= 3 -> Color(0xFFFFC107)
+                    else -> Color(0xFFF44336)
+                }
+                Text(
+                    text = bufferLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = bufferColor
+                )
+            }
+
+            // Rebuffer warning dot
+            if (stats.rebufferCount > 0) {
+                Text(
+                    text = "●",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFF44336)
+                )
             }
         }
     }

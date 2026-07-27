@@ -99,6 +99,7 @@ import com.streamvault.app.ui.screens.player.overlay.PlayerTrackSelectionDialog
 import com.streamvault.app.ui.screens.player.overlay.PlayerControlsOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerNumericInputOverlay
 import com.streamvault.app.ui.screens.player.overlay.PlayerResolutionBadge
+import com.streamvault.app.ui.screens.player.overlay.PlayerSignalHud
 import com.streamvault.app.ui.screens.player.overlay.PlayerAudioVideoOffsetDialog
 import com.streamvault.app.ui.screens.player.overlay.PlayerSpeedSelectionDialog
 import com.streamvault.app.ui.screens.player.overlay.PlayerSleepTimerDialog
@@ -1090,6 +1091,18 @@ fun PlayerScreen(
                 .padding(32.dp)
         )
 
+        // Mini signal/quality HUD — bottom-left corner, live only, hidden when controls open
+        if (contentType == "LIVE" && !isInPictureInPictureMode) {
+            val hudStats by viewModel.playerStats.collectAsStateWithLifecycle()
+            PlayerSignalHud(
+                stats = hudStats,
+                visible = !showControls && !anyOverlayVisible,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 28.dp, bottom = 28.dp)
+            )
+        }
+
         if (!isInPictureInPictureMode) {
             PlayerSleepTimerWarningOverlay(
                 state = sleepTimerUiState,
@@ -1572,6 +1585,12 @@ private fun ZapPreviewCard(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
+    // Auto-focus the confirm button when the card appears so D-pad works immediately
+    val confirmFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(channel.id) {
+        confirmFocusRequester.requestFocusSafely(tag = "ZapPreviewCard", target = "Confirm button")
+    }
+
     androidx.compose.foundation.layout.Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1607,25 +1626,38 @@ private fun ZapPreviewCard(
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(com.streamvault.app.ui.design.AppColors.Brand.copy(alpha = 0.85f))
-                    .clickable(onClick = onConfirm)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            // Confirm — uses TvClickableSurface so D-pad focus works on TV
+            androidx.tv.material3.ClickableSurface(
+                onClick = onConfirm,
+                shape = androidx.tv.material3.ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                colors = androidx.tv.material3.ClickableSurfaceDefaults.colors(
+                    containerColor = com.streamvault.app.ui.design.AppColors.Brand.copy(alpha = 0.85f),
+                    focusedContainerColor = com.streamvault.app.ui.design.AppColors.Brand
+                ),
+                modifier = Modifier.focusRequester(confirmFocusRequester)
             ) {
-                Text("▶ Ir", color = Color.White,
-                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge)
+                Text(
+                    text = "▶ Ir",
+                    color = Color.White,
+                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .clickable(onClick = onCancel)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            // Cancel
+            androidx.tv.material3.ClickableSurface(
+                onClick = onCancel,
+                shape = androidx.tv.material3.ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                colors = androidx.tv.material3.ClickableSurfaceDefaults.colors(
+                    containerColor = Color.White.copy(alpha = 0.12f),
+                    focusedContainerColor = Color.White.copy(alpha = 0.22f)
+                )
             ) {
-                Text("Cancelar", color = Color.White.copy(alpha = 0.75f),
-                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge)
+                Text(
+                    text = "Cancelar",
+                    color = Color.White.copy(alpha = 0.75f),
+                    style = androidx.tv.material3.MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
         }
     }
