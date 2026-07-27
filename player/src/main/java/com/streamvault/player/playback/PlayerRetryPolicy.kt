@@ -96,7 +96,8 @@ class PlayerRetryPolicy(
                 } else {
                     "malformed-source"
                 }
-            PlaybackErrorCategory.HTTP_AUTH -> "terminal-auth"
+            PlaybackErrorCategory.HTTP_AUTH ->
+                if (streamContext.isLive) "live-auth-refresh" else "terminal-auth"
             PlaybackErrorCategory.SSL -> "terminal-tls"
             PlaybackErrorCategory.CLEAR_TEXT_BLOCKED -> "terminal-cleartext"
             PlaybackErrorCategory.DRM -> "terminal-drm"
@@ -147,8 +148,13 @@ class PlayerRetryPolicy(
             PlaybackErrorCategory.DRM,
             PlaybackErrorCategory.DECODER,
             PlaybackErrorCategory.CLEAR_TEXT_BLOCKED,
-            PlaybackErrorCategory.SSL,
-            PlaybackErrorCategory.HTTP_AUTH -> 0
+            PlaybackErrorCategory.SSL -> 0
+
+            // 401/403 on live streams: allow 1 retry — the player engine may renew the
+            // Stalker/Xtream session token between attempts. If the second attempt also
+            // fails with an auth error the stream is considered terminal. On VOD the URL
+            // is static and a 403 is always terminal (no retry).
+            PlaybackErrorCategory.HTTP_AUTH -> if (streamContext.isLive && !playbackStarted) 1 else 0
 
             PlaybackErrorCategory.FORMAT_UNSUPPORTED -> if (playbackStarted) 1 else 0
 
