@@ -46,9 +46,22 @@ class PlayerRetryPolicyTest {
     }
 
     @Test
-    fun `403 never retries`() {
-        assertThat(policy.shouldRetry(IOException("HTTP 403"), liveContext, playbackStarted = false, attempt = 1))
+    fun `403 retries once on live stream before playback starts then becomes terminal`() {
+        val error = IOException("HTTP 403")
+        // First attempt before playback: allowed (token may be renewed by the engine)
+        assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 1)).isTrue()
+        // Second attempt: terminal
+        assertThat(policy.shouldRetry(error, liveContext, playbackStarted = false, attempt = 2)).isFalse()
+        assertThat(policy.maxAttempts(error, playbackStarted = false)).isEqualTo(1)
+        assertThat(policy.retryReason(error)).isEqualTo("live-auth-refresh")
+    }
+
+    @Test
+    fun `403 on vod never retries`() {
+        val error = IOException("HTTP 403")
+        assertThat(progressivePolicy.shouldRetry(error, progressiveContext, playbackStarted = false, attempt = 1))
             .isFalse()
+        assertThat(progressivePolicy.maxAttempts(error, playbackStarted = false)).isEqualTo(0)
     }
 
     @Test
@@ -66,7 +79,7 @@ class PlayerRetryPolicyTest {
 
         assertThat(policy.shouldRetry(error, liveContext, playbackStarted = true, attempt = 1)).isFalse()
         assertThat(policy.maxAttempts(error, playbackStarted = true)).isEqualTo(0)
-        assertThat(policy.retryReason(error)).isEqualTo("terminal-auth")
+        assertThat(policy.retryReason(error)).isEqualTo("live-auth-refresh")
     }
 
     @Test
