@@ -1627,10 +1627,10 @@ private fun ZapPreviewCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Confirm — uses TvClickableSurface so D-pad focus works on TV
-            androidx.tv.material3.ClickableSurface(
+            TvClickableSurface(
                 onClick = onConfirm,
-                shape = androidx.tv.material3.ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = androidx.tv.material3.ClickableSurfaceDefaults.colors(
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                colors = ClickableSurfaceDefaults.colors(
                     containerColor = com.streamvault.app.ui.design.AppColors.Brand.copy(alpha = 0.85f),
                     focusedContainerColor = com.streamvault.app.ui.design.AppColors.Brand
                 ),
@@ -1644,10 +1644,10 @@ private fun ZapPreviewCard(
                 )
             }
             // Cancel
-            androidx.tv.material3.ClickableSurface(
+            TvClickableSurface(
                 onClick = onCancel,
-                shape = androidx.tv.material3.ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = androidx.tv.material3.ClickableSurfaceDefaults.colors(
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                colors = ClickableSurfaceDefaults.colors(
                     containerColor = Color.White.copy(alpha = 0.12f),
                     focusedContainerColor = Color.White.copy(alpha = 0.22f)
                 )
