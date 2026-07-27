@@ -214,9 +214,16 @@ fun DashboardScreen(
                                         val req = coil3.request.ImageRequest.Builder(ctx)
                                             .data(feature.artworkUrl)
                                             .size(128)
-                                            .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
                                             .build()
-                                        loader.execute(req).image?.toBitmap()
+                                        // coil3.toBitmap() may return a hardware bitmap which
+                                        // androidx.palette cannot read. Copy to ARGB_8888 if needed.
+                                        loader.execute(req).image?.toBitmap()?.let { bmp ->
+                                            if (bmp.config == android.graphics.Bitmap.Config.HARDWARE) {
+                                                bmp.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                                            } else {
+                                                bmp
+                                            }
+                                        }
                                     }.getOrNull()
                                 }
                                 DynamicThemeProvider(bitmap = heroBitmap) {
