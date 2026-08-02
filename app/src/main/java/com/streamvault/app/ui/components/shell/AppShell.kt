@@ -865,6 +865,7 @@ private fun AppTopLevelDestination.toDestinationItem(): DestinationItem = when (
     AppTopLevelDestination.NOVELAS -> DestinationItem(Routes.NOVELAS, R.string.nav_novelas, NovelaIcon)
     AppTopLevelDestination.INFANTIL -> DestinationItem(Routes.INFANTIL, R.string.nav_infantil, ChildrenIcon)
     AppTopLevelDestination.ANIMES -> DestinationItem(Routes.ANIMES, R.string.nav_animes, AnimeIcon)
+    AppTopLevelDestination.FOOTBALL -> DestinationItem(Routes.FOOTBALL, R.string.nav_football, FootballIcon)
     AppTopLevelDestination.GUIDE -> DestinationItem(Routes.EPG, R.string.nav_epg, Icons.Default.Info)
     AppTopLevelDestination.SEARCH -> DestinationItem(Routes.SEARCH, R.string.search_title, Icons.Default.Search)
     AppTopLevelDestination.PLUGINS -> DestinationItem(Routes.PLUGINS, R.string.nav_plugins, PluginBlocksIcon)
@@ -994,3 +995,6 @@ private val AnimeIcon: ImageVector
         return _animeIcon!!
     }
 private var _animeIcon: ImageVector? = null
+
+private val FootballIcon: ImageVector
+    get() = Icons.Filled.SportsSoccer

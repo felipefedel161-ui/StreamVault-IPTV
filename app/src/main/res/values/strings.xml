@@ -1695,6 +1695,8 @@
     <string name="nav_novelas">Novelas</string>
     <string name="nav_infantil">Infantil</string>
     <string name="nav_animes">Animes</string>
+    <string name="nav_football">Futebol</string>
+    <string name="action_refresh">Atualizar</string>
     <string name="downloads_empty">No downloads yet</string>
     <string name="downloads_loading">Loading downloads...</string>
     <string name="downloads_empty_title">No downloads yet</string>

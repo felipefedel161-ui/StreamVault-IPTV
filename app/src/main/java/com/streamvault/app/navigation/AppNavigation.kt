@@ -85,6 +85,7 @@ object Routes {
     const val NOVELAS = "novelas"
     const val INFANTIL = "infantil"
     const val ANIMES = "animes"
+    const val FOOTBALL = "football"
     const val SERIES_FILTERED = "series_filtered?categoryKeyword={categoryKeyword}"
 
     fun seriesFiltered(categoryKeyword: String) = "series_filtered?categoryKeyword=$categoryKeyword"
@@ -671,6 +672,23 @@ fun AppNavigation(mainActivity: MainActivity) {
                     popUpTo(Routes.ANIMES) { inclusive = true }
                 }
             }
+        }
+
+        composable(Routes.FOOTBALL) {
+            com.streamvault.app.ui.screens.football.FootballScreen(
+                currentRoute = Routes.FOOTBALL,
+                onNavigate = { route -> tabNavigate(route) },
+                onChannelClick = { channel ->
+                    navController.navigateToPlayer(
+                        Routes.livePlayer(
+                            channel = channel,
+                            categoryId = channel.categoryId,
+                            providerId = channel.providerId,
+                            returnRoute = Routes.FOOTBALL
+                        )
+                    )
+                }
+            )
         }
 
         composable(

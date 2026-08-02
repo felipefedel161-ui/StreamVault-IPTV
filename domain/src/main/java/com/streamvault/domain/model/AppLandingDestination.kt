@@ -10,6 +10,7 @@ enum class AppLandingDestination(val storageValue: String) {
     NOVELAS("novelas"),
     INFANTIL("infantil"),
     ANIMES("animes"),
+    FOOTBALL("football"),
     PLUGINS("plugins"),
     SETTINGS("settings");
 
