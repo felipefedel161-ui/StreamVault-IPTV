@@ -38,6 +38,9 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import com.streamvault.app.ui.design.requestFocusSafely
+import com.streamvault.app.ui.interaction.TvClickableSurface
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.compose.foundation.focusable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

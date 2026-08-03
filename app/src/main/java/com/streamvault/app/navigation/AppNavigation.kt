@@ -325,6 +325,7 @@ internal fun AppLandingDestination.toAppRoute(): String = when (this) {
     AppLandingDestination.INFANTIL -> Routes.INFANTIL
     AppLandingDestination.ANIMES -> Routes.ANIMES
     AppLandingDestination.PLUGINS -> Routes.PLUGINS
+    AppLandingDestination.FOOTBALL -> Routes.FOOTBALL
     AppLandingDestination.SETTINGS -> Routes.SETTINGS
 }
 
@@ -340,6 +341,7 @@ internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.GUIDE -> Routes.EPG
     AppTopLevelDestination.SEARCH -> Routes.SEARCH
     AppTopLevelDestination.PLUGINS -> Routes.PLUGINS
+    AppTopLevelDestination.FOOTBALL -> Routes.FOOTBALL
     AppTopLevelDestination.SETTINGS -> Routes.SETTINGS
 }
 

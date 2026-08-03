@@ -73,71 +73,63 @@ fun FootballScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var detailMatch by remember { mutableStateOf<FootballMatch?>(null) }
 
-    AppScreenScaffold(
-        currentRoute = currentRoute,
-        onNavigate = onNavigate,
-        title = stringResource(R.string.nav_football),
-        subtitle = if (!uiState.isLoading && !uiState.isEmpty) {
-            "${uiState.liveMatches.size} ao vivo · ${uiState.upcomingMatches.size} em breve"
-        } else null,
-        topBarActions = {
-            TvButton(
-                onClick = viewModel::refresh,
-                modifier = Modifier.height(32.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.action_refresh),
-                    style = MaterialTheme.typography.labelSmall
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppScreenScaffold(
+            currentRoute = currentRoute,
+            onNavigate = onNavigate,
+            title = stringResource(R.string.nav_football),
+            subtitle = if (!uiState.isLoading && !uiState.isEmpty) {
+                "${uiState.liveMatches.size} ao vivo · ${uiState.upcomingMatches.size} em breve"
+            } else null,
+            topBarActions = {
+                TvButton(
+                    onClick = viewModel::refresh,
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_refresh),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
-        }
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        ) {
             when {
                 uiState.isLoading -> FootballLoadingState()
                 uiState.isEmpty -> FootballEmptyState()
                 else -> FootballFeed(
                     uiState = uiState,
-                    onMatchClick = { match ->
-                        detailMatch = match
-                    },
-                    onWatchClick = { match ->
+                    onMatchClick = { match -> detailMatch = match },
+                    onWatchClick = { match -> onChannelClick(match.channel) }
+                )
+            }
+        }
+
+        // Dim scrim — outside AppScreenScaffold, directly in the root Box
+        if (detailMatch != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .clickable { detailMatch = null }
+            )
+        }
+
+        // Match detail bottom sheet
+        androidx.compose.animation.AnimatedVisibility(
+            visible = detailMatch != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(200)),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(150)),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            detailMatch?.let { match ->
+                MatchDetailSheet(
+                    match = match,
+                    onDismiss = { detailMatch = null },
+                    onWatch = {
+                        detailMatch = null
                         onChannelClick(match.channel)
                     }
                 )
-            }
-
-            // Match detail bottom sheet
-            AnimatedVisibility(
-                visible = detailMatch != null,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
-                // Dim background
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .clickable { detailMatch = null }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = detailMatch != null,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(tween(200)),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(150)),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                detailMatch?.let { match ->
-                    MatchDetailSheet(
-                        match = match,
-                        onDismiss = { detailMatch = null },
-                        onWatch = {
-                            detailMatch = null
-                            onChannelClick(match.channel)
-                        }
-                    )
-                }
             }
         }
     }

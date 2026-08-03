@@ -365,6 +365,7 @@ private fun AppLandingDestination.labelResId(): Int = when (this) {
     AppLandingDestination.NOVELAS -> R.string.nav_novelas
     AppLandingDestination.INFANTIL -> R.string.nav_infantil
     AppLandingDestination.ANIMES -> R.string.nav_animes
+    AppLandingDestination.FOOTBALL -> R.string.nav_football
     AppLandingDestination.PLUGINS -> R.string.nav_plugins
     AppLandingDestination.SETTINGS -> R.string.nav_settings
 }

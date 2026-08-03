@@ -997,4 +997,38 @@ private val AnimeIcon: ImageVector
 private var _animeIcon: ImageVector? = null
 
 private val FootballIcon: ImageVector
-    get() = Icons.Filled.SportsSoccer
+    get() {
+        if (_footballIcon != null) return _footballIcon!!
+        _footballIcon = ImageVector.Builder(
+            name = "Football",
+            defaultWidth = 24.dp, defaultHeight = 24.dp,
+            viewportWidth = 24f, viewportHeight = 24f
+        ).apply {
+            // Outer ring
+            path(fill = SolidColor(Color(0xFF000000))) {
+                moveTo(12f, 2f)
+                curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+                curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
+                curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+                curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+                close()
+                moveTo(12f, 20f)
+                curveTo(7.59f, 20f, 4f, 16.41f, 4f, 12f)
+                curveTo(4f, 7.59f, 7.59f, 4f, 12f, 4f)
+                curveTo(16.41f, 4f, 20f, 7.59f, 20f, 12f)
+                curveTo(20f, 16.41f, 16.41f, 20f, 12f, 20f)
+                close()
+            }
+            // Centre pentagon
+            path(fill = SolidColor(Color(0xFF000000))) {
+                moveTo(12f, 7.5f)
+                lineTo(14.9f, 9.6f)
+                lineTo(13.8f, 12.9f)
+                lineTo(10.2f, 12.9f)
+                lineTo(9.1f, 9.6f)
+                close()
+            }
+        }.build()
+        return _footballIcon!!
+    }
+private var _footballIcon: ImageVector? = null
