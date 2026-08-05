@@ -88,6 +88,10 @@ class ActivationViewModel @Inject constructor(
         }
     }
 
+    fun getServerUrl(): String = inovaActivationManager.getServerUrl()
+
+    fun setServerUrl(url: String) = inovaActivationManager.setServerUrl(url)
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }

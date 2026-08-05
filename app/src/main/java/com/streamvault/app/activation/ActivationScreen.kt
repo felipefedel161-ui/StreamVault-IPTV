@@ -1,6 +1,10 @@
 package com.streamvault.app.activation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -40,6 +44,8 @@ fun ActivationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var providerName by remember { mutableStateOf("") }
+    var serverUrl by remember { mutableStateOf(viewModel.getServerUrl()) }
+    var showServerField by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.activationSuccess) {
         if (uiState.activationSuccess) onActivationSuccess()
@@ -118,6 +124,67 @@ fun ActivationScreen(
                         color = AppColors.TextSecondary.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
                     )
+                }
+
+                // URL do servidor (avançado — expansível)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0F0F1A), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .clickable { showServerField = !showServerField }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⚙️ URL do servidor",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = AppColors.TextSecondary
+                            )
+                            Text(
+                                text = if (showServerField) "▲" else "▼",
+                                color = AppColors.TextTertiary,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                    if (showServerField) {
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedTextField(
+                            value = serverUrl,
+                            onValueChange = {
+                                serverUrl = it
+                                viewModel.setServerUrl(it)
+                            },
+                            label = { Text("http://IP:5000", color = AppColors.TextSecondary) },
+                            placeholder = { Text("http://192.168.1.100:5000", color = AppColors.TextSecondary.copy(alpha = 0.4f)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF7C4DFF),
+                                unfocusedBorderColor = Color(0xFF7C4DFF55),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color(0xFF7C4DFF),
+                                focusedContainerColor = Color(0xFF0F0F1A),
+                                unfocusedContainerColor = Color(0xFF0F0F1A)
+                            )
+                        )
+                        Text(
+                            text = "Deixe em branco para usar somente o cache local",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AppColors.TextSecondary.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
 
                 // Campo nome da lista (opcional)
