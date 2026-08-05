@@ -47,7 +47,7 @@ class InovaActivationManager @Inject constructor(
         private const val KEY_DEVICE_ID    = "device_id"
 
         /** URL padrão do painel Pydroid — usuário pode trocar nas configurações */
-        const val DEFAULT_SERVER_URL = "http://192.168.1.100:5000"
+        const val DEFAULT_SERVER_URL = "https://streamvault-server.onrender.com"
 
         private const val TIMEOUT_MS = 8_000
         private const val USER_AGENT = "StreamVaultApp/1.0"
