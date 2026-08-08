@@ -2,11 +2,14 @@ package com.streamvault.app.activation
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -17,40 +20,26 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Gerencia a ativação do StreamVault.
- *
- * Fluxo:
- *  1. Tenta contatar o servidor do painel (Pydroid 3 na rede local).
- *     URL configurada pelo usuário em PREFS_SERVER_URL.
- *  2. Se o servidor responder com sucesso → salva o resultado em cache
- *     criptografado (SharedPreferences) e retorna Success.
- *  3. Se offline ou servidor não encontrado → lê o cache local.
- *     - Cache válido (não expirado) → retorna Success sem internet.
- *     - Cache expirado → retorna Error(EXPIRED).
- *     - Cache ausente → retorna Error(NOT_FOUND).
- *
- * O painel Pydroid grava os dados no cache via /api/cache quando
- * o usuário ativa o dispositivo pelo painel.
- */
 @Singleton
 class InovaActivationManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val PREFS_NAME       = "sv_activation_cache"
-        private const val KEY_SERVER_URL   = "server_url"
-        private const val KEY_M3U          = "m3u_url"
-        private const val KEY_EXPIRACAO    = "expiracao"
-        private const val KEY_DIAS         = "dias_restantes"
-        private const val KEY_CACHED_AT    = "cached_at"
-        private const val KEY_DEVICE_ID    = "device_id"
+        private const val PREFS_NAME     = "sv_activation_cache"
+        private const val KEY_SERVER_URL = "server_url"
+        private const val KEY_M3U        = "m3u_url"
+        private const val KEY_EXPIRACAO  = "expiracao"
+        private const val KEY_DIAS       = "dias_restantes"
+        private const val KEY_CACHED_AT  = "cached_at"
+        private const val KEY_DEVICE_ID  = "device_id"
 
-        /** URL padrão do painel Pydroid — usuário pode trocar nas configurações */
+        // Render free tier pode demorar até 30s para acordar da hibernação
         const val DEFAULT_SERVER_URL = "https://vault-axvc.onrender.com"
-
-        private const val TIMEOUT_MS = 8_000
-        private const val USER_AGENT = "StreamVaultApp/1.0"
+        private const val CONNECT_TIMEOUT_MS = 35_000
+        private const val READ_TIMEOUT_MS    = 35_000
+        private const val MAX_RETRIES        = 2
+        private const val RETRY_DELAY_MS     = 3_000L
+        private const val USER_AGENT         = "StreamVaultApp/1.0"
 
         private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     }
@@ -61,9 +50,7 @@ class InovaActivationManager @Inject constructor(
     // ─── Device ID ────────────────────────────────────────────────────────────
 
     fun getDeviceId(): String {
-        // Retorna o ID já fixado (garante que não muda entre sessões)
         prefs.getString(KEY_DEVICE_ID, null)?.let { return it }
-
         val id = resolveDeviceId()
         prefs.edit().putString(KEY_DEVICE_ID, id).apply()
         return id
@@ -73,13 +60,12 @@ class InovaActivationManager @Inject constructor(
         // 1. MAC via WifiManager
         try {
             @Suppress("DEPRECATION")
-            val wm = context.applicationContext
-                .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val wm  = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val mac = wm?.connectionInfo?.macAddress
             if (!mac.isNullOrBlank() && mac != "02:00:00:00:00:00") return mac.uppercase()
         } catch (_: Exception) {}
 
-        // 2. MAC via NetworkInterface (mais confiável em Android 6+)
+        // 2. MAC via NetworkInterface
         try {
             val iface = java.net.NetworkInterface.getNetworkInterfaces()?.toList()
                 ?.firstOrNull {
@@ -93,10 +79,8 @@ class InovaActivationManager @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        // 3. Android ID (fallback permanente)
-        val androidId = Settings.Secure.getString(
-            context.contentResolver, Settings.Secure.ANDROID_ID
-        )
+        // 3. Android ID
+        val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
         return (androidId?.takeIf { it.isNotBlank() }
             ?: Build.SERIAL?.takeIf { it.isNotBlank() && it != Build.UNKNOWN }
             ?: "UNKNOWN").uppercase()
@@ -116,14 +100,46 @@ class InovaActivationManager @Inject constructor(
     suspend fun activate(): ActivationResult = withContext(Dispatchers.IO) {
         val deviceId = getDeviceId()
 
-        // 1. Tenta o servidor do painel
-        val serverResult = runCatching { fetchFromPanel(deviceId) }.getOrNull()
-        if (serverResult is ActivationResult.Success) {
-            saveCache(serverResult)
-            return@withContext serverResult
+        // Verifica conectividade antes de tentar o servidor
+        if (hasInternet()) {
+            // Tenta com retry — Render free pode demorar para acordar
+            var lastServerResult: ActivationResult? = null
+            repeat(MAX_RETRIES) { attempt ->
+                val result = runCatching { fetchFromServer(deviceId) }.getOrElse { e ->
+                    ActivationResult.Error(ActivationError.NETWORK)
+                }
+                if (result is ActivationResult.Success) {
+                    saveCache(result)
+                    lastServerResult = result
+                    return@repeat
+                }
+                // Só faz retry em erros de rede, não em erros de negócio
+                if (result is ActivationResult.Error &&
+                    result.error !in listOf(ActivationError.NOT_FOUND, ActivationError.EXPIRED,
+                                             ActivationError.NO_M3U, ActivationError.GENERIC) &&
+                    attempt < MAX_RETRIES - 1) {
+                    delay(RETRY_DELAY_MS)
+                } else {
+                    lastServerResult = result
+                    return@repeat
+                }
+            }
+
+            val serverResult = lastServerResult
+            if (serverResult is ActivationResult.Success) {
+                return@withContext serverResult
+            }
+
+            // Erro de negócio (NOT_FOUND, EXPIRED, BLOQUEADO) → retorna o erro direto
+            // sem cair no cache, para o usuário ver a mensagem correta
+            if (serverResult is ActivationResult.Error &&
+                serverResult.error in listOf(ActivationError.NOT_FOUND, ActivationError.EXPIRED,
+                                              ActivationError.NO_M3U)) {
+                return@withContext serverResult
+            }
         }
 
-        // 2. Servidor offline ou falhou → usa cache local
+        // Sem internet ou erro de rede → tenta cache
         return@withContext readFromCache()
     }
 
@@ -132,16 +148,14 @@ class InovaActivationManager @Inject constructor(
         fingerprint: String? = null
     ): ActivationResult = activate()
 
-    // ─── Comunicação com o painel Pydroid ─────────────────────────────────────
+    // ─── HTTP ─────────────────────────────────────────────────────────────────
 
-    private fun fetchFromPanel(deviceId: String): ActivationResult {
-        val serverUrl = getServerUrl()
-        val url = "$serverUrl/api/status/${deviceId.uppercase()}"
-
+    private fun fetchFromServer(deviceId: String): ActivationResult {
+        val url = "${getServerUrl()}/api/status/${deviceId.uppercase()}"
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = TIMEOUT_MS
-            readTimeout    = TIMEOUT_MS
+            connectTimeout = CONNECT_TIMEOUT_MS
+            readTimeout    = READ_TIMEOUT_MS
             setRequestProperty("Accept",     "application/json")
             setRequestProperty("User-Agent", USER_AGENT)
         }
@@ -161,17 +175,23 @@ class InovaActivationManager @Inject constructor(
             200 -> {
                 val m3u  = json.optString("m3u_url",        "").trim()
                 val exp  = json.optString("expiracao",      "")
-                val dias = json.optInt   ("dias_restantes", -1)
-                if (m3u.isBlank()) ActivationResult.Error(ActivationError.NO_M3U)
-                else ActivationResult.Success(m3uUrl = m3u, expiracao = exp, diasRestantes = dias)
+                val dias = json.optInt   ("dias_restantes", 30)
+                when {
+                    m3u.isBlank() -> ActivationResult.Error(ActivationError.NO_M3U)
+                    exp.isBlank() -> ActivationResult.Error(ActivationError.GENERIC)
+                    else -> ActivationResult.Success(
+                        m3uUrl        = m3u,
+                        expiracao     = exp,
+                        diasRestantes = dias
+                    )
+                }
             }
             403 -> {
                 val msg = json.optString("mensagem", "").lowercase()
                 when {
-                    msg.contains("expirad") || msg.contains("expired") ->
-                        ActivationResult.Error(ActivationError.EXPIRED)
-                    else ->
-                        ActivationResult.Error(ActivationError.NO_M3U)
+                    msg.contains("expirad") -> ActivationResult.Error(ActivationError.EXPIRED)
+                    msg.contains("bloqueado") -> ActivationResult.Error(ActivationError.GENERIC)
+                    else -> ActivationResult.Error(ActivationError.GENERIC)
                 }
             }
             404 -> ActivationResult.Error(ActivationError.NOT_FOUND)
@@ -179,21 +199,30 @@ class InovaActivationManager @Inject constructor(
         }
     }
 
-    // ─── Cache local ──────────────────────────────────────────────────────────
+    // ─── Internet check ───────────────────────────────────────────────────────
+
+    private fun hasInternet(): Boolean {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return false
+            val network = cm.activeNetwork ?: return false
+            val caps    = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } catch (_: Exception) { false }
+    }
+
+    // ─── Cache ────────────────────────────────────────────────────────────────
 
     private fun saveCache(result: ActivationResult.Success) {
         prefs.edit()
-            .putString(KEY_M3U,        result.m3uUrl)
-            .putString(KEY_EXPIRACAO,  result.expiracao)
-            .putInt   (KEY_DIAS,       result.diasRestantes)
-            .putLong  (KEY_CACHED_AT,  System.currentTimeMillis())
+            .putString(KEY_M3U,       result.m3uUrl)
+            .putString(KEY_EXPIRACAO, result.expiracao)
+            .putInt   (KEY_DIAS,      result.diasRestantes)
+            .putLong  (KEY_CACHED_AT, System.currentTimeMillis())
             .apply()
     }
 
-    /**
-     * Grava cache diretamente — chamado quando o painel Pydroid
-     * faz push da ativação via /api/cache (sem precisar do app fazer o fetch).
-     */
     fun writeCacheDirectly(m3uUrl: String, expiracao: String, diasRestantes: Int) {
         prefs.edit()
             .putString(KEY_M3U,       m3uUrl)
@@ -207,12 +236,10 @@ class InovaActivationManager @Inject constructor(
         val m3u = prefs.getString(KEY_M3U, null)
         val exp = prefs.getString(KEY_EXPIRACAO, null)
 
-        // Sem cache → dispositivo nunca foi ativado
         if (m3u.isNullOrBlank() || exp.isNullOrBlank()) {
             return ActivationResult.Error(ActivationError.NOT_FOUND)
         }
 
-        // Verifica expiração
         val dias = diasRestantes(exp)
         if (dias <= 0) {
             return ActivationResult.Error(ActivationError.EXPIRED)
@@ -240,23 +267,20 @@ class InovaActivationManager @Inject constructor(
 
     private fun diasRestantes(expiracao: String): Int {
         return try {
-            val exp   = DATE_FORMAT.parse(expiracao) ?: return 0
-            val hoje  = DATE_FORMAT.parse(DATE_FORMAT.format(Date())) ?: return 0
-            val diff  = exp.time - hoje.time
-            maxOf(0, (diff / 86_400_000).toInt())
+            val exp  = DATE_FORMAT.parse(expiracao) ?: return 0
+            val hoje = DATE_FORMAT.parse(DATE_FORMAT.format(Date())) ?: return 0
+            maxOf(0, ((exp.time - hoje.time) / 86_400_000).toInt())
         } catch (_: Exception) { 0 }
     }
 
-    /** Retorna info de debug para exibir nas configurações */
     fun getDebugInfo(): Map<String, String> = mapOf(
-        "Device ID"   to getDeviceId(),
-        "Servidor"    to getServerUrl(),
-        "M3U"         to (prefs.getString(KEY_M3U, "—") ?: "—"),
-        "Expiração"   to (prefs.getString(KEY_EXPIRACAO, "—") ?: "—"),
-        "Cache em"    to prefs.getLong(KEY_CACHED_AT, 0L).let {
-            if (it == 0L) "—" else java.text.SimpleDateFormat(
-                "dd/MM/yyyy HH:mm", Locale.getDefault()
-            ).format(Date(it))
+        "Device ID"  to getDeviceId(),
+        "Servidor"   to getServerUrl(),
+        "M3U"        to (prefs.getString(KEY_M3U, "—") ?: "—"),
+        "Expiração"  to (prefs.getString(KEY_EXPIRACAO, "—") ?: "—"),
+        "Cache em"   to prefs.getLong(KEY_CACHED_AT, 0L).let {
+            if (it == 0L) "—"
+            else SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(it))
         }
     )
 }
