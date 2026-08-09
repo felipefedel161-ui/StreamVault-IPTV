@@ -19,7 +19,7 @@ class InovaActivationManager @Inject constructor(
     companion object {
         const val SERVER_URL    = "https://vault-axvc.onrender.com"
         private const val USER_AGENT = "StreamVaultApp/1.0"
-        private const val TIMEOUT_MS = 35_000 // Render free pode demorar ~30s ao acordar
+        private const val TIMEOUT_MS = 50_000 // Render free pode demorar ~30-45s ao acordar
     }
 
     fun getDeviceId(): String {
