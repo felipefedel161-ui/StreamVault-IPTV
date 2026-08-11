@@ -1,116 +1,110 @@
 package com.streamvault.app.activation
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
-import javax.net.ssl.HttpsURLConnection
 
 @Singleton
 class InovaActivationManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        const val SERVER_URL     = "https://vault-axvc.onrender.com"
-        private const val TIMEOUT_MS = 50_000
+        private const val SERVER_URL = "https://vault-axvc.onrender.com"
+        private const val TIMEOUT_MS = 15_000
     }
 
     fun getDeviceId(): String {
-        // 1. MAC via NetworkInterface
         try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()?.toList() ?: emptyList()
-            for (iface in interfaces) {
-                if (!iface.name.equals("wlan0", ignoreCase = true) &&
-                    !iface.name.equals("eth0",  ignoreCase = true)) continue
-                val bytes = iface.hardwareAddress ?: continue
-                if (bytes.size != 6) continue
-                val mac = bytes.joinToString(":") { "%02X".format(it) }
+            @Suppress("DEPRECATION")
+            val wifiManager = context.applicationContext
+                .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val mac = wifiManager?.connectionInfo?.macAddress
+            if (!mac.isNullOrBlank() && mac != "02:00:00:00:00:00") {
+                return mac.uppercase()
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val netInterface = java.net.NetworkInterface.getNetworkInterfaces()?.toList()
+                ?.firstOrNull { it.name.equals("wlan0", ignoreCase = true) || it.name.equals("eth0", ignoreCase = true) }
+            val macBytes = netInterface?.hardwareAddress
+            if (macBytes != null && macBytes.size == 6) {
+                val mac = macBytes.joinToString(":") { "%02X".format(it) }
                 if (mac != "02:00:00:00:00:00") return mac
             }
         } catch (_: Exception) {}
 
-        // 2. Android ID fallback
-        return (Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-            ?.takeIf { it.isNotBlank() }
-            ?: "UNKNOWN").uppercase()
+        val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        return (androidId ?: Build.SERIAL ?: "UNKNOWN").uppercase()
     }
 
-    suspend fun checkActivation(
-        deviceId: String = getDeviceId(),
-        fingerprint: String? = null
-    ): ActivationResult = withContext(Dispatchers.IO) {
+    suspend fun activate(): ActivationResult = withContext(Dispatchers.IO) {
+        val deviceId = getDeviceId()
         try {
-            val urlStr = "$SERVER_URL/api/status/${deviceId.uppercase()}"
-            val url    = URL(urlStr)
-
-            // Usa HttpsURLConnection explicitamente para controle total
-            val conn = (url.openConnection() as HttpsURLConnection).apply {
-                requestMethod  = "GET"
+            val url = URL("$SERVER_URL/api/status/$deviceId")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
                 connectTimeout = TIMEOUT_MS
-                readTimeout    = TIMEOUT_MS
-                // Força HTTP/1.1 — evita problemas com HTTP/2 em alguns Android
-                setRequestProperty("Connection",    "close")
-                setRequestProperty("User-Agent",    "StreamVaultApp/1.0")
-                setRequestProperty("Accept",        "application/json")
-                setRequestProperty("Cache-Control", "no-cache")
-                instanceFollowRedirects = true
-                doInput  = true
-                doOutput = false
-                useCaches = false
+                readTimeout = TIMEOUT_MS
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("User-Agent", "InovaPlayer/7.0")
             }
 
-            conn.connect()
-            val code = conn.responseCode
-
+            val responseCode = conn.responseCode
             val body = try {
-                BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+                conn.inputStream.bufferedReader().readText()
             } catch (_: Exception) {
-                try {
-                    BufferedReader(InputStreamReader(conn.errorStream)).use { it.readText() }
-                } catch (_: Exception) { "{}" }
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
             }
-
             conn.disconnect()
 
-            val json = try { JSONObject(body) } catch (_: Exception) { JSONObject() }
+            val json = runCatching { JSONObject(body) }.getOrNull()
+                ?: return@withContext ActivationResult.Error(ActivationError.GENERIC)
 
-            when (code) {
+            when (responseCode) {
                 200 -> {
-                    val m3u  = json.optString("m3u_url",       "").trim()
-                    val exp  = json.optString("expiracao",      "")
-                    val dias = json.optInt   ("dias_restantes", 30)
-                    if (m3u.isBlank())
+                    val m3u = json.optString("m3u_url", "")
+                    val exp = json.optString("expiracao", "")
+                    val dias = json.optInt("dias_restantes", -1)
+                    if (m3u.isBlank()) {
                         ActivationResult.Error(ActivationError.NO_M3U)
-                    else
+                    } else {
                         ActivationResult.Success(m3uUrl = m3u, expiracao = exp, diasRestantes = dias)
+                    }
                 }
                 403 -> {
-                    val msg = json.optString("mensagem", "").lowercase()
-                    when {
-                        msg.contains("expirad") ->
-                            ActivationResult.Error(ActivationError.EXPIRED)
-                        msg.contains("outro aparelho") || msg.contains("fingerprint") ->
-                            ActivationResult.Error(ActivationError.FINGERPRINT_MISMATCH)
-                        else ->
-                            ActivationResult.Error(ActivationError.NO_M3U)
+                    val msg = json.optString("mensagem", "")
+                    if (msg.contains("expirada", ignoreCase = true)) {
+                        ActivationResult.Error(ActivationError.EXPIRED)
+                    } else {
+                        ActivationResult.Error(ActivationError.NO_M3U)
                     }
                 }
                 404 -> ActivationResult.Error(ActivationError.NOT_FOUND)
                 else -> ActivationResult.Error(ActivationError.GENERIC)
             }
-
-        } catch (e: Exception) {
+        } catch (_: java.net.UnknownHostException) {
             ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: java.net.SocketTimeoutException) {
+            ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: java.io.IOException) {
+            ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: Exception) {
+            ActivationResult.Error(ActivationError.GENERIC)
         }
     }
 
-    suspend fun activate(): ActivationResult = checkActivation()
+    suspend fun checkActivation(
+        deviceId: String = getDeviceId(),
+        fingerprint: String? = null
+    ): ActivationResult = activate()
 }
