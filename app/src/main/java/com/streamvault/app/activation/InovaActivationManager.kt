@@ -6,20 +6,32 @@ import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class InovaActivationManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val okHttpClient: OkHttpClient
 ) {
     companion object {
-        const val SERVER_URL    = "https://vault-axvc.onrender.com"
+        const val SERVER_URL = "https://vault-axvc.onrender.com"
         private const val USER_AGENT = "StreamVaultApp/1.0"
-        private const val TIMEOUT_MS = 35_000 // Render free pode demorar ~30s ao acordar
+        // Render free pode demorar ~30s ao acordar
+        private const val TIMEOUT_SECONDS = 45L
+    }
+
+    private val activationClient: OkHttpClient by lazy {
+        okHttpClient.newBuilder()
+            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .callTimeout(TIMEOUT_SECONDS + 5, TimeUnit.SECONDS)
+            .build()
     }
 
     fun getDeviceId(): String {
@@ -52,24 +64,26 @@ class InovaActivationManager @Inject constructor(
         fingerprint: String? = null
     ): ActivationResult = withContext(Dispatchers.IO) {
         try {
-            val urlStr = "$SERVER_URL/api/status/${deviceId.uppercase()}"
-            val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-                requestMethod  = "GET"
-                connectTimeout = TIMEOUT_MS
-                readTimeout    = TIMEOUT_MS
-                setRequestProperty("User-Agent", USER_AGENT)
-                setRequestProperty("Accept", "application/json")
+            val url = "$SERVER_URL/api/status/${deviceId.uppercase()}"
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .header("Accept", "application/json")
+                .header("User-Agent", USER_AGENT)
+                .build()
+
+            activationClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                val json = runCatching { JSONObject(body) }.getOrElse { JSONObject() }
+                parseResponse(response.code, json)
             }
-            val code = conn.responseCode
-            val body = try {
-                conn.inputStream.bufferedReader().readText()
-            } catch (_: Exception) {
-                conn.errorStream?.bufferedReader()?.readText() ?: "{}"
-            }
-            conn.disconnect()
-            val json = runCatching { JSONObject(body) }.getOrElse { JSONObject() }
-            parseResponse(code, json)
-        } catch (e: Exception) {
+        } catch (_: java.net.UnknownHostException) {
+            ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: java.net.SocketTimeoutException) {
+            ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: java.io.IOException) {
+            ActivationResult.Error(ActivationError.NETWORK)
+        } catch (_: Exception) {
             ActivationResult.Error(ActivationError.NETWORK)
         }
     }
@@ -79,9 +93,9 @@ class InovaActivationManager @Inject constructor(
     private fun parseResponse(code: Int, json: JSONObject): ActivationResult {
         return when (code) {
             200 -> {
-                val m3u  = json.optString("m3u_url",        "").trim()
-                val exp  = json.optString("expiracao",       "")
-                val dias = json.optInt   ("dias_restantes", -1)
+                val m3u = json.optString("m3u_url", "").trim()
+                val exp = json.optString("expiracao", "")
+                val dias = json.optInt("dias_restantes", -1)
                 if (m3u.isBlank()) ActivationResult.Error(ActivationError.NO_M3U)
                 else ActivationResult.Success(m3uUrl = m3u, expiracao = exp, diasRestantes = dias)
             }
