@@ -67,6 +67,8 @@ import com.streamvault.app.ui.components.ReorderTopBar
 import com.streamvault.app.ui.components.dialogs.DeleteGroupDialog
 import com.streamvault.app.ui.components.dialogs.RenameGroupDialog
 import com.streamvault.app.ui.components.shell.BrowseHeroPanel
+import com.streamvault.app.ui.util.HERO_SALT_SERIES
+import com.streamvault.app.ui.util.pickDailyHero
 import com.streamvault.app.ui.components.shell.BrowseSearchLaunchCard
 import com.streamvault.app.ui.components.shell.LoadMoreCard
 import com.streamvault.app.ui.components.shell.InfiniteScrollEffect
@@ -367,7 +369,19 @@ private fun SeriesVodContent(
     val freshSeries = uiState.libraryLensRows[SeriesLibraryLens.FRESH].orEmpty()
     val topRatedSeries = uiState.libraryLensRows[SeriesLibraryLens.TOP_RATED].orEmpty()
     val continueWatching = uiState.continueWatching
-    val heroSeries = freshSeries.firstOrNull() ?: topRatedSeries.firstOrNull() ?: favoriteSeries.firstOrNull()
+    val heroSeries = remember(freshSeries, topRatedSeries, favoriteSeries, continueSeries) {
+        // Prefer series from the continue lens (in-progress), then daily rotation among catalog.
+        // Separate salt from Movies so both tabs never share the same daily title.
+        val fromContinue = continueSeries.firstOrNull {
+            !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank()
+        } ?: continueSeries.firstOrNull()
+        fromContinue ?: pickDailyHero(
+            candidates = (freshSeries + topRatedSeries + favoriteSeries).distinctBy { it.id },
+            sectionSalt = HERO_SALT_SERIES,
+            idOf = { it.id },
+            hasImage = { !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank() }
+        )
+    }
     val categoryByName = remember(uiState.providerCategories, uiState.categories, uiState.favoriteCategoryName) {
         buildMap<String, Category> {
             uiState.providerCategories.forEach { put(it.name, it) }
@@ -507,18 +521,27 @@ private fun SeriesVodContent(
         ) {
             item(key = "hero") {
             if (heroSeries != null) {
-                VodHeroStrip(
+                BrowseHeroPanel(
                         title = heroSeries.name,
                         subtitle = heroSeries.plot?.takeIf { it.isNotBlank() }
                             ?: heroSeries.genre
                             ?: stringResource(R.string.series_library_lens_subtitle),
-                        actionLabel = stringResource(R.string.player_resume).substringBefore(" "),
+                        imageUrl = heroSeries.backdropUrl?.takeIf { it.isNotBlank() }
+                            ?: heroSeries.posterUrl,
+                        eyebrow = stringResource(R.string.nav_series),
+                        metadata = buildList {
+                            heroSeries.genre?.takeIf { it.isNotBlank() }?.let { g ->
+                                add(g.split(",", "|").first().trim())
+                            }
+                            if (heroSeries.rating > 0f) add("%.1f/10".format(heroSeries.rating))
+                        },
+                        actionLabel = stringResource(R.string.player_play),
                         onClick = {
                             val isLocked = isSeriesLocked(heroSeries)
                             if (isLocked) onProtectedSeriesClick(heroSeries) else onSeriesClick(heroSeries)
                         },
                         modifier = Modifier
-                            .padding(top = 8.dp, bottom = 6.dp)
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
                             .focusRequester(initialFocusRequester)
                     )
             }

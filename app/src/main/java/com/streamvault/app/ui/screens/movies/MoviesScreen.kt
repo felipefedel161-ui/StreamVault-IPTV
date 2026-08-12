@@ -81,6 +81,9 @@ import com.streamvault.app.ui.components.shell.VodBrowseOptionsDialog
 import com.streamvault.app.ui.components.shell.VodClassicCategoryOption
 import com.streamvault.app.ui.components.shell.VodClassicContentHeader
 import com.streamvault.app.ui.components.shell.VodClassicSplitLayout
+import com.streamvault.app.ui.components.shell.BrowseHeroPanel
+import com.streamvault.app.ui.util.HERO_SALT_MOVIES
+import com.streamvault.app.ui.util.pickDailyHero
 import com.streamvault.app.ui.components.shell.VodHeroStrip
 import com.streamvault.app.ui.components.shell.VodSectionHeader
 import com.streamvault.app.ui.design.FocusRestoreHost
@@ -368,7 +371,19 @@ private fun MoviesVodContent(
     val freshMovies = uiState.libraryLensRows[MovieLibraryLens.FRESH].orEmpty()
     val topRatedMovies = uiState.libraryLensRows[MovieLibraryLens.TOP_RATED].orEmpty()
     val continueWatching = uiState.continueWatching
-    val heroMovie = freshMovies.firstOrNull() ?: topRatedMovies.firstOrNull() ?: favoriteMovies.firstOrNull()
+    val heroMovie = remember(freshMovies, topRatedMovies, favoriteMovies, continueWatching) {
+        // Prefer a continue-watching movie that still has art, then rotate daily among catalog picks.
+        // Salt is movies-only so Series/Home never mirror the same title.
+        val continueIds = continueWatching.filter { it.contentType.name == "MOVIE" }.map { it.contentId }.toSet()
+        val fromContinue = (freshMovies + topRatedMovies + favoriteMovies)
+            .firstOrNull { it.id in continueIds && (!it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank()) }
+        fromContinue ?: pickDailyHero(
+            candidates = (freshMovies + topRatedMovies + favoriteMovies).distinctBy { it.id },
+            sectionSalt = HERO_SALT_MOVIES,
+            idOf = { it.id },
+            hasImage = { !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank() }
+        )
+    }
     val categoryByName = remember(uiState.providerCategories, uiState.categories, uiState.favoriteCategoryName) {
         buildMap<String, Category> {
             uiState.providerCategories.forEach { put(it.name, it) }
@@ -507,18 +522,29 @@ private fun MoviesVodContent(
         ) {
             item(key = "hero") {
             if (heroMovie != null) {
-                VodHeroStrip(
+                BrowseHeroPanel(
                         title = heroMovie.name,
                         subtitle = heroMovie.plot?.takeIf { it.isNotBlank() }
-                            ?: heroMovie.year
-                            ?: stringResource(R.string.movies_library_lens_subtitle),
-                        actionLabel = stringResource(R.string.player_resume).substringBefore(" "),
+                            ?: listOfNotNull(heroMovie.year, heroMovie.genre).joinToString(" · ").ifBlank {
+                                stringResource(R.string.movies_library_lens_subtitle)
+                            },
+                        imageUrl = heroMovie.backdropUrl?.takeIf { it.isNotBlank() }
+                            ?: heroMovie.posterUrl,
+                        eyebrow = stringResource(R.string.nav_movies),
+                        metadata = buildList {
+                            heroMovie.year?.takeIf { it.isNotBlank() }?.let(::add)
+                            if (heroMovie.rating > 0f) add("%.1f/10".format(heroMovie.rating))
+                            heroMovie.genre?.takeIf { it.isNotBlank() }?.let { g ->
+                                add(g.split(",", "|").first().trim())
+                            }
+                        },
+                        actionLabel = stringResource(R.string.player_play),
                         onClick = {
                             val isLocked = isMovieLocked(heroMovie)
                             if (isLocked) onProtectedMovieClick(heroMovie) else onMovieClick(heroMovie)
                         },
                         modifier = Modifier
-                            .padding(top = 8.dp, bottom = 6.dp)
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
                             .focusRequester(initialFocusRequester)
                     )
             }
