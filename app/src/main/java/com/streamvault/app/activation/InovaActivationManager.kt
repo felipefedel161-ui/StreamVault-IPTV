@@ -3,8 +3,10 @@ package com.streamvault.app.activation
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -21,8 +23,10 @@ class InovaActivationManager @Inject constructor(
     companion object {
         const val SERVER_URL = "https://vault-axvc.onrender.com"
         private const val USER_AGENT = "StreamVaultApp/1.0"
-        // Render free pode demorar ~30s ao acordar
-        private const val TIMEOUT_SECONDS = 45L
+        private const val TAG = "InovaActivation"
+        // Render free: cold start pode passar de 60s
+        private const val TIMEOUT_SECONDS = 90L
+        private const val MAX_ATTEMPTS = 3
     }
 
     private val activationClient: OkHttpClient by lazy {
@@ -30,7 +34,8 @@ class InovaActivationManager @Inject constructor(
             .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .callTimeout(TIMEOUT_SECONDS + 5, TimeUnit.SECONDS)
+            .callTimeout(TIMEOUT_SECONDS + 15, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 
@@ -63,32 +68,76 @@ class InovaActivationManager @Inject constructor(
         deviceId: String = getDeviceId(),
         fingerprint: String? = null
     ): ActivationResult = withContext(Dispatchers.IO) {
+        val id = deviceId.trim().uppercase()
+        // Acorda o Render (free) antes da chamada real
+        wakeServer()
+
+        var lastError: ActivationResult = ActivationResult.Error(ActivationError.NETWORK)
+        repeat(MAX_ATTEMPTS) { attempt ->
+            val result = attemptStatus(id)
+            if (result !is ActivationResult.Error || result.error != ActivationError.NETWORK) {
+                return@withContext result
+            }
+            lastError = result
+            Log.w(TAG, "activation attempt ${attempt + 1}/$MAX_ATTEMPTS failed (NETWORK)")
+            if (attempt < MAX_ATTEMPTS - 1) {
+                // backoff: 2s, 5s
+                delay(if (attempt == 0) 2_000L else 5_000L)
+                wakeServer()
+            }
+        }
+        lastError
+    }
+
+    suspend fun activate(): ActivationResult = checkActivation()
+
+    private fun wakeServer() {
         try {
-            val url = "$SERVER_URL/api/status/${deviceId.uppercase()}"
+            val request = Request.Builder()
+                .url("$SERVER_URL/api/ping")
+                .get()
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "application/json")
+                .build()
+            activationClient.newCall(request).execute().use { response ->
+                Log.d(TAG, "wake ping HTTP ${response.code}")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "wake ping failed: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+
+    private fun attemptStatus(deviceId: String): ActivationResult {
+        return try {
+            val url = "$SERVER_URL/api/status/${deviceId}"
             val request = Request.Builder()
                 .url(url)
                 .get()
                 .header("Accept", "application/json")
                 .header("User-Agent", USER_AGENT)
+                .header("Cache-Control", "no-cache")
                 .build()
 
             activationClient.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
+                Log.d(TAG, "status HTTP ${response.code} bodyLen=${body.length}")
                 val json = runCatching { JSONObject(body) }.getOrElse { JSONObject() }
                 parseResponse(response.code, json)
             }
-        } catch (_: java.net.UnknownHostException) {
+        } catch (e: java.net.UnknownHostException) {
+            Log.e(TAG, "UnknownHost", e)
             ActivationResult.Error(ActivationError.NETWORK)
-        } catch (_: java.net.SocketTimeoutException) {
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e(TAG, "Timeout", e)
             ActivationResult.Error(ActivationError.NETWORK)
-        } catch (_: java.io.IOException) {
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "IO ${e.javaClass.simpleName}: ${e.message}", e)
             ActivationResult.Error(ActivationError.NETWORK)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected ${e.javaClass.simpleName}: ${e.message}", e)
             ActivationResult.Error(ActivationError.NETWORK)
         }
     }
-
-    suspend fun activate(): ActivationResult = checkActivation()
 
     private fun parseResponse(code: Int, json: JSONObject): ActivationResult {
         return when (code) {
@@ -104,13 +153,15 @@ class InovaActivationManager @Inject constructor(
                 when {
                     msg.contains("expirad") || msg.contains("expired") ->
                         ActivationResult.Error(ActivationError.EXPIRED)
-                    msg.contains("outro aparelho") || msg.contains("fingerprint") ->
+                    msg.contains("outro aparelho") || msg.contains("fingerprint") ||
+                        msg.contains("bloqueado") ->
                         ActivationResult.Error(ActivationError.FINGERPRINT_MISMATCH)
                     else ->
                         ActivationResult.Error(ActivationError.NO_M3U)
                 }
             }
             404 -> ActivationResult.Error(ActivationError.NOT_FOUND)
+            503, 502, 504 -> ActivationResult.Error(ActivationError.NETWORK)
             else -> ActivationResult.Error(ActivationError.GENERIC)
         }
     }

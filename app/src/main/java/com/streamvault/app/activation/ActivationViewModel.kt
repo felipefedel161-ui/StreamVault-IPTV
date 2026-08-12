@@ -76,7 +76,7 @@ class ActivationViewModel @Inject constructor(
                         ActivationError.FINGERPRINT_MISMATCH ->
                             "🔒 Licença vinculada a outro aparelho.\nContacte o administrador para liberar."
                         ActivationError.NETWORK ->
-                            "📡 Sem conexão com o servidor.\nVerifique sua internet e tente novamente."
+                            "📡 Sem resposta do servidor de ativação.\nO servidor pode estar iniciando (Render free).\nAguarde ~1 min e tente novamente."
                         ActivationError.GENERIC ->
                             "❌ Erro ao verificar ativação. Tente novamente."
                     }
