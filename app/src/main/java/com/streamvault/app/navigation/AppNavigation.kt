@@ -36,6 +36,7 @@ import com.streamvault.app.ui.screens.provider.ProviderSetupScreen
 import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
+import com.streamvault.app.ui.screens.activation.MacActivationScreen
 import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
 import com.streamvault.domain.model.AppLandingDestination
@@ -102,6 +103,7 @@ object Routes {
     const val MOVIE_DETAIL = "movie_detail/{movieId}?returnRoute={returnRoute}"
     const val SERIES_DETAIL = "series_detail/{seriesId}?returnRoute={returnRoute}"
     const val WELCOME = "welcome"
+    const val MAC_ACTIVATION = "mac_activation"
     const val PARENTAL_CONTROL_GROUPS = "parental_control_groups/{providerId}"
     const val MULTI_VIEW = "multi_view"
 
@@ -457,8 +459,18 @@ fun AppNavigation(mainActivity: MainActivity) {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.WELCOME
+        startDestination = Routes.MAC_ACTIVATION
     ) {
+        composable(Routes.MAC_ACTIVATION) {
+            MacActivationScreen(
+                onActivated = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.MAC_ACTIVATION) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Routes.WELCOME) {
             WelcomeScreen(
                 onNavigateToHome = dropUnlessResumed {
