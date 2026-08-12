@@ -39,29 +39,72 @@ class ActivationManager @Inject constructor(
             .build()
     }
 
+    /**
+     * Stable device identifier for license binding.
+     * Priority (survives app reinstall on the same hardware):
+     *  1. Real hardware MAC (wlan0 / eth0) — common on Android TV boxes
+     *  2. ANDROID_ID — persists across reinstall until factory reset
+     *  3. Build serial / hardware fingerprint fallback
+     *
+     * Result is always uppercase and never blank.
+     */
     fun getDeviceId(): String {
-        // 1. MAC via NetworkInterface
-        try {
-            val iface = java.net.NetworkInterface.getNetworkInterfaces()?.toList()
-                ?.firstOrNull {
-                    it.name.equals("wlan0", ignoreCase = true) ||
-                    it.name.equals("eth0", ignoreCase = true)
-                }
-            val bytes = iface?.hardwareAddress
-            if (bytes != null && bytes.size == 6) {
-                val mac = bytes.joinToString(":") { "%02X".format(it) }
-                if (mac != "02:00:00:00:00:00") return mac
-            }
-        } catch (_: Exception) {}
+        // 1. Hardware MAC (best for TV boxes / stick)
+        readHardwareMac()?.let { return it }
 
-        // 2. Android ID
-        val androidId = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ANDROID_ID
-        )
-        return (androidId?.takeIf { it.isNotBlank() }
-            ?: Build.SERIAL?.takeIf { it.isNotBlank() && it != Build.UNKNOWN }
-            ?: "UNKNOWN").uppercase()
+        // 2. ANDROID_ID — survives uninstall/reinstall on the same device
+        val androidId = runCatching {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        }.getOrNull()?.trim()?.takeIf {
+            it.isNotBlank() && !it.equals("9774d56d682e549c", ignoreCase = true)
+        }
+        if (!androidId.isNullOrBlank()) {
+            return androidId.uppercase()
+        }
+
+        // 3. Build serial (when available)
+        val serial = runCatching {
+            @Suppress("DEPRECATION")
+            Build.SERIAL
+        }.getOrNull()?.trim()?.takeIf {
+            it.isNotBlank() && !it.equals(Build.UNKNOWN, ignoreCase = true)
+        }
+        if (!serial.isNullOrBlank()) {
+            return serial.uppercase()
+        }
+
+        // 4. Composite fingerprint (last resort — still stable for same build/device)
+        val fingerprint = listOfNotNull(
+            Build.BOARD, Build.BRAND, Build.DEVICE, Build.HARDWARE,
+            Build.MANUFACTURER, Build.MODEL, Build.PRODUCT
+        ).joinToString("-")
+            .replace(Regex("[^A-Za-z0-9\\-]"), "")
+            .take(64)
+        return if (fingerprint.isNotBlank()) fingerprint.uppercase() else "UNKNOWN"
+    }
+
+    /** Prefer real NIC MAC; ignore randomized / zeroed addresses. */
+    private fun readHardwareMac(): String? {
+        return try {
+            val preferred = listOf("eth0", "wlan0", "eth1", "wlan1")
+            val ifaces = java.net.NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+            val ordered = preferred.mapNotNull { name ->
+                ifaces.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            } + ifaces.filter { iface ->
+                !iface.isLoopback && preferred.none { it.equals(iface.name, ignoreCase = true) }
+            }
+            for (iface in ordered) {
+                val bytes = iface.hardwareAddress ?: continue
+                if (bytes.size != 6) continue
+                val mac = bytes.joinToString(":") { b -> "%02X".format(b) }
+                if (mac == "00:00:00:00:00:00" || mac == "02:00:00:00:00:00") continue
+                if (mac.startsWith("02:00:00")) continue
+                return mac
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     suspend fun checkActivation(
