@@ -35,6 +35,7 @@ import com.streamvault.app.ui.screens.plugins.PluginsScreen
 import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
+import com.streamvault.app.ui.screens.football.FootballScreen
 import com.streamvault.app.ui.screens.activation.MacActivationScreen
 import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
@@ -87,6 +88,7 @@ object Routes {
     const val PROVIDER_SETUP = "provider_setup?providerId={providerId}&importUri={importUri}"
     const val HOME = "home"
     const val LIVE_TV = "live_tv"
+    const val FOOTBALL = "football"
     const val LIVE_TV_DESTINATION = "live_tv?categoryId={categoryId}"
     const val MOVIES = "movies"
     const val SERIES = "series"
@@ -330,6 +332,7 @@ internal fun AppLandingDestination.toAppRoute(): String = when (this) {
 internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.HOME -> Routes.HOME
     AppTopLevelDestination.LIVE_TV -> Routes.LIVE_TV
+    AppTopLevelDestination.FOOTBALL -> Routes.FOOTBALL
     AppTopLevelDestination.MOVIES -> Routes.MOVIES
     AppTopLevelDestination.SERIES -> Routes.SERIES
     AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS
@@ -593,6 +596,23 @@ fun AppNavigation(mainActivity: MainActivity) {
             )
         }
 // ... (rest of file)
+
+        composable(Routes.FOOTBALL) {
+            FootballScreen(
+                currentRoute = Routes.FOOTBALL,
+                onNavigate = { route -> tabNavigate(route) },
+                onWatchChannel = { channel ->
+                    navController.navigateToPlayer(
+                        Routes.livePlayer(
+                            channel = channel,
+                            categoryId = channel.categoryId,
+                            providerId = channel.providerId,
+                            returnRoute = Routes.FOOTBALL
+                        )
+                    )
+                }
+            )
+        }
 
         composable(Routes.MOVIES) {
             MoviesScreen(
