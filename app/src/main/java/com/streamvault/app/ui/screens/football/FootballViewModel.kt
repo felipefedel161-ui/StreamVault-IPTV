@@ -96,24 +96,45 @@ class FootballViewModel @Inject constructor(
     private suspend fun matchChannels(fixtures: List<FootballFixture>) {
         val provider = providerRepository.getActiveProvider().first() ?: return
         val matched = mutableMapOf<Int, List<Channel>>()
+        val sportsHints = listOf(
+            "sport", "espn", "premiere", "combate", "dazn", "fox sports",
+            "band sports", "sportv", "tnt sports", "paramount", "disney"
+        )
         for (f in fixtures) {
             val id = f.id ?: continue
+            val teamTokens = (f.home.name + " " + f.away.name)
+                .replace("-", " ")
+                .split(" ")
+                .map { it.trim() }
+                .filter { it.length >= 4 }
+                .distinct()
             val queries = buildList {
                 add("${f.home.name} ${f.away.name}")
                 add(f.home.name)
                 add(f.away.name)
+                addAll(teamTokens)
                 add(f.league.name)
                 addAll(f.matchKeywords)
+                // Prefer sports-oriented channels when team names alone miss
+                addAll(sportsHints)
             }.map { it.trim() }.filter { it.length >= 3 }.distinct()
 
             val found = linkedMapOf<Long, Channel>()
-            for (q in queries.take(6)) {
+            for (q in queries.take(12)) {
                 try {
                     val channels = channelRepository.searchChannels(provider.id, q).first()
-                    channels.take(8).forEach { found[it.id] = it }
+                    channels.take(10).forEach { ch ->
+                        val name = ch.name.lowercase()
+                        val sportsLike = sportsHints.any { h -> name.contains(h) } ||
+                            name.contains("futebol") || name.contains("football")
+                        // Prefer sports channels; still keep team-name hits
+                        if (sportsLike || q !in sportsHints) {
+                            found[ch.id] = ch
+                        }
+                    }
                 } catch (_: Exception) {
                 }
-                if (found.size >= 6) break
+                if (found.size >= 8) break
             }
             if (found.isNotEmpty()) {
                 matched[id] = found.values.toList()

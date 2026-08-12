@@ -113,38 +113,6 @@ fun NovelasScreen(
                     }
                 }
 
-                if (state.categories.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "CATEGORIAS",
-                            color = AppColors.BrandStrong,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            letterSpacing = 1.5.sp,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-                        )
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            item {
-                                CategoryChip(
-                                    label = "Todas",
-                                    selected = state.selectedCategoryId == null,
-                                    onClick = { viewModel.selectCategory(null) }
-                                )
-                            }
-                            items(state.categories, key = { it.id }) { cat ->
-                                CategoryChip(
-                                    label = cat.name,
-                                    selected = state.selectedCategoryId == cat.id,
-                                    onClick = { viewModel.selectCategory(cat.id) }
-                                )
-                            }
-                        }
-                    }
-                }
-
                 item {
                     Text(
                         text = if (state.series.isEmpty()) "Sem títulos" else "${state.series.size} títulos",
@@ -154,12 +122,17 @@ fun NovelasScreen(
                     )
                 }
 
-                items(state.series.chunked(2), key = { row -> row.joinToString("-") { it.id.toString() } }) { row ->
+                // Dense 5-column grid — categories chips removed to free space for posters
+                val columns = 5
+                items(
+                    state.series.chunked(columns),
+                    key = { row -> row.joinToString("-") { it.id.toString() } }
+                ) { row ->
                     androidx.compose.foundation.layout.Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         row.forEach { series ->
                             NovelaCard(
@@ -168,7 +141,7 @@ fun NovelasScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        if (row.size == 1) {
+                        repeat(columns - row.size) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
