@@ -32,7 +32,6 @@ import com.streamvault.app.ui.screens.home.HomeScreen
 import com.streamvault.app.ui.screens.movies.MoviesScreen
 import com.streamvault.app.ui.screens.player.PlayerScreen
 import com.streamvault.app.ui.screens.plugins.PluginsScreen
-import com.streamvault.app.ui.screens.provider.ProviderSetupScreen
 import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
@@ -419,9 +418,8 @@ fun AppNavigation(mainActivity: MainActivity) {
             }
 
             is ExternalNavigationRequest.ImportM3u -> {
-                if (navController.navigateIfResumed(Routes.providerSetup(importUri = request.uri)) { launchSingleTop = true }) {
-                    mainActivity.clearExternalNavigationRequest()
-                }
+                // Manual M3U import removed — activation only via MAC
+                mainActivity.clearExternalNavigationRequest()
             }
 
             is ExternalNavigationRequest.ImportBackup -> {
@@ -477,31 +475,11 @@ fun AppNavigation(mainActivity: MainActivity) {
                     navigateToStartupTarget(Routes.WELCOME)
                 },
                 startupReady = startupRoute != null,
-                onNavigateToSetup = dropUnlessResumed {
-                    navController.navigate(Routes.providerSetup()) {
-                        popUpTo(Routes.WELCOME) { inclusive = true }
-                    }
+                onNavigateToSetup = {
+                    // Manual provider setup removed — activation only via MAC
                 }
             )
         }
-
-        composable(
-            route = Routes.PROVIDER_SETUP,
-            arguments = listOf(
-                navArgument("providerId") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("importUri") { type = NavType.StringType; defaultValue = "" }
-            )
-        ) { backStackEntry ->
-            val providerId = backStackEntry.arguments?.getLong("providerId")?.takeIf { it != -1L }
-            val importUri = backStackEntry.arguments?.getString("importUri")?.takeIf { it.isNotBlank() }
-            
-            ProviderSetupScreen(
-                editProviderId = providerId,
-                initialImportUri = importUri,
-                onBack = { navController.popBackStack() },
-                onProviderAdded = dropUnlessResumed {
-                    navigateToStartupTarget(Routes.PROVIDER_SETUP)
-                }
             )
         }
 // ...
@@ -509,8 +487,8 @@ fun AppNavigation(mainActivity: MainActivity) {
         composable(Routes.HOME) {
             DashboardScreen(
                 onNavigate = { route -> tabNavigate(route) },
-                onAddProvider = dropUnlessResumed {
-                    navController.navigate(Routes.providerSetup(null))
+                onAddProvider = {
+                    // Manual provider setup removed — activation only via MAC
                 },
                 onRecentChannelClick = { channel, combinedProfileId ->
                     navController.navigateToPlayer(
@@ -717,11 +695,11 @@ fun AppNavigation(mainActivity: MainActivity) {
             val backupUri = backStackEntry.arguments?.getString("backupUri")?.takeIf { it.isNotBlank() }
             SettingsScreen(
                 onNavigate = { route -> tabNavigate(route) },
-                onAddProvider = dropUnlessResumed {
-                    navController.navigate(Routes.providerSetup(null))
+                onAddProvider = {
+                    // Manual provider setup removed — activation only via MAC
                 },
-                onEditProvider = { provider ->
-                    navController.navigateIfResumed(Routes.providerSetup(provider.id))
+                onEditProvider = { _ ->
+                    // Manual provider edit removed — activation only via MAC
                 },
                 onNavigateToParentalControl = { providerId ->
                     navController.navigateIfResumed(Routes.parentalControlGroups(providerId))

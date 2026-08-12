@@ -26,7 +26,7 @@ sealed class ExternalDestination : Serializable {
     fun toRoute(): String = when (this) {
         Home -> Routes.HOME
         Plugins -> Routes.PLUGINS
-        is ProviderSetup -> Routes.providerSetup(providerId = providerId, importUri = importUri)
+        is ProviderSetup -> Routes.MAC_ACTIVATION  // manual setup disabled
         is MovieDetail -> Routes.movieDetail(movieId = movieId, returnRoute = returnRoute)
         is SeriesDetail -> Routes.seriesDetail(seriesId = seriesId, returnRoute = returnRoute)
     }
