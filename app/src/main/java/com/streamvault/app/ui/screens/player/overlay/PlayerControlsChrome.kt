@@ -363,32 +363,12 @@ fun PlayerAspectRatioToast(
     controlsVisible: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var show by remember { mutableStateOf(false) }
-    LaunchedEffect(aspectRatioLabel) {
-        show = true
-        delay(2000)
-        show = false
-    }
-
-    AnimatedVisibility(
-        visible = show && !controlsVisible,
-        enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
-        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it }),
-        modifier = modifier
-    ) {
-        Box(
-            modifier = Modifier
-                .background(Primary.copy(alpha = 0.9f), RoundedCornerShape(24.dp))
-                .padding(horizontal = 24.dp, vertical = 12.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.player_aspect_ratio_label, aspectRatioLabel),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
+    // Aspect ratio chip intentionally hidden — ratio still cycles via controls,
+    // but the floating "Aspecto Fit" banner is removed for a cleaner screen.
+    // Keep the composable so call sites remain stable.
+    @Suppress("UNUSED_VARIABLE", "UNUSED_PARAMETER")
+    val unused = aspectRatioLabel to controlsVisible
+    Box(modifier = modifier.size(0.dp))
 }
 
 @Composable

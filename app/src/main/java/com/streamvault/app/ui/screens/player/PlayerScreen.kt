@@ -892,32 +892,17 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Buffering indicator
+        // Buffering indicator — centered spinner only (no banner/text)
         if (playbackState == PlaybackState.BUFFERING) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 64.dp),
-                contentAlignment = Alignment.TopCenter
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.62f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        color = Primary,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.player_buffering),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
-                    )
-                }
+                CircularProgressIndicator(
+                    color = Color.White.copy(alpha = 0.92f),
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(48.dp)
+                )
             }
         }
 
@@ -1084,6 +1069,70 @@ fun PlayerScreen(
                 .align(Alignment.TopEnd)
                 .padding(32.dp)
         )
+
+        // Series episode quick actions: restart (top) + next (bottom) + skip intro
+        if (!isInPictureInPictureMode && contentType == "SERIES_EPISODE") {
+            val episodePositionMs by playerEngine.currentPosition.collectAsStateWithLifecycle()
+            val showSkipIntro = episodePositionMs in 5_000L..110_000L
+
+            // Top-end: restart episode
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    playerEngine.seekTo(0L)
+                    viewModel.notifyUserActivity()
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 20.dp, end = 20.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+            ) {
+                Text(
+                    text = stringResource(R.string.player_restart),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            // Top-start: skip intro (first ~2 min)
+            if (showSkipIntro) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        playerEngine.seekTo((episodePositionMs + 85_000L).coerceAtMost(120_000L))
+                        viewModel.notifyUserActivity()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 20.dp, start = 20.dp)
+                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+                ) {
+                    Text(
+                        text = "Pular abertura",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+
+            // Bottom: next episode (when picker available)
+            if (canOpenEpisodePicker) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        viewModel.playNextEpisodeNow()
+                        viewModel.notifyUserActivity()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = if (showControls) 120.dp else 28.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
+                ) {
+                    Text(
+                        text = stringResource(R.string.player_next),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
 
         if (!isInPictureInPictureMode) {
             PlayerSleepTimerWarningOverlay(
