@@ -1,6 +1,5 @@
 package com.streamvault.app.ui.screens.football
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -39,21 +38,19 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
-import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.streamvault.app.football.FootballFixture
 import com.streamvault.app.football.FootballPrediction
+import com.streamvault.app.football.FootballTeam
 import com.streamvault.app.ui.components.shell.AppScreenScaffold
-import com.streamvault.app.ui.design.AppColors
 import com.streamvault.app.ui.interaction.TvButton
+import com.streamvault.app.ui.interaction.TvClickableSurface
 import com.streamvault.domain.model.Channel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val PitchGreen = Color(0xFF0B3D2E)
 private val PitchGreenDeep = Color(0xFF071F18)
 private val NeonLime = Color(0xFFB8FF3C)
 private val LiveRed = Color(0xFFFF3B4E)
@@ -86,7 +83,7 @@ fun FootballScreen(
                     )
                 )
         ) {
-            Column(Modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 FootballHeader(
                     liveCount = state.fixtures.count { it.isLive },
                     onRefresh = viewModel::refresh
@@ -96,7 +93,10 @@ fun FootballScreen(
                     onSelect = viewModel::selectTab
                 )
                 when {
-                    state.loading -> Box(Modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    state.loading -> Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = NeonLime)
                     }
                     state.error != null -> ErrorBlock(state.error!!, viewModel::refresh)
@@ -109,9 +109,7 @@ fun FootballScreen(
                         val live = state.fixtures.filter { it.isLive }
                         val rest = state.fixtures.filterNot { it.isLive }
                         if (live.isNotEmpty()) {
-                            item {
-                                SectionTitle("AO VIVO", NeonLime)
-                            }
+                            item { SectionTitle("AO VIVO", NeonLime) }
                             items(live, key = { it.id ?: it.hashCode() }) { fixture ->
                                 MatchCard(
                                     fixture = fixture,
@@ -137,20 +135,23 @@ fun FootballScreen(
                                 )
                             }
                         }
-                        item { Spacer(Modifier = Modifier.height(32.dp)) }
+                        item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
                 }
             }
 
-            AnimatedVisibility(
-                visible = state.selectedFixtureId != null,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                PredictionSheet(
-                    loading = state.predictionLoading,
-                    prediction = state.prediction,
-                    onClose = viewModel::clearPrediction
-                )
+            if (state.selectedFixtureId != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                ) {
+                    PredictionSheet(
+                        loading = state.predictionLoading,
+                        prediction = state.prediction,
+                        onClose = viewModel::clearPrediction
+                    )
+                }
             }
         }
     }
@@ -179,33 +180,31 @@ private fun FootballHeader(liveCount: Int, onRefresh: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = if (liveCount > 0) "$liveCount jogo(s) ao vivo agora" else "Grandes competições do mundo",
+                text = if (liveCount > 0) {
+                    "$liveCount jogo(s) ao vivo agora"
+                } else {
+                    "Grandes competições do mundo"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.55f)
             )
         }
         if (liveCount > 0) {
-            Surface(
-                onClick = {},
-                shape = RoundedCornerShape(20.dp),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = LiveRed.copy(alpha = 0.2f)
-                ),
-                scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(LiveRed.copy(alpha = 0.2f))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(LiveRed)
-                    )
-                    Spacer(Modifier = Modifier.width(8.dp))
-                    Text("LIVE", color = LiveRed, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(LiveRed)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("LIVE", color = LiveRed, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.width(12.dp))
         }
@@ -232,9 +231,9 @@ private fun TabRow(selected: FootballTab, onSelect: (FootballTab) -> Unit) {
 
 @Composable
 private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
+    TvClickableSurface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) NeonLime else Color.Transparent,
             focusedContainerColor = if (selected) NeonLime else Color.White.copy(alpha = 0.12f)
@@ -268,11 +267,9 @@ private fun MatchCard(
     onWatch: (Channel) -> Unit,
     onPrediction: (Int) -> Unit
 ) {
-    Surface(
-        onClick = {
-            fixture.id?.let(onPrediction)
-        },
-        shape = RoundedCornerShape(18.dp),
+    TvClickableSurface(
+        onClick = { fixture.id?.let(onPrediction) },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = CardGlass,
             focusedContainerColor = CardGlass.copy(alpha = 0.95f)
@@ -332,9 +329,9 @@ private fun MatchCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(channels.take(6), key = { it.id }) { ch ->
-                        Surface(
+                        TvClickableSurface(
                             onClick = { onWatch(ch) },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
                             colors = ClickableSurfaceDefaults.colors(
                                 containerColor = NeonLime.copy(alpha = 0.12f),
                                 focusedContainerColor = NeonLime.copy(alpha = 0.28f)
@@ -364,7 +361,7 @@ private fun MatchCard(
 }
 
 @Composable
-private fun TeamBlock(team: com.streamvault.app.football.FootballTeam, align: Alignment.Horizontal, modifier: Modifier) {
+private fun TeamBlock(team: FootballTeam, align: Alignment.Horizontal, modifier: Modifier) {
     Column(modifier = modifier, horizontalAlignment = align) {
         if (team.logo.isNotBlank()) {
             AsyncImage(
@@ -409,7 +406,11 @@ private fun ScoreBlock(fixture: FootballFixture) {
             )
         }
         Text(
-            text = if (fixture.isLive && fixture.elapsed != null) "${fixture.elapsed}'" else fixture.statusLong.ifBlank { fixture.status },
+            text = if (fixture.isLive && fixture.elapsed != null) {
+                "${fixture.elapsed}'"
+            } else {
+                fixture.statusLong.ifBlank { fixture.status }
+            },
             color = if (fixture.isLive) LiveRed else Color.White.copy(alpha = 0.5f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
@@ -439,35 +440,42 @@ private fun PredictionSheet(
     prediction: FootballPrediction?,
     onClose: () -> Unit
 ) {
-    Surface(
-        onClick = onClose,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF101A16)),
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .background(Color(0xFF101A16))
+            .padding(24.dp)
     ) {
-        Column(modifier = Modifier.padding(24.dp)) {
-            Text("PALPITE PRÉ-JOGO", color = NeonLime, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            when {
-                loading -> CircularProgressIndicator(color = NeonLime, modifier = Modifier.size(28.dp))
-                prediction == null -> Text("Sem predição disponível para este jogo.", color = Color.White.copy(alpha = 0.6f))
-                else -> {
-                    prediction.advice?.let {
-                        Text(it, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-                    prediction.winner?.let {
-                        Text("Favorito: $it", color = Gold, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                    PercentBar("Casa", prediction.percentHome)
-                    PercentBar("Empate", prediction.percentDraw)
-                    PercentBar("Fora", prediction.percentAway)
+        Text(
+            "PALPITE PRÉ-JOGO",
+            color = NeonLime,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 2.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        when {
+            loading -> CircularProgressIndicator(color = NeonLime, modifier = Modifier.size(28.dp))
+            prediction == null -> Text(
+                "Sem predição disponível para este jogo.",
+                color = Color.White.copy(alpha = 0.6f)
+            )
+            else -> {
+                prediction.advice?.let {
+                    Text(it, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
+                prediction.winner?.let {
+                    Text("Favorito: $it", color = Gold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                PercentBar("Casa", prediction.percentHome)
+                PercentBar("Empate", prediction.percentDraw)
+                PercentBar("Fora", prediction.percentAway)
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            TvButton(onClick = onClose) { Text("Fechar") }
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        TvButton(onClick = onClose) { Text("Fechar") }
     }
 }
 
@@ -480,7 +488,12 @@ private fun PercentBar(label: String, percent: String?) {
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.width(64.dp), fontSize = 13.sp)
+        Text(
+            label,
+            color = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier.width(64.dp),
+            fontSize = 13.sp
+        )
         LinearProgressIndicator(
             progress = { value.coerceIn(0f, 1f) },
             modifier = Modifier
@@ -491,7 +504,12 @@ private fun PercentBar(label: String, percent: String?) {
             trackColor = Color.White.copy(alpha = 0.1f)
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Text(percent ?: "—", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(
+            percent ?: "—",
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -516,14 +534,18 @@ private fun EmptyBlock(tab: FootballTab) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (tab == FootballTab.LIVE) "Nenhum jogo ao vivo no momento" else "Sem jogos das grandes ligas hoje",
+            text = if (tab == FootballTab.LIVE) {
+                "Nenhum jogo ao vivo no momento"
+            } else {
+                "Sem jogos das grandes ligas hoje"
+            },
             color = Color.White.copy(alpha = 0.6f)
         )
     }
 }
 
 private fun formatKickoff(ts: Long?): String {
-    if (ts == null || ts <= 0) return "--:--"
+    if (ts == null || ts <= 0L) return "--:--"
     return try {
         val dt = Instant.ofEpochSecond(ts).atZone(ZoneId.systemDefault())
         DateTimeFormatter.ofPattern("HH:mm").format(dt)
