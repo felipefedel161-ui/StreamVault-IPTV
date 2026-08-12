@@ -36,6 +36,7 @@ import com.streamvault.app.ui.screens.series.SeriesScreen
 import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
 import com.streamvault.app.ui.screens.football.FootballScreen
+import com.streamvault.app.ui.screens.novelas.NovelasScreen
 import com.streamvault.app.ui.screens.activation.MacActivationScreen
 import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
@@ -89,6 +90,7 @@ object Routes {
     const val HOME = "home"
     const val LIVE_TV = "live_tv"
     const val FOOTBALL = "football"
+    const val NOVELAS = "novelas"
     const val LIVE_TV_DESTINATION = "live_tv?categoryId={categoryId}"
     const val MOVIES = "movies"
     const val SERIES = "series"
@@ -333,6 +335,7 @@ internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.HOME -> Routes.HOME
     AppTopLevelDestination.LIVE_TV -> Routes.LIVE_TV
     AppTopLevelDestination.FOOTBALL -> Routes.FOOTBALL
+    AppTopLevelDestination.NOVELAS -> Routes.NOVELAS
     AppTopLevelDestination.MOVIES -> Routes.MOVIES
     AppTopLevelDestination.SERIES -> Routes.SERIES
     AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS
@@ -610,6 +613,16 @@ fun AppNavigation(mainActivity: MainActivity) {
                             returnRoute = Routes.FOOTBALL
                         )
                     )
+                }
+            )
+        }
+
+        composable(Routes.NOVELAS) {
+            NovelasScreen(
+                currentRoute = Routes.NOVELAS,
+                onNavigate = { route -> tabNavigate(route) },
+                onSeriesClick = { series ->
+                    navController.navigateToSeriesDetail(series, Routes.NOVELAS)
                 }
             )
         }

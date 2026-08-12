@@ -860,6 +860,7 @@ private fun AppTopLevelDestination.toDestinationItem(): DestinationItem = when (
     AppTopLevelDestination.HOME -> DestinationItem(Routes.HOME, R.string.nav_home, Icons.Default.Home)
     AppTopLevelDestination.LIVE_TV -> DestinationItem(Routes.LIVE_TV, R.string.nav_live_tv, Icons.Default.PlayArrow)
     AppTopLevelDestination.FOOTBALL -> DestinationItem(Routes.FOOTBALL, R.string.nav_football, Icons.Default.Star)
+    AppTopLevelDestination.NOVELAS -> DestinationItem(Routes.NOVELAS, R.string.nav_novelas, Icons.Default.Menu)
     AppTopLevelDestination.MOVIES -> DestinationItem(Routes.MOVIES, R.string.nav_movies, Icons.Default.Star)
     AppTopLevelDestination.SERIES -> DestinationItem(Routes.SERIES, R.string.nav_series, Icons.Default.Menu)
     AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)
