@@ -480,9 +480,6 @@ fun AppNavigation(mainActivity: MainActivity) {
                 }
             )
         }
-            )
-        }
-// ...
 
         composable(Routes.HOME) {
             DashboardScreen(
