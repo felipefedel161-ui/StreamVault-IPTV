@@ -21,7 +21,7 @@ class ActivationManager @Inject constructor(
     private val okHttpClient: OkHttpClient
 ) {
     companion object {
-        const val SERVER_URL = "https://vault-axvc.onrender.com"
+        const val SERVER_URL = "https://vault-1-c68s.onrender.com"
         private const val USER_AGENT = "StreamVault/1.0"
         private const val TAG = "Activation"
         // Render free: cold start pode passar de 60s
