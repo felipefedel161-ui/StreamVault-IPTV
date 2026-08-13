@@ -23,12 +23,10 @@ enum class AppTopLevelDestination(
             LIVE_TV,
             FOOTBALL,
             NOVELAS,
-            MOVIES,
             SERIES,
-            DOWNLOADS,
+            MOVIES,
             GUIDE,
             SEARCH,
-            PLUGINS,
             SETTINGS
         )
 

@@ -14,12 +14,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class NovelaSection(
+    val title: String,
+    val series: List<Series>
+)
+
 data class NovelasUiState(
     val loading: Boolean = true,
     val error: String? = null,
     val categories: List<Category> = emptyList(),
     val selectedCategoryId: Long? = null,
     val series: List<Series> = emptyList(),
+    val sections: List<NovelaSection> = emptyList(),
     val featured: Series? = null
 )
 
@@ -28,6 +34,10 @@ private val NOVELA_KEYWORDS = listOf(
     "capítulo", "capitulo", "drama turc", "turca", "mexicana",
     "brasileira", "globo", "sbt", "record", "caracol", "televisa",
     "vale tudo", "travessia", "renascer", "familia é tudo", "família é tudo"
+)
+
+private val EMISSORA_ORDER = listOf(
+    "Globo", "SBT", "Record", "Band", "Turcas", "Mexicanas", "Outras"
 )
 
 fun isNovelaCategory(name: String): Boolean {
@@ -44,6 +54,20 @@ fun isNovelaSeries(s: Series): Boolean {
                 s.name.contains("Capitulo", true) ||
                 Regex("""S\d+E\d+""", RegexOption.IGNORE_CASE).containsMatchIn(s.name)
             ))
+}
+
+fun classifyEmissora(s: Series, categoryName: String? = null): String {
+    val blob = listOfNotNull(s.name, s.genre, s.plot, categoryName).joinToString(" ").lowercase()
+    return when {
+        listOf("globo", "globoplay", "vale tudo", "travessia", "renascer", "familia é tudo", "família é tudo")
+            .any { blob.contains(it) } -> "Globo"
+        listOf("sbt", "poliana", "chiquititas", "carrossel").any { blob.contains(it) } -> "SBT"
+        listOf("record", "recordtv", "reis", "gênesis", "genesis").any { blob.contains(it) } -> "Record"
+        listOf("band", "bandeirantes").any { blob.contains(it) } -> "Band"
+        listOf("turc", "turca", "turkey", "dizis").any { blob.contains(it) } -> "Turcas"
+        listOf("mexic", "televisa", "caracol", "telemundo").any { blob.contains(it) } -> "Mexicanas"
+        else -> "Outras"
+    }
 }
 
 @HiltViewModel
@@ -74,47 +98,39 @@ class NovelasViewModel @Inject constructor(
                 val allCategories = seriesRepository.getCategories(provider.id).first()
                 val novelaCats = allCategories.filter { isNovelaCategory(it.name) }
 
-                // Pull series from novela categories; if none, search keywords
-                val collected = linkedMapOf<Long, Series>()
+                val collected = linkedMapOf<Long, Pair<Series, String?>>()
                 if (novelaCats.isNotEmpty()) {
                     for (cat in novelaCats.take(40)) {
-                        try {
-                            val page = seriesRepository.getSeriesByCategoryPreview(provider.id, cat.id, 40).first()
-                            page.forEach { collected[it.id] = it }
-                        } catch (_: Exception) {
-                        }
+                        val items = seriesRepository.getSeriesByCategoryPreview(provider.id, cat.id, 60).first()
+                        items.forEach { s -> collected[s.id] = s to cat.name }
                     }
                 }
                 if (collected.size < 12) {
-                    for (q in listOf("novela", "telenovela", "soap", "capítulo")) {
-                        try {
-                            seriesRepository.searchSeries(provider.id, q).first().forEach { collected[it.id] = it }
-                        } catch (_: Exception) {
-                        }
-                    }
-                }
-                // Fallback: scan all series lightly via categories if still empty
-                if (collected.isEmpty()) {
-                    for (cat in allCategories.take(25)) {
-                        try {
-                            val page = seriesRepository.getSeriesByCategoryPreview(provider.id, cat.id, 20).first()
-                            page.filter(::isNovelaSeries).forEach { collected[it.id] = it }
-                        } catch (_: Exception) {
-                        }
-                        if (collected.size >= 40) break
+                    val allSeries = seriesRepository.getSeries(provider.id).first()
+                    allSeries.filter(::isNovelaSeries).forEach { s ->
+                        collected.putIfAbsent(s.id, s to null)
                     }
                 }
 
-                val list = collected.values.toList()
+                val list = collected.values.map { it.first }.distinctBy { it.id }
+                val withCat = collected.values.toList()
+                val byEmissora = linkedMapOf<String, MutableList<Series>>()
+                for ((s, catName) in withCat) {
+                    val key = classifyEmissora(s, catName)
+                    byEmissora.getOrPut(key) { mutableListOf() }.add(s)
+                }
+                // de-dupe within sections
+                val sections = EMISSORA_ORDER.mapNotNull { title ->
+                    val items = byEmissora[title]?.distinctBy { it.id }.orEmpty()
+                    if (items.isEmpty()) null else NovelaSection(title, items.take(40))
+                }
+
                 val featured = pickFeatured(list)
                 _state.value = NovelasUiState(
                     loading = false,
-                    categories = novelaCats.ifEmpty {
-                        allCategories.filter { cat ->
-                            list.any { it.categoryId == cat.id }
-                        }
-                    },
+                    categories = novelaCats,
                     series = list,
+                    sections = sections,
                     featured = featured,
                     selectedCategoryId = null
                 )
@@ -128,35 +144,14 @@ class NovelasViewModel @Inject constructor(
     }
 
     fun selectCategory(categoryId: Long?) {
-        viewModelScope.launch {
-            val provider = providerRepository.getActiveProvider().first() ?: return@launch
-            if (categoryId == null) {
-                refresh()
-                return@launch
-            }
-            _state.value = _state.value.copy(loading = true, selectedCategoryId = categoryId)
-            try {
-                val items = seriesRepository.getSeriesByCategoryPreview(provider.id, categoryId, 80).first()
-                _state.value = _state.value.copy(
-                    loading = false,
-                    series = items,
-                    featured = pickFeatured(items),
-                    selectedCategoryId = categoryId
-                )
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    loading = false,
-                    error = e.message
-                )
-            }
-        }
+        refresh()
     }
 
     private fun pickFeatured(list: List<Series>): Series? {
         if (list.isEmpty()) return null
         val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
         val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-        val seed = (year * 1000L + day) * 31L + 53L // novelas salt
+        val seed = (year * 1000L + day) * 31L + 53L
         val withArt = list.filter { !it.backdropUrl.isNullOrBlank() || !it.posterUrl.isNullOrBlank() }
         val pool = if (withArt.isNotEmpty()) withArt else list
         val ordered = pool.sortedBy { it.id xor seed }

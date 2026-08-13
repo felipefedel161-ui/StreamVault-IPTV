@@ -25,6 +25,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.foundation.focusGroup
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.*
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -1060,6 +1064,38 @@ fun PlayerScreen(
                 .align(Alignment.TopCenter)
                 .padding(top = 40.dp)
         )
+
+
+        // Skip intro — only during opening, disappears after window or when used
+        if (!isInPictureInPictureMode && contentType == "SERIES_EPISODE") {
+            val introPos by playerEngine.currentPosition.collectAsStateWithLifecycle()
+            val showSkipIntro = introPos in 3_000L..95_000L
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showSkipIntro,
+                enter = fadeIn() + slideInVertically { it / 3 },
+                exit = fadeOut() + slideOutVertically { it / 3 },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 28.dp, bottom = if (showControls) 140.dp else 36.dp)
+            ) {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        playerEngine.seekTo(95_000L)
+                        viewModel.notifyUserActivity()
+                    },
+                    modifier = Modifier.background(
+                        Color.Black.copy(alpha = 0.55f),
+                        RoundedCornerShape(999.dp)
+                    )
+                ) {
+                    Text(
+                        text = "Pular abertura",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
 
         PlayerAspectRatioToast(
             aspectRatioLabel = aspectRatio.modeName,
