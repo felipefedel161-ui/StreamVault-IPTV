@@ -196,7 +196,8 @@ class ProfileLibraryStore @Inject constructor(
     private fun decode(json: String?): ProfileLibrary {
         if (json.isNullOrBlank()) return ProfileLibrary()
         return try {
-            gson.fromJson(json, ProfileLibrary::class.java) ?: ProfileLibrary()
+            val type = object : TypeToken<ProfileLibrary>() {}.type
+            gson.fromJson<ProfileLibrary>(json, type) ?: ProfileLibrary()
         } catch (_: Exception) {
             ProfileLibrary()
         }

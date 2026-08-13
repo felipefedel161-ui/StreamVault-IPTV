@@ -189,53 +189,111 @@ class FootballViewModel @Inject constructor(
 
     private suspend fun matchChannels(fixtures: List<FootballFixture>) {
         val provider = providerRepository.getActiveProvider().first() ?: return
+        val gameChannels = loadJogosDeHojeChannels(provider.id)
+        if (gameChannels.isEmpty()) {
+            _state.value = _state.value.copy(
+                matchedChannels = emptyMap(),
+                fixtures = emptyList(),
+                error = "Nenhum canal em JOGOS DE HOJE. Cadastre a categoria no provedor."
+            )
+            return
+        }
+
         val matched = mutableMapOf<Int, List<Channel>>()
-        val sportsHints = listOf(
-            "sport", "espn", "premiere", "combate", "dazn", "fox sports",
-            "band sports", "sportv", "tnt sports", "paramount", "disney",
-            "sport tv", "sportv2", "sportv3", "premiere fc"
-        )
         for (f in fixtures) {
             val id = f.id ?: continue
-            val teamTokens = (f.home.name + " " + f.away.name)
-                .replace("-", " ")
-                .split(" ")
-                .map { it.trim() }
-                .filter { it.length >= 4 }
-                .distinct()
-            val queries = buildList {
-                add("${f.home.name} ${f.away.name}")
-                add(f.home.name)
-                add(f.away.name)
-                addAll(teamTokens)
-                add(f.league.name)
-                addAll(f.matchKeywords)
-                addAll(sportsHints)
-            }.map { it.trim() }.filter { it.length >= 3 }.distinct()
+            val homeTokens = significantTokens(f.home.name)
+            val awayTokens = significantTokens(f.away.name)
+            if (homeTokens.isEmpty() || awayTokens.isEmpty()) continue
 
-            val found = linkedMapOf<Long, Channel>()
-            for (q in queries.take(12)) {
-                try {
-                    val channels = channelRepository.searchChannels(provider.id, q).first()
-                    channels.take(10).forEach { ch ->
-                        val name = ch.name.lowercase()
-                        val sportsLike = sportsHints.any { h -> name.contains(h) } ||
-                            name.contains("futebol") || name.contains("football")
-                        if (sportsLike || q !in sportsHints) {
-                            // Prefer channels that actually have a stream URL
-                            if (ch.streamUrl.isNotBlank() || ch.id > 0) {
-                                found[ch.id] = ch
-                            }
-                        }
-                    }
-                } catch (_: Exception) {
+            val scored = gameChannels.mapNotNull { ch ->
+                val name = ch.name.lowercase()
+                val homeHit = homeTokens.count { name.contains(it) }
+                val awayHit = awayTokens.count { name.contains(it) }
+                // Require both sides of the match in the channel title
+                if (homeHit <= 0 || awayHit <= 0) return@mapNotNull null
+                val score = homeHit * 10 + awayHit * 10 +
+                    if (name.contains(" x ") || name.contains(" vs ") || name.contains(" x") ) 5 else 0
+                ch to score
+            }.sortedByDescending { it.second }
+
+            if (scored.isNotEmpty()) {
+                val resolved = scored.map { (ch, _) ->
+                    // Hydrate stream URL — search results can be incomplete
+                    runCatching { channelRepository.getChannel(ch.id) }.getOrNull()
+                        ?.takeIf { it.streamUrl.isNotBlank() }
+                        ?: ch
+                }.filter { it.streamUrl.isNotBlank() || it.id > 0 }
+                    .distinctBy { it.id }
+                    .take(5)
+                if (resolved.isNotEmpty()) {
+                    matched[id] = resolved
                 }
-                if (found.size >= 8) break
-            }
-            if (found.isNotEmpty()) {
-                matched[id] = found.values.toList()
             }
         }
-        _state.value = _state.value.copy(matchedChannels = matched)
+
+        // Only keep fixtures that have a dedicated game channel
+        val filtered = fixtures.filter { f -> f.id != null && matched.containsKey(f.id!!) }
+        _state.value = _state.value.copy(
+            matchedChannels = matched,
+            fixtures = filtered,
+            error = if (filtered.isEmpty() && fixtures.isNotEmpty()) {
+                "Nenhum jogo da lista tem canal em JOGOS DE HOJE"
+            } else null
+        )
+    }
+
+    private suspend fun loadJogosDeHojeChannels(providerId: Long): List<Channel> {
+        val categories = runCatching {
+            channelRepository.getCategories(providerId).first()
+        }.getOrDefault(emptyList())
+
+        val gameCats = categories.filter { cat ->
+            val n = cat.name.lowercase()
+                .replace("á", "a").replace("ã", "a").replace("é", "e")
+            n.contains("jogos de hoje") ||
+                n.contains("jogos hoje") ||
+                n.contains("jogos do dia") ||
+                (n.contains("jogo") && n.contains("hoje"))
+        }
+
+        val fromCats = mutableListOf<Channel>()
+        for (cat in gameCats) {
+            val list = runCatching {
+                channelRepository.getChannelsByCategory(providerId, cat.id).first()
+            }.getOrDefault(emptyList())
+            fromCats += list
+        }
+        if (fromCats.isNotEmpty()) {
+            return fromCats.distinctBy { it.id }
+        }
+
+        // Fallback: channel names that look like "Time A x Time B"
+        return runCatching {
+            channelRepository.searchChannels(providerId, " x ").first()
+                .filter { ch ->
+                    val n = ch.name.lowercase()
+                    (n.contains(" x ") || n.contains(" vs ")) &&
+                        !n.contains("sportv") &&
+                        !n.contains("premiere") &&
+                        !n.contains("espn")
+                }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun significantTokens(team: String): List<String> {
+        val stop = setOf(
+            "fc", "sc", "ac", "cf", "afc", "rc", "ud", "cd", "as", "ss",
+            "club", "clube", "de", "da", "do", "dos", "das", "the",
+            "united", "city", "real", "sport", "sports"
+        )
+        return team.lowercase()
+            .replace("-", " ")
+            .replace(".", " ")
+            .split(" ", "/", "(", ")")
+            .map { it.trim() }
+            .filter { it.length >= 3 && it !in stop }
+            .distinct()
     }
 }
+

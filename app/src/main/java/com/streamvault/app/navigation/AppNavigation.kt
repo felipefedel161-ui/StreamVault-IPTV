@@ -620,14 +620,16 @@ fun AppNavigation(mainActivity: MainActivity) {
                 currentRoute = Routes.FOOTBALL,
                 onNavigate = { route -> tabNavigate(route) },
                 onWatchChannel = { channel ->
-                    navController.navigateToPlayer(
-                        Routes.livePlayer(
-                            channel = channel,
-                            categoryId = channel.categoryId,
-                            providerId = channel.providerId,
-                            returnRoute = Routes.FOOTBALL
-                        )
+                    // Skip navigation when stream is missing — avoids player crash
+                    if (channel.streamUrl.isBlank() && channel.id <= 0L) return@FootballScreen
+                    val request = Routes.livePlayer(
+                        channel = channel,
+                        categoryId = channel.categoryId,
+                        providerId = channel.providerId,
+                        returnRoute = Routes.FOOTBALL
                     )
+                    if (request.streamUrl.isBlank()) return@FootballScreen
+                    navController.navigateToPlayer(request)
                 }
             )
         }
