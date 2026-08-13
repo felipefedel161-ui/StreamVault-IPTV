@@ -43,6 +43,7 @@ import coil3.compose.AsyncImage
 import com.streamvault.app.football.FootballFixture
 import com.streamvault.app.football.FootballPrediction
 import com.streamvault.app.football.FootballTeam
+import com.streamvault.app.ui.components.shell.AppNavigationChrome
 import com.streamvault.app.ui.components.shell.AppScreenScaffold
 import com.streamvault.app.ui.interaction.TvButton
 import com.streamvault.app.ui.interaction.TvClickableSurface
@@ -69,6 +70,7 @@ fun FootballScreen(
     AppScreenScaffold(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
+        navigationChrome = AppNavigationChrome.TopBar,
         title = "Arena",
         subtitle = "Centro de Futebol",
         showScreenHeader = false,
