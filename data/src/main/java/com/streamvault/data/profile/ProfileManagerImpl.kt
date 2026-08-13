@@ -50,10 +50,9 @@ class ProfileManagerImpl @Inject constructor(
             ensureDefaultProfile()
             val list = loadProfiles()
             _profiles.value = list
-            // Auto-ready only when exactly one profile and no pin
-            if (list.size == 1 && !list.first().pinEnabled) {
-                selectProfile(list.first().id, null)
-            }
+            // Do NOT auto-select: user must pick on ProfilePicker (Netflix behavior)
+            _activeProfile.value = null
+            _sessionReady.value = false
         }
     }
 

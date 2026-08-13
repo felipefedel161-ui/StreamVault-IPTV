@@ -51,11 +51,11 @@ fun ProfilePickerScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
-    val sessionReady by viewModel.sessionReady.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(sessionReady) {
-        if (sessionReady) onProfileSelected()
+    // Stay on this screen until the user explicitly picks a profile
+    LaunchedEffect(Unit) {
+        viewModel.clearSession()
     }
     var mode by remember { mutableStateOf(PickerMode.Select) }
     var pinTarget by remember { mutableStateOf<UserProfile?>(null) }
