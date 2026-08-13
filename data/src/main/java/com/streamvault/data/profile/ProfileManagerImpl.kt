@@ -6,8 +6,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.streamvault.domain.manager.ProfileManager
 import com.streamvault.domain.model.UserProfile
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,6 +19,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,8 +29,7 @@ private val Context.profileDataStore: DataStore<Preferences> by preferencesDataS
 
 @Singleton
 class ProfileManagerImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val gson: Gson
+    @ApplicationContext private val context: Context
 ) : ProfileManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -161,14 +160,48 @@ class ProfileManagerImpl @Inject constructor(
     }
 
     private suspend fun saveProfiles(list: List<UserProfile>) {
-        store.edit { it[KEY_PROFILES] = gson.toJson(list) }
+        store.edit { it[KEY_PROFILES] = encodeProfiles(list) }
+    }
+
+    private fun encodeProfiles(list: List<UserProfile>): String {
+        val arr = JSONArray()
+        for (p in list) {
+            arr.put(
+                JSONObject()
+                    .put("id", p.id)
+                    .put("name", p.name)
+                    .put("avatarId", p.avatarId)
+                    .put("isKids", p.isKids)
+                    .put("pinEnabled", p.pinEnabled)
+                    .put("pinHash", p.pinHash)
+                    .put("pinSalt", p.pinSalt)
+                    .put("createdAt", p.createdAt)
+                    .put("lastUsedAt", p.lastUsedAt)
+            )
+        }
+        return arr.toString()
     }
 
     private fun decodeList(json: String?): List<UserProfile> {
         if (json.isNullOrBlank()) return emptyList()
         return try {
-            val type = object : TypeToken<List<UserProfile>>() {}.type
-            gson.fromJson<List<UserProfile>>(json, type) ?: emptyList()
+            val arr = JSONArray(json)
+            val out = mutableListOf<UserProfile>()
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                out += UserProfile(
+                    id = o.optString("id"),
+                    name = o.optString("name", "Perfil"),
+                    avatarId = o.optString("avatarId", "fox"),
+                    isKids = o.optBoolean("isKids", false),
+                    pinEnabled = o.optBoolean("pinEnabled", false),
+                    pinHash = o.optString("pinHash").takeIf { it.isNotBlank() && it != "null" },
+                    pinSalt = o.optString("pinSalt").takeIf { it.isNotBlank() && it != "null" },
+                    createdAt = o.optLong("createdAt", System.currentTimeMillis()),
+                    lastUsedAt = o.optLong("lastUsedAt", System.currentTimeMillis())
+                )
+            }
+            out
         } catch (_: Exception) {
             emptyList()
         }

@@ -53,6 +53,10 @@
 -keep class com.streamvault.domain.model.** { *; }
 -keep class com.streamvault.data.local.entity.** { *; }
 -keep class com.streamvault.data.remote.xtream.model.** { *; }
+# Profile DataStore JSON (Gson reflection) — prevents LinkedTreeMap ClassCastException
+-keep class com.streamvault.data.profile.** { *; }
+-keepclassmembers class com.streamvault.data.profile.** { <fields>; <init>(...); }
+-keep class * extends com.google.gson.reflect.TypeToken { *; }
 
 # ── Security / TLS ──────────────────────────────────────────
 -keepnames class com.streamvault.data.security.CredentialCrypto

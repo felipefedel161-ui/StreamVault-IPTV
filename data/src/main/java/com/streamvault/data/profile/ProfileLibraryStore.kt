@@ -6,8 +6,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.streamvault.domain.model.ContentType
 import com.streamvault.domain.model.Favorite
 import com.streamvault.domain.model.PlaybackHistory
@@ -16,6 +14,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,42 +24,33 @@ private val Context.profileLibraryStore: DataStore<Preferences> by preferencesDa
 )
 
 /**
- * Per-profile favorites + continue-watching (Netflix-style isolation).
- * Independent of Room so we avoid a risky schema migration mid-flight.
+ * Per-profile favorites + continue-watching.
+ * Uses org.json (not Gson) to avoid R8 LinkedTreeMap ClassCastException.
  */
 @Singleton
 class ProfileLibraryStore @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val gson: Gson
+    @ApplicationContext private val context: Context
 ) {
     private val store get() = context.profileLibraryStore
 
     fun observeFavorites(profileId: String): Flow<List<Favorite>> =
-        store.data.map { prefs ->
-            val lib = decode(prefs[keyFor(profileId)])
-            lib.favorites.map { it.toDomain() }
-        }
+        store.data.map { prefs -> decode(prefs[keyFor(profileId)]).favorites.map { it.toDomain() } }
 
     fun observeHistory(profileId: String, limit: Int = 100): Flow<List<PlaybackHistory>> =
         store.data.map { prefs ->
-            val lib = decode(prefs[keyFor(profileId)])
-            lib.history
+            decode(prefs[keyFor(profileId)]).history
                 .map { it.toDomain() }
                 .sortedByDescending { it.lastWatchedAt }
                 .take(limit)
         }
 
-    suspend fun getFavorites(profileId: String): List<Favorite> {
-        val lib = load(profileId)
-        return lib.favorites.map { it.toDomain() }
-    }
+    suspend fun getFavorites(profileId: String): List<Favorite> =
+        decode(loadRaw(profileId)).favorites.map { it.toDomain() }
 
-    suspend fun getHistory(profileId: String, limit: Int = 100): List<PlaybackHistory> {
-        val lib = load(profileId)
-        return lib.history.map { it.toDomain() }
+    suspend fun getHistory(profileId: String, limit: Int = 100): List<PlaybackHistory> =
+        decode(loadRaw(profileId)).history.map { it.toDomain() }
             .sortedByDescending { it.lastWatchedAt }
             .take(limit)
-    }
 
     suspend fun addFavorite(profileId: String, favorite: Favorite) {
         update(profileId) { lib ->
@@ -97,12 +88,10 @@ class ProfileLibraryStore @Inject constructor(
         providerId: Long,
         contentId: Long,
         contentType: ContentType
-    ): Boolean {
-        return load(profileId).favorites.any {
-            it.providerId == providerId &&
-                it.contentId == contentId &&
-                it.contentType == contentType.name
-        }
+    ): Boolean = decode(loadRaw(profileId)).favorites.any {
+        it.providerId == providerId &&
+            it.contentId == contentId &&
+            it.contentType == contentType.name
     }
 
     suspend fun recordHistory(profileId: String, history: PlaybackHistory) {
@@ -121,8 +110,7 @@ class ProfileLibraryStore @Inject constructor(
                 watchCount = (existing?.watchCount ?: 0) + 1,
                 lastWatchedAt = maxOf(history.lastWatchedAt, System.currentTimeMillis())
             )
-            val rest = lib.history.filterNot(keyMatch)
-            lib.copy(history = (listOf(merged) + rest).take(200))
+            lib.copy(history = (listOf(merged) + lib.history.filterNot(keyMatch)).take(200))
         }
     }
 
@@ -136,8 +124,7 @@ class ProfileLibraryStore @Inject constructor(
                     h.seasonNumber == history.seasonNumber &&
                     h.episodeNumber == history.episodeNumber
             }
-            val rest = lib.history.filterNot(keyMatch)
-            lib.copy(history = (listOf(HistoryDto.from(history)) + rest).take(200))
+            lib.copy(history = (listOf(HistoryDto.from(history)) + lib.history.filterNot(keyMatch)).take(200))
         }
     }
 
@@ -149,16 +136,14 @@ class ProfileLibraryStore @Inject constructor(
         seriesId: Long? = null,
         seasonNumber: Int? = null,
         episodeNumber: Int? = null
-    ): PlaybackHistory? {
-        return load(profileId).history.firstOrNull {
-            it.contentId == contentId &&
-                it.contentType == contentType.name &&
-                it.providerId == providerId &&
-                (seriesId == null || it.seriesId == seriesId) &&
-                (seasonNumber == null || it.seasonNumber == seasonNumber) &&
-                (episodeNumber == null || it.episodeNumber == episodeNumber)
-        }?.toDomain()
-    }
+    ): PlaybackHistory? = decode(loadRaw(profileId)).history.firstOrNull {
+        it.contentId == contentId &&
+            it.contentType == contentType.name &&
+            it.providerId == providerId &&
+            (seriesId == null || it.seriesId == seriesId) &&
+            (seasonNumber == null || it.seasonNumber == seasonNumber) &&
+            (episodeNumber == null || it.episodeNumber == episodeNumber)
+    }?.toDomain()
 
     suspend fun removeHistory(
         profileId: String,
@@ -181,29 +166,104 @@ class ProfileLibraryStore @Inject constructor(
         update(profileId) { it.copy(history = emptyList()) }
     }
 
-    private suspend fun load(profileId: String): ProfileLibrary {
-        val prefs = store.data.first()
-        return decode(prefs[keyFor(profileId)])
-    }
+    private suspend fun loadRaw(profileId: String): String? =
+        store.data.first()[keyFor(profileId)]
 
     private suspend fun update(profileId: String, block: (ProfileLibrary) -> ProfileLibrary) {
         store.edit { prefs ->
             val current = decode(prefs[keyFor(profileId)])
-            prefs[keyFor(profileId)] = gson.toJson(block(current))
+            prefs[keyFor(profileId)] = encode(block(current))
         }
     }
+
+    private fun keyFor(profileId: String) = stringPreferencesKey("lib_$profileId")
 
     private fun decode(json: String?): ProfileLibrary {
         if (json.isNullOrBlank()) return ProfileLibrary()
         return try {
-            val type = object : TypeToken<ProfileLibrary>() {}.type
-            gson.fromJson<ProfileLibrary>(json, type) ?: ProfileLibrary()
+            val root = JSONObject(json)
+            val favorites = mutableListOf<FavoriteDto>()
+            val favArr = root.optJSONArray("favorites") ?: JSONArray()
+            for (i in 0 until favArr.length()) {
+                val o = favArr.optJSONObject(i) ?: continue
+                favorites += FavoriteDto(
+                    id = o.optLong("id"),
+                    providerId = o.optLong("providerId"),
+                    contentId = o.optLong("contentId"),
+                    contentType = o.optString("contentType", "MOVIE"),
+                    position = o.optInt("position"),
+                    groupId = if (o.isNull("groupId")) null else o.optLong("groupId"),
+                    addedAt = o.optLong("addedAt", System.currentTimeMillis())
+                )
+            }
+            val history = mutableListOf<HistoryDto>()
+            val histArr = root.optJSONArray("history") ?: JSONArray()
+            for (i in 0 until histArr.length()) {
+                val o = histArr.optJSONObject(i) ?: continue
+                history += HistoryDto(
+                    id = o.optLong("id"),
+                    contentId = o.optLong("contentId"),
+                    contentType = o.optString("contentType", "MOVIE"),
+                    providerId = o.optLong("providerId"),
+                    title = o.optString("title"),
+                    posterUrl = o.optString("posterUrl").takeIf { it.isNotBlank() && it != "null" },
+                    streamUrl = o.optString("streamUrl"),
+                    resumePositionMs = o.optLong("resumePositionMs"),
+                    totalDurationMs = o.optLong("totalDurationMs"),
+                    lastWatchedAt = o.optLong("lastWatchedAt"),
+                    watchCount = o.optInt("watchCount", 1),
+                    watchedStatus = o.optString("watchedStatus", "IN_PROGRESS"),
+                    seriesId = if (o.isNull("seriesId")) null else o.optLong("seriesId"),
+                    seasonNumber = if (o.isNull("seasonNumber")) null else o.optInt("seasonNumber"),
+                    episodeNumber = if (o.isNull("episodeNumber")) null else o.optInt("episodeNumber")
+                )
+            }
+            ProfileLibrary(favorites = favorites, history = history)
         } catch (_: Exception) {
             ProfileLibrary()
         }
     }
 
-    private fun keyFor(profileId: String) = stringPreferencesKey("lib_$profileId")
+    private fun encode(lib: ProfileLibrary): String {
+        val root = JSONObject()
+        val favArr = JSONArray()
+        for (f in lib.favorites) {
+            favArr.put(
+                JSONObject()
+                    .put("id", f.id)
+                    .put("providerId", f.providerId)
+                    .put("contentId", f.contentId)
+                    .put("contentType", f.contentType)
+                    .put("position", f.position)
+                    .put("groupId", f.groupId)
+                    .put("addedAt", f.addedAt)
+            )
+        }
+        val histArr = JSONArray()
+        for (h in lib.history) {
+            histArr.put(
+                JSONObject()
+                    .put("id", h.id)
+                    .put("contentId", h.contentId)
+                    .put("contentType", h.contentType)
+                    .put("providerId", h.providerId)
+                    .put("title", h.title)
+                    .put("posterUrl", h.posterUrl)
+                    .put("streamUrl", h.streamUrl)
+                    .put("resumePositionMs", h.resumePositionMs)
+                    .put("totalDurationMs", h.totalDurationMs)
+                    .put("lastWatchedAt", h.lastWatchedAt)
+                    .put("watchCount", h.watchCount)
+                    .put("watchedStatus", h.watchedStatus)
+                    .put("seriesId", h.seriesId)
+                    .put("seasonNumber", h.seasonNumber)
+                    .put("episodeNumber", h.episodeNumber)
+            )
+        }
+        root.put("favorites", favArr)
+        root.put("history", histArr)
+        return root.toString()
+    }
 
     data class ProfileLibrary(
         val favorites: List<FavoriteDto> = emptyList(),
