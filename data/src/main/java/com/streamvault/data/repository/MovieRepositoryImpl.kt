@@ -1,7 +1,6 @@
 package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
-import com.streamvault.domain.model.KidsContentPolicy
 import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
@@ -101,26 +100,12 @@ class MovieRepositoryImpl @Inject constructor(
     private val transactionRunner: DatabaseTransactionRunner,
     private val profileManager: ProfileManager
 ) : MovieRepository {
-    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+    /** Always hide adult content from browse/search. */
+    private fun filterRestrictedMovies(list: List<com.streamvault.domain.model.Movie>): List<com.streamvault.domain.model.Movie> =
+        list.filterNot { AdultContentPolicy.isAdultMovie(it) }
 
-    /** Always hide adult; Kids mode further restricts to kids-safe only. */
-    private fun filterRestrictedMovies(list: List<com.streamvault.domain.model.Movie>): List<com.streamvault.domain.model.Movie> {
-        val kids = isKidsMode()
-        return list.filter { m ->
-            if (AdultContentPolicy.isAdultMovie(m)) false
-            else if (kids) KidsContentPolicy.isKidsSafeMovie(m)
-            else true
-        }
-    }
-
-    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> {
-        val kids = isKidsMode()
-        return list.filter { c ->
-            if (AdultContentPolicy.isAdultCategory(c)) false
-            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
-            else true
-        }
-    }
+    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> =
+        list.filterNot { AdultContentPolicy.isAdultCategory(it) }
 
     private companion object {
         const val TAG = "MovieRepository"

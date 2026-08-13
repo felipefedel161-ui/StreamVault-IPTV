@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProfilePickerScreen(
-    onProfileSelected: (isKids: Boolean) -> Unit,
+    onProfileSelected: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
@@ -97,7 +97,7 @@ fun ProfilePickerScreen(
                                         mode = PickerMode.Pin
                                     } else {
                                         scope.launch {
-                                            if (viewModel.select(profile.id, null)) onProfileSelected(profile.isKids)
+                                            if (viewModel.select(profile.id, null)) onProfileSelected()
                                         }
                                     }
                                 }
@@ -139,7 +139,7 @@ fun ProfilePickerScreen(
                         onConfirm = {
                             scope.launch {
                                 val ok = viewModel.select(target.id, pinInput)
-                                if (ok) onProfileSelected(target.isKids)
+                                if (ok) onProfileSelected()
                                 else pinError = "PIN incorreto"
                             }
                         },
@@ -229,8 +229,7 @@ private fun CreateProfilePanel(
 ) {
     var name by remember { mutableStateOf("") }
     var avatarId by remember { mutableStateOf(ProfileAvatars.all.first().id) }
-    var isKids by remember { mutableStateOf(false) }
-
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(32.dp)
@@ -277,24 +276,9 @@ private fun CreateProfilePanel(
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
-        TvClickableSurface(
-            onClick = { isKids = !isKids },
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
-            colors = ClickableSurfaceDefaults.colors(
-                containerColor = if (isKids) Color(0xFFFF6B9D).copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f),
-                focusedContainerColor = Color.White.copy(alpha = 0.2f)
-            )
-        ) {
-            Text(
-                text = if (isKids) "✓ Perfil Kids" else "Perfil Kids (opcional)",
-                color = Color.White,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-            )
-        }
         Spacer(Modifier.height(24.dp))
         TvClickableSurface(
-            onClick = { onCreate(name.ifBlank { "Perfil" }, avatarId, isKids) },
+            onClick = { onCreate(name.ifBlank { "Perfil" }, avatarId, false) },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
             colors = ClickableSurfaceDefaults.colors(
                 containerColor = AppColors.Brand,

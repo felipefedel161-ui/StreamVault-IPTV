@@ -139,9 +139,7 @@ class NovelasViewModel @Inject constructor(
                     }
                 }
 
-                val rawList = all.values.toList()
-                val kids = profileManager.activeProfile.value?.isKids == true
-                val allList = if (kids) rawList.filter { KidsContentPolicy.isKidsSafeSeries(it) } else rawList
+                val allList = all.values.toList()
                 val byEmissora = linkedMapOf<String, MutableList<Series>>()
                 for (s in allList) {
                     val e = classifyEmissora(s, catNameBySeries[s.id])

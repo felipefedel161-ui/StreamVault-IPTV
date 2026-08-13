@@ -1,7 +1,6 @@
 package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
-import com.streamvault.domain.model.KidsContentPolicy
 import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
@@ -61,28 +60,11 @@ class ChannelRepositoryImpl @Inject constructor(
     private val profileManager: ProfileManager
 ) : ChannelRepository {
     
-    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+    private fun filterRestrictedChannels(list: List<Channel>): List<Channel> =
+        list.filterNot { AdultContentPolicy.isAdultChannel(it) }
 
-    private fun filterRestrictedChannels(list: List<Channel>): List<Channel> {
-        val kids = isKidsMode()
-        return list.filter { ch ->
-            if (AdultContentPolicy.isAdultChannel(ch)) false
-            else if (kids) KidsContentPolicy.isKidsSafeChannel(ch)
-            else true
-        }
-    }
-
-    private fun filterRestrictedCategories(list: List<Category>): List<Category> {
-        val kids = isKidsMode()
-        return list.filter { c ->
-            if (AdultContentPolicy.isAdultCategory(c)) false
-            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
-            else true
-        }
-    }
-
-    private fun <T> Flow<List<T>>.filterKidsChannels(predicate: (T) -> Boolean): Flow<List<T>> =
-        map { list -> if (isKidsMode()) list.filter(predicate) else list }
+    private fun filterRestrictedCategories(list: List<Category>): List<Category> =
+        list.filterNot { AdultContentPolicy.isAdultCategory(it) }
 
     private companion object {
         const val TAG = "ChannelRepository"

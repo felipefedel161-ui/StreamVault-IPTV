@@ -1,7 +1,6 @@
 package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
-import com.streamvault.domain.model.KidsContentPolicy
 import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
@@ -75,25 +74,11 @@ class SeriesRepositoryImpl @Inject constructor(
     private val jellyfinProvider: JellyfinProvider,
     private val profileManager: ProfileManager
 ) : SeriesRepository {
-    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+    private fun filterRestrictedSeries(list: List<com.streamvault.domain.model.Series>): List<com.streamvault.domain.model.Series> =
+        list.filterNot { AdultContentPolicy.isAdultSeries(it) }
 
-    private fun filterRestrictedSeries(list: List<com.streamvault.domain.model.Series>): List<com.streamvault.domain.model.Series> {
-        val kids = isKidsMode()
-        return list.filter { s ->
-            if (AdultContentPolicy.isAdultSeries(s)) false
-            else if (kids) KidsContentPolicy.isKidsSafeSeries(s)
-            else true
-        }
-    }
-
-    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> {
-        val kids = isKidsMode()
-        return list.filter { c ->
-            if (AdultContentPolicy.isAdultCategory(c)) false
-            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
-            else true
-        }
-    }
+    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> =
+        list.filterNot { AdultContentPolicy.isAdultCategory(it) }
 
     private companion object {
         const val TAG = "SeriesRepository"
