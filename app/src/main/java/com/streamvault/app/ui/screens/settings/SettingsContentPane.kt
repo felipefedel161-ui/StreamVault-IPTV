@@ -3,6 +3,12 @@ package com.streamvault.app.ui.screens.settings
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Text
+import com.streamvault.app.ui.design.AppColors
+import com.streamvault.app.ui.interaction.TvClickableSurface
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +26,7 @@ internal fun SettingsContentPane(
     dialogState: SettingsScreenDialogState,
     providerState: SettingsProviderSectionState,
     onAddProvider: () -> Unit,
+    onSwitchProfile: () -> Unit = {},
     onEditProvider: (Provider) -> Unit,
     onNavigateToParentalControl: (Long) -> Unit,
     onChooseRecordingFolder: () -> Unit,
@@ -47,6 +54,22 @@ internal fun SettingsContentPane(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         userScrollEnabled = !uiState.isSyncing
     ) {
+        item {
+            TvClickableSurface(
+                onClick = onSwitchProfile,
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = AppColors.SurfaceElevated,
+                    focusedContainerColor = AppColors.SurfaceAccent
+                )
+            ) {
+                Text(
+                    text = "Trocar perfil",
+                    color = AppColors.TextPrimary,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)
+                )
+            }
+        }
         if (dialogState.selectedCategory == 0) {
             providerSection(
                 uiState = uiState,

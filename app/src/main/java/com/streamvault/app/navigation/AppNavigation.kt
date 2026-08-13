@@ -740,6 +740,11 @@ fun AppNavigation(mainActivity: MainActivity) {
             val backupUri = backStackEntry.arguments?.getString("backupUri")?.takeIf { it.isNotBlank() }
             SettingsScreen(
                 onNavigate = { route -> tabNavigate(route) },
+                onSwitchProfile = {
+                    navController.navigate(Routes.PROFILE_PICKER) {
+                        launchSingleTop = true
+                    }
+                },
                 onAddProvider = {
                     // Manual provider setup removed — activation only via MAC
                 },

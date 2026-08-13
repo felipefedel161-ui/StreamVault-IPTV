@@ -63,6 +63,7 @@ fun SettingsScreen(
     onAddProvider: () -> Unit = {},
     onEditProvider: (Provider) -> Unit = {},
     onNavigateToParentalControl: (Long) -> Unit = {},
+    onSwitchProfile: () -> Unit = {},
     currentRoute: String,
     initialBackupImportUri: String? = null,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -293,6 +294,7 @@ fun SettingsScreen(
                     dialogState = dialogState,
                     providerState = providerState,
                     onAddProvider = onAddProvider,
+                    onSwitchProfile = onSwitchProfile,
                     onEditProvider = onEditProvider,
                     onNavigateToParentalControl = onNavigateToParentalControl,
                     onChooseRecordingFolder = {

@@ -1,5 +1,8 @@
 package com.streamvault.data.repository
 
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.domain.model.KidsContentPolicy
+
 import android.database.sqlite.SQLiteException
 import android.util.Log
 import com.streamvault.data.local.dao.*
@@ -68,8 +71,15 @@ class SeriesRepositoryImpl @Inject constructor(
     private val xtreamIndexJobDao: XtreamIndexJobDao,
     private val syncManager: SyncManager,
     private val seriesCategoryHydrationDao: SeriesCategoryHydrationDao,
-    private val jellyfinProvider: JellyfinProvider
+    private val jellyfinProvider: JellyfinProvider,
+    private val profileManager: ProfileManager
 ) : SeriesRepository {
+    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+    private fun filterKidsSeries(list: List<com.streamvault.domain.model.Series>) =
+        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeSeries(it) } else list
+    private fun filterKidsCategories(list: List<com.streamvault.domain.model.Category>) =
+        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeCategory(it.name) } else list
+
     private companion object {
         const val TAG = "SeriesRepository"
         const val SEARCH_RESULT_LIMIT = 200
@@ -309,11 +319,12 @@ class SeriesRepositoryImpl @Inject constructor(
             preferencesRepository.parentalControlLevel
         ) { entities: List<CategoryEntity>, level: Int ->
             val mapped = entities.map { it.toDomain() }
-            if (level >= 3) {
+            val base = if (level >= 3) {
                 mapped.filter { !it.isAdult && !it.isUserProtected }
             } else {
                 mapped
             }
+            filterKidsCategories(base)
         }
 
     override fun getCategoryItemCounts(providerId: Long): Flow<Map<Long, Int>> =

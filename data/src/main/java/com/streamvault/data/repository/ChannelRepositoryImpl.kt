@@ -1,5 +1,8 @@
 package com.streamvault.data.repository
 
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.domain.model.KidsContentPolicy
+
 import android.database.sqlite.SQLiteException
 import android.util.Log
 import com.streamvault.data.local.dao.CategoryDao
@@ -53,8 +56,15 @@ class ChannelRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val preferencesRepository: PreferencesRepository,
     private val parentalControlManager: com.streamvault.domain.manager.ParentalControlManager,
-    private val xtreamStreamUrlResolver: XtreamStreamUrlResolver
+    private val xtreamStreamUrlResolver: XtreamStreamUrlResolver,
+    private val profileManager: ProfileManager
 ) : ChannelRepository {
+    
+    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+
+    private fun <T> Flow<List<T>>.filterKidsChannels(predicate: (T) -> Boolean): Flow<List<T>> =
+        map { list -> if (isKidsMode()) list.filter(predicate) else list }
+
     private companion object {
         const val TAG = "ChannelRepository"
         const val GLOBAL_SEARCH_LIMIT = 500
@@ -79,6 +89,7 @@ class ChannelRepositoryImpl @Inject constructor(
 
     override fun getChannels(providerId: Long): Flow<List<Channel>> =
         observeChannels(channelDao.getByProvider(providerId), providerId)
+            .map { list -> if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeChannel(it) } else list }
 
     override fun getChannelCount(providerId: Long): Flow<Int> =
         preferencesRepository.hideDecorativeLiveRows.flatMapLatest { hideDecorativeRows ->
@@ -188,14 +199,17 @@ class ChannelRepositoryImpl @Inject constructor(
                 }
             }
 
+            val kidsFiltered = if (isKidsMode()) {
+                filteredCategories.filter { KidsContentPolicy.isKidsSafeCategory(it.name) }
+            } else filteredCategories
             val allChannelsCategory = Category(
                 id = ChannelRepository.ALL_CHANNELS_ID,
                 name = "All Channels",
                 type = ContentType.LIVE,
-                count = filteredCategories.sumOf(Category::count)
+                count = kidsFiltered.sumOf(Category::count)
             )
 
-            listOf(allChannelsCategory) + filteredCategories
+            listOf(allChannelsCategory) + kidsFiltered
         }.flowOn(Dispatchers.Default)
 
     override fun searchChannels(providerId: Long, query: String): Flow<List<Channel>> {

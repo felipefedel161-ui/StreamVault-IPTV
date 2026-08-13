@@ -1,5 +1,8 @@
 package com.streamvault.data.repository
 
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.domain.model.KidsContentPolicy
+
 import android.database.sqlite.SQLiteException
 import android.util.Log
 import com.streamvault.data.local.DatabaseTransactionRunner
@@ -94,8 +97,15 @@ class MovieRepositoryImpl @Inject constructor(
     private val xtreamContentIndexDao: XtreamContentIndexDao,
     private val xtreamIndexJobDao: XtreamIndexJobDao,
     private val syncManager: SyncManager,
-    private val transactionRunner: DatabaseTransactionRunner
+    private val transactionRunner: DatabaseTransactionRunner,
+    private val profileManager: ProfileManager
 ) : MovieRepository {
+    private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
+    private fun filterKidsMovies(list: List<com.streamvault.domain.model.Movie>) =
+        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeMovie(it) } else list
+    private fun filterKidsCategories(list: List<com.streamvault.domain.model.Category>) =
+        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeCategory(it.name) } else list
+
     private companion object {
         const val TAG = "MovieRepository"
         const val SEARCH_RESULT_LIMIT = 200
@@ -161,7 +171,7 @@ class MovieRepositoryImpl @Inject constructor(
             if (level >= 3) movieDao.getByProviderUnprotected(providerId)
             else movieDao.getByProvider(providerId)
         }.combine(moviePresentationSettingsFlow) { list, settings ->
-            buildPresentedMovies(list.map { it.toDomain() }, settings)
+            filterKidsMovies(buildPresentedMovies(list.map { it.toDomain() }, settings))
         }
 
     override fun getMoviesByCategory(providerId: Long, categoryId: Long): Flow<List<Movie>> =
@@ -360,11 +370,12 @@ class MovieRepositoryImpl @Inject constructor(
             preferencesRepository.parentalControlLevel
         ) { entities: List<CategoryEntity>, level: Int ->
             val mapped = entities.map { it.toDomain() }
-            if (level >= 3) {
+            val base = if (level >= 3) {
                 mapped.filter { !it.isAdult && !it.isUserProtected }
             } else {
                 mapped
             }
+            filterKidsCategories(base)
         }
 
     override fun getCategoryItemCounts(providerId: Long): Flow<Map<Long, Int>> =
