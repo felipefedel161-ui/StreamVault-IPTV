@@ -63,6 +63,24 @@ class ChannelRepositoryImpl @Inject constructor(
     
     private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
 
+    private fun filterRestrictedChannels(list: List<Channel>): List<Channel> {
+        val kids = isKidsMode()
+        return list.filter { ch ->
+            if (AdultContentPolicy.isAdultChannel(ch)) false
+            else if (kids) KidsContentPolicy.isKidsSafeChannel(ch)
+            else true
+        }
+    }
+
+    private fun filterRestrictedCategories(list: List<Category>): List<Category> {
+        val kids = isKidsMode()
+        return list.filter { c ->
+            if (AdultContentPolicy.isAdultCategory(c)) false
+            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
+            else true
+        }
+    }
+
     private fun <T> Flow<List<T>>.filterKidsChannels(predicate: (T) -> Boolean): Flow<List<T>> =
         map { list -> if (isKidsMode()) list.filter(predicate) else list }
 
