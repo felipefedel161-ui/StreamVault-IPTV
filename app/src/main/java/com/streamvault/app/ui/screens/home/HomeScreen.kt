@@ -660,7 +660,18 @@ fun HomeScreen(
                         }
                     }
                 ) {
-                Row(
+                // Google TV–style home (hero + rows) on TV comfortable mode
+                val useDiscoverHome = isTelevisionDevice && !isDenseMode && !isReorderMode &&
+                    uiState.channelSearchQuery.isEmpty()
+                if (useDiscoverHome) {
+                    HomeDiscoverContent(
+                        uiState = uiState,
+                        onChannelClick = onChannelClick,
+                        resolveProvider = resolveProviderForChannel,
+                        onOpenCategory = { category -> viewModel.selectCategory(category) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else Row(
                     modifier = Modifier
                         .fillMaxSize()
                         .onPreviewKeyEvent { event ->
