@@ -396,7 +396,7 @@ private fun TopNavigationButton(
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) AppColors.BrandMuted else Color.Transparent,
-            focusedContainerColor = AppColors.SurfaceEmphasis
+            focusedContainerColor = AppColors.BrandSoft
         ),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
@@ -792,7 +792,7 @@ private fun RailButton(
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) AppColors.BrandMuted else Color.Transparent,
-            focusedContainerColor = AppColors.SurfaceEmphasis
+            focusedContainerColor = AppColors.BrandSoft
         ),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(

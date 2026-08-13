@@ -23,6 +23,7 @@ import com.streamvault.app.tv.LauncherRecommendationsManager
 import com.streamvault.app.tv.WatchNextManager
 import com.streamvault.app.tvinput.TvInputChannelSyncManager
 import com.streamvault.app.ui.theme.StreamVaultTheme
+import com.streamvault.app.ui.components.boot.BootSplashHost
 import com.streamvault.app.ui.time.LocalAppTimeFormat
 import com.streamvault.domain.repository.ChannelRepository
 import com.streamvault.domain.repository.CombinedM3uRepository
@@ -183,7 +184,9 @@ class MainActivity : ComponentActivity() {
                 LocalAppTimeFormat provides appTimeFormat
             ) {
                 StreamVaultTheme {
-                    AppNavigation(mainActivity = this@MainActivity)
+                    BootSplashHost {
+                        AppNavigation(mainActivity = this@MainActivity)
+                    }
                 }
             }
         }
