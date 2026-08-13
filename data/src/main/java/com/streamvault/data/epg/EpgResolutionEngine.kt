@@ -93,17 +93,29 @@ class EpgResolutionEngine @Inject constructor(
         // sourceId -> (normalizedName -> xmltvChannelId)
         val nameIndex = mutableMapOf<Long, Map<String, String>>()
 
+        // displayName retained for fuzzy pass
+        val epgDisplayNamesBySource = mutableMapOf<Long, Map<String, String>>() // xmltvId -> displayName
+
         for ((sourceId, epgChannels) in epgChannelsBySource) {
             exactIdIndex[sourceId] = epgChannels.map { it.xmltvChannelId.trim() }.toHashSet()
-            // For name index, first occurrence wins (avoids ambiguity)
+            // Multi-key name index: full, core, alias candidates → xmltv id (first wins)
             val nameMap = mutableMapOf<String, String>()
+            val displayMap = mutableMapOf<String, String>()
             for (ch in epgChannels) {
-                val normalized = ch.normalizedName
-                if (normalized.isNotEmpty() && normalized !in nameMap) {
-                    nameMap[normalized] = ch.xmltvChannelId
+                val xmltvId = ch.xmltvChannelId.trim()
+                if (xmltvId.isEmpty()) continue
+                displayMap[xmltvId] = ch.displayName
+                val keys = linkedSetOf<String>()
+                if (ch.normalizedName.isNotEmpty()) keys.add(ch.normalizedName)
+                keys.addAll(EpgNameNormalizer.candidates(ch.displayName))
+                for (key in keys) {
+                    if (key.isNotEmpty() && key !in nameMap) {
+                        nameMap[key] = xmltvId
+                    }
                 }
             }
             nameIndex[sourceId] = nameMap
+            epgDisplayNamesBySource[sourceId] = displayMap
         }
 
         // Check which channels have provider-native EPG data
@@ -165,14 +177,28 @@ class EpgResolutionEngine @Inject constructor(
                 }
             }
 
-            // 3. Try external sources — normalized name match
-            val channelNormalizedName = EpgNameNormalizer.normalize(channel.name)
-            if (channelNormalizedName.isNotEmpty()) {
+            // 3. Multi-pass name matching against external sources
+            val nameCandidates = EpgNameNormalizer.candidates(channel.name)
+            val channelNormalizedName = nameCandidates.firstOrNull().orEmpty()
+
+            // 3a. Exact candidate key match (full / core / alias)
+            if (nameCandidates.isNotEmpty()) {
                 for (assignment in enabledAssignments) {
                     val sid = assignment.epgSourceId
                     val nIndex = nameIndex[sid] ?: continue
-                    val matchedXmltvId = nIndex[channelNormalizedName]
-                    if (matchedXmltvId != null) {
+                    for ((idx, key) in nameCandidates.withIndex()) {
+                        val matchedXmltvId = nIndex[key] ?: continue
+                        val matchType = when {
+                            idx == 0 && key == EpgNameNormalizer.normalize(channel.name) -> EpgMatchType.NORMALIZED_NAME
+                            key == EpgNameNormalizer.normalizeCanonical(channel.name) &&
+                                key != EpgNameNormalizer.normalizeCore(channel.name) -> EpgMatchType.ALIAS
+                            else -> EpgMatchType.CORE_NAME
+                        }
+                        val confidence = when (matchType) {
+                            EpgMatchType.NORMALIZED_NAME -> 0.85f
+                            EpgMatchType.ALIAS -> 0.8f
+                            else -> 0.75f
+                        }
                         normalizedNameMatches++
                         return@map ChannelEpgMappingEntity(
                             providerChannelId = channel.id,
@@ -180,11 +206,51 @@ class EpgResolutionEngine @Inject constructor(
                             sourceType = EpgSourceType.EXTERNAL.name,
                             epgSourceId = sid,
                             xmltvChannelId = matchedXmltvId,
-                            matchType = EpgMatchType.NORMALIZED_NAME.name,
-                            confidence = 0.7f,
+                            matchType = matchType.name,
+                            confidence = confidence,
                             matchedAt = now,
                             failedAttempts = 0,
                             source = "name_match",
+                            updatedAt = now
+                        )
+                    }
+                }
+            }
+
+            // 3b. Fuzzy token overlap (shared token required, threshold 0.72)
+            run {
+                val channelTokens = EpgNameNormalizer.tokens(channel.name)
+                if (channelTokens.isNotEmpty()) {
+                    var bestSid: Long? = null
+                    var bestXmltv: String? = null
+                    var bestScore = 0f
+                    for (assignment in enabledAssignments) {
+                        val sid = assignment.epgSourceId
+                        val displayMap = epgDisplayNamesBySource[sid] ?: continue
+                        for ((xmltvId, displayName) in displayMap) {
+                            val epgTokens = EpgNameNormalizer.tokens(displayName)
+                            if (epgTokens.isEmpty() || channelTokens.intersect(epgTokens).isEmpty()) continue
+                            val score = EpgNameNormalizer.tokenSimilarity(channel.name, displayName)
+                            if (score > bestScore) {
+                                bestScore = score
+                                bestSid = sid
+                                bestXmltv = xmltvId
+                            }
+                        }
+                    }
+                    if (bestScore >= 0.72f && bestSid != null && bestXmltv != null) {
+                        normalizedNameMatches++
+                        return@map ChannelEpgMappingEntity(
+                            providerChannelId = channel.id,
+                            providerId = providerId,
+                            sourceType = EpgSourceType.EXTERNAL.name,
+                            epgSourceId = bestSid,
+                            xmltvChannelId = bestXmltv,
+                            matchType = EpgMatchType.FUZZY_NAME.name,
+                            confidence = bestScore.coerceAtMost(0.7f),
+                            matchedAt = now,
+                            failedAttempts = 0,
+                            source = "fuzzy_name",
                             updatedAt = now
                         )
                     }
@@ -390,7 +456,10 @@ class EpgResolutionEngine @Inject constructor(
             when {
                 row.sourceType == EpgSourceType.NONE.name -> unresolved += row.cnt
                 row.matchType == EpgMatchType.EXACT_ID.name -> exactId += row.cnt
-                row.matchType == EpgMatchType.NORMALIZED_NAME.name -> normalizedName += row.cnt
+                row.matchType == EpgMatchType.NORMALIZED_NAME.name ||
+                    row.matchType == EpgMatchType.CORE_NAME.name ||
+                    row.matchType == EpgMatchType.ALIAS.name ||
+                    row.matchType == EpgMatchType.FUZZY_NAME.name -> normalizedName += row.cnt
                 row.matchType == EpgMatchType.PROVIDER_NATIVE.name -> providerNative += row.cnt
                 row.matchType == EpgMatchType.MANUAL.name -> manual += row.cnt
             }

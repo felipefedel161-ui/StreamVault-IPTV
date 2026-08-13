@@ -52,6 +52,12 @@ enum class EpgMatchType {
     EXACT_ID,
     /** Normalized display name match */
     NORMALIZED_NAME,
+    /** Name match after stripping HD/FHD/region noise */
+    CORE_NAME,
+    /** Known brand alias (Globo, SporTV, etc.) */
+    ALIAS,
+    /** Soft token overlap match */
+    FUZZY_NAME,
     /** User manually assigned */
     MANUAL,
     /** Provider-native EPG (existing programs table) */
