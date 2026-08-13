@@ -9,6 +9,11 @@ import com.streamvault.data.mapper.toEntity
 import com.streamvault.domain.model.*
 import kotlinx.coroutines.flow.first
 import com.streamvault.domain.repository.FavoriteRepository
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.data.profile.ProfileLibraryStore
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -16,16 +21,35 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@OptIn(ExperimentalCoroutinesApi::class)
 class FavoriteRepositoryImpl @Inject constructor(
     private val favoriteDao: FavoriteDao,
     private val virtualGroupDao: VirtualGroupDao,
-    private val transactionRunner: DatabaseTransactionRunner
+    private val transactionRunner: DatabaseTransactionRunner,
+    private val profileManager: ProfileManager,
+    private val profileLibrary: ProfileLibraryStore
 ) : FavoriteRepository {
     private companion object {
         const val POSITION_STEP = 1_024
     }
 
+    private fun activeProfileId(): String? = profileManager.activeProfile.value?.id
+
+    private fun favoritesForActiveProfile(): Flow<List<Favorite>> {
+        val id = activeProfileId()
+        return if (id != null) profileLibrary.observeFavorites(id)
+        else flowOf(emptyList())
+    }
+
+
+
     override fun getFavorites(providerId: Long, contentType: ContentType?): Flow<List<Favorite>> {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            return profileLibrary.observeFavorites(profileId).map { list ->
+                list.filter { it.providerId == providerId && (contentType == null || it.contentType == contentType) }
+            }
+        }
         val flow = if (contentType != null) {
             favoriteDao.getGlobalByType(providerId, contentType.name)
         } else {
@@ -36,6 +60,14 @@ class FavoriteRepositoryImpl @Inject constructor(
 
     override fun getFavorites(providerIds: List<Long>, contentType: ContentType?): Flow<List<Favorite>> {
         if (providerIds.isEmpty()) return flowOf(emptyList())
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            return profileLibrary.observeFavorites(profileId).map { list ->
+                list.filter {
+                    it.providerId in providerIds && (contentType == null || it.contentType == contentType)
+                }
+            }
+        }
         val flow = if (contentType != null) {
             favoriteDao.getGlobalByTypeForProviders(providerIds, contentType.name)
         } else {
@@ -89,6 +121,14 @@ class FavoriteRepositoryImpl @Inject constructor(
         contentType: ContentType,
         groupId: Long?
     ): Result<Unit> = try {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.addFavorite(
+                profileId,
+                Favorite(providerId = providerId, contentId = contentId, contentType = contentType, groupId = groupId)
+            )
+            return Result.success(Unit)
+        }
         transactionRunner.inTransaction {
             validateGroupAssignment(providerId, contentType, groupId)
             if (favoriteDao.get(providerId, contentId, contentType.name, groupId) != null) {
@@ -110,6 +150,11 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun removeFavorite(providerId: Long, contentId: Long, contentType: ContentType, groupId: Long?): Result<Unit> = try {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.removeFavorite(profileId, providerId, contentId, contentType, groupId)
+            return Result.success(Unit)
+        }
         favoriteDao.delete(providerId, contentId, contentType.name, groupId)
         Result.success(Unit)
     } catch (e: Exception) {
@@ -194,8 +239,13 @@ class FavoriteRepositoryImpl @Inject constructor(
     }
 
     // Checks if content is in Global Favorites (groupId = null)
-    override suspend fun isFavorite(providerId: Long, contentId: Long, contentType: ContentType): Boolean =
-        favoriteDao.get(providerId, contentId, contentType.name, null) != null
+    override suspend fun isFavorite(providerId: Long, contentId: Long, contentType: ContentType): Boolean {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            return profileLibrary.isFavorite(profileId, providerId, contentId, contentType)
+        }
+        return favoriteDao.get(providerId, contentId, contentType.name, null) != null
+    }
 
     override suspend fun getGroupMemberships(providerId: Long, contentId: Long, contentType: ContentType): List<Long> =
         favoriteDao.getGroupMemberships(providerId, contentId, contentType.name)

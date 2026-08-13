@@ -11,6 +11,8 @@ import com.streamvault.domain.model.PlaybackHistory
 import com.streamvault.domain.model.PlaybackWatchedStatus
 import com.streamvault.domain.model.Result
 import com.streamvault.domain.repository.PlaybackHistoryRepository
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.data.profile.ProfileLibraryStore
 import com.streamvault.domain.util.DEFAULT_PLAYBACK_COMPLETION_THRESHOLD
 import com.streamvault.domain.util.isPlaybackComplete
 import java.util.concurrent.ConcurrentHashMap
@@ -37,8 +39,13 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     private val preferencesRepository: PreferencesRepository,
     private val movieDao: MovieDao,
     private val episodeDao: EpisodeDao,
-    private val transactionRunner: DatabaseTransactionRunner
+    private val transactionRunner: DatabaseTransactionRunner,
+    private val profileManager: ProfileManager,
+    private val profileLibrary: ProfileLibraryStore
 ) : PlaybackHistoryRepository {
+
+    private fun activeProfileId(): String? = profileManager.activeProfile.value?.id
+
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingResumeUpdates = ConcurrentHashMap<PlaybackKey, PlaybackHistory>()
     private val pendingResumeUpdatesState = MutableStateFlow<Map<PlaybackKey, PlaybackHistory>>(emptyMap())
@@ -56,6 +63,10 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override fun getRecentlyWatched(limit: Int): Flow<List<PlaybackHistory>> {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            return profileLibrary.observeHistory(profileId, limit)
+        }
         return mergedRecentHistory(
             persisted = dao.getRecentlyWatched(limit).map { list -> list.map { it.toDomain() } },
             limit = limit
@@ -95,6 +106,13 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
         seasonNumber: Int?,
         episodeNumber: Int?
     ): PlaybackHistory? {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            return profileLibrary.getHistoryItem(
+                profileId, contentId, contentType, providerId, seriesId, seasonNumber, episodeNumber
+            )
+        }
+
         val key = PlaybackKey(contentId, contentType, providerId)
         pendingResumeUpdates[key]?.let { return it }
 
@@ -151,6 +169,11 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun recordPlayback(history: PlaybackHistory): Result<Unit> {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.recordHistory(profileId, history)
+            return Result.success(Unit)
+        }
         return try {
             if (isIncognito.value) {
                 return Result.success(Unit)
@@ -183,6 +206,11 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateResumePosition(history: PlaybackHistory): Result<Unit> {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.updateResume(profileId, history)
+            return Result.success(Unit)
+        }
         return try {
             if (isIncognito.value) {
                 return Result.success(Unit)
@@ -215,6 +243,11 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun removeFromHistory(contentId: Long, contentType: ContentType, providerId: Long): Result<Unit> = try {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.removeHistory(profileId, contentId, contentType, providerId)
+            return Result.success(Unit)
+        }
         pendingResumeUpdates.remove(PlaybackKey(contentId, contentType, providerId))
         transactionRunner.inTransaction {
             dao.delete(contentId, contentType.name, providerId)
@@ -226,6 +259,11 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearAllHistory(): Result<Unit> = try {
+        val profileId = activeProfileId()
+        if (profileId != null) {
+            profileLibrary.clearHistory(profileId)
+            return Result.success(Unit)
+        }
         pendingResumeUpdates.clear()
         transactionRunner.inTransaction {
             dao.deleteAll()

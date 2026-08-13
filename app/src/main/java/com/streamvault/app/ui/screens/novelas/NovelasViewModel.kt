@@ -6,6 +6,8 @@ import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.Series
 import com.streamvault.domain.repository.ProviderRepository
 import com.streamvault.domain.repository.SeriesRepository
+import com.streamvault.domain.manager.ProfileManager
+import com.streamvault.domain.model.KidsContentPolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,7 +68,8 @@ fun classifyEmissora(s: Series, categoryName: String? = null): String {
 @HiltViewModel
 class NovelasViewModel @Inject constructor(
     private val seriesRepository: SeriesRepository,
-    private val providerRepository: ProviderRepository
+    private val providerRepository: ProviderRepository,
+    private val profileManager: ProfileManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(NovelasUiState())
@@ -136,7 +139,9 @@ class NovelasViewModel @Inject constructor(
                     }
                 }
 
-                val allList = all.values.toList()
+                val rawList = all.values.toList()
+                val kids = profileManager.activeProfile.value?.isKids == true
+                val allList = if (kids) rawList.filter { KidsContentPolicy.isKidsSafeSeries(it) } else rawList
                 val byEmissora = linkedMapOf<String, MutableList<Series>>()
                 for (s in allList) {
                     val e = classifyEmissora(s, catNameBySeries[s.id])
