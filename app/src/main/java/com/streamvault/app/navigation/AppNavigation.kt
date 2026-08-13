@@ -37,6 +37,10 @@ import com.streamvault.app.ui.screens.settings.SettingsScreen
 import com.streamvault.app.ui.screens.welcome.WelcomeScreen
 import com.streamvault.app.ui.screens.football.FootballScreen
 import com.streamvault.app.ui.screens.novelas.NovelasScreen
+import com.streamvault.app.ui.screens.profile.ProfilePickerScreen
+import com.streamvault.app.ui.screens.profile.ProfileViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.runtime.LaunchedEffect
 import com.streamvault.app.ui.screens.activation.MacActivationScreen
 import com.streamvault.app.ui.screens.downloads.DownloadsScreen
 import com.streamvault.app.MainActivity
@@ -107,6 +111,7 @@ object Routes {
     const val SERIES_DETAIL = "series_detail/{seriesId}?returnRoute={returnRoute}"
     const val WELCOME = "welcome"
     const val MAC_ACTIVATION = "mac_activation"
+    const val PROFILE_PICKER = "profile_picker"
     const val PARENTAL_CONTROL_GROUPS = "parental_control_groups/{providerId}"
     const val MULTI_VIEW = "multi_view"
 
@@ -468,8 +473,18 @@ fun AppNavigation(mainActivity: MainActivity) {
         composable(Routes.MAC_ACTIVATION) {
             MacActivationScreen(
                 onActivated = {
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.PROFILE_PICKER) {
                         popUpTo(Routes.MAC_ACTIVATION) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.PROFILE_PICKER) {
+            ProfilePickerScreen(
+                onProfileSelected = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.PROFILE_PICKER) { inclusive = true }
                     }
                 }
             )

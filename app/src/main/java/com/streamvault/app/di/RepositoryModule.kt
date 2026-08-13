@@ -1,5 +1,8 @@
 package com.streamvault.app.di
 
+import com.streamvault.data.profile.ProfileManagerImpl
+import com.streamvault.domain.manager.ProfileManager
+
 import com.streamvault.data.local.DatabaseTransactionRunner
 import com.streamvault.data.local.RoomDatabaseTransactionRunner
 import com.streamvault.data.manager.DownloadManagerImpl
@@ -87,6 +90,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindProgramReminderManager(impl: com.streamvault.data.manager.ProgramReminderManagerImpl): com.streamvault.domain.manager.ProgramReminderManager
+
+    @Binds @Singleton
+    abstract fun bindProfileManager(impl: ProfileManagerImpl): ProfileManager
 
     @Binds @Singleton
     abstract fun bindParentalControlSessionStore(impl: PreferencesRepository): ParentalControlSessionStore
