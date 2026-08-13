@@ -92,6 +92,18 @@ fun FootballScreen(
                     selected = state.tab,
                     onSelect = viewModel::selectTab
                 )
+                state.scheduleMessage?.let { msg ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .background(NeonLime.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(text = msg, color = Color.White, fontSize = 13.sp)
+            }
+        }
+
                 when {
                     state.loading -> Box(
                         modifier = Modifier.fillMaxSize(),
@@ -114,7 +126,9 @@ fun FootballScreen(
                                 MatchCard(
                                     fixture = fixture,
                                     channels = state.matchedChannels[fixture.id].orEmpty(),
+                                    scheduled = fixture.id != null && state.scheduledFixtureIds.contains(fixture.id),
                                     onWatch = onWatchChannel,
+                                    onSchedule = { f, ch -> viewModel.toggleSchedule(f, ch) },
                                     onPrediction = { id -> viewModel.loadPrediction(id) }
                                 )
                             }
@@ -130,7 +144,9 @@ fun FootballScreen(
                                 MatchCard(
                                     fixture = fixture,
                                     channels = state.matchedChannels[fixture.id].orEmpty(),
+                                    scheduled = fixture.id != null && state.scheduledFixtureIds.contains(fixture.id),
                                     onWatch = onWatchChannel,
+                                    onSchedule = { f, ch -> viewModel.toggleSchedule(f, ch) },
                                     onPrediction = { id -> viewModel.loadPrediction(id) }
                                 )
                             }
@@ -264,18 +280,16 @@ private fun SectionTitle(title: String, color: Color) {
 private fun MatchCard(
     fixture: FootballFixture,
     channels: List<Channel>,
+    scheduled: Boolean,
     onWatch: (Channel) -> Unit,
+    onSchedule: (FootballFixture, Channel?) -> Unit,
     onPrediction: (Int) -> Unit
 ) {
-    TvClickableSurface(
-        onClick = { fixture.id?.let(onPrediction) },
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = CardGlass,
-            focusedContainerColor = CardGlass.copy(alpha = 0.95f)
-        ),
+    // Non-clickable container so channel chips receive TV focus/clicks
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(CardGlass, RoundedCornerShape(18.dp))
             .border(
                 width = 1.dp,
                 brush = Brush.horizontalGradient(
@@ -286,76 +300,142 @@ private fun MatchCard(
                 ),
                 shape = RoundedCornerShape(18.dp)
             )
+            .padding(18.dp)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (fixture.league.logo.isNotBlank()) {
-                    AsyncImage(
-                        model = fixture.league.logo,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(
-                    text = fixture.league.name.ifBlank { "Competição" },
-                    color = Color.White.copy(alpha = 0.65f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (fixture.league.logo.isNotBlank()) {
+                AsyncImage(
+                    model = fixture.league.logo,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    contentScale = ContentScale.Fit
                 )
-                StatusBadge(fixture)
+                Spacer(modifier = Modifier.width(8.dp))
             }
-            Spacer(modifier = Modifier.height(14.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TeamBlock(fixture.home, Alignment.Start, Modifier.weight(1f))
-                ScoreBlock(fixture)
-                TeamBlock(fixture.away, Alignment.End, Modifier.weight(1f))
-            }
+            Text(
+                text = fixture.league.name.ifBlank { "Competição" },
+                color = Color.White.copy(alpha = 0.65f),
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            StatusBadge(fixture)
+        }
+        Spacer(modifier = Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TeamBlock(fixture.home, Alignment.Start, Modifier.weight(1f))
+            ScoreBlock(fixture)
+            TeamBlock(fixture.away, Alignment.End, Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Primary actions row — TV-friendly discrete buttons
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             if (channels.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "ASSISTIR NA SUA LISTA",
-                    color = NeonLime.copy(alpha = 0.8f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(channels.take(6), key = { it.id }) { ch ->
-                        TvClickableSurface(
-                            onClick = { onWatch(ch) },
-                            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
-                            colors = ClickableSurfaceDefaults.colors(
-                                containerColor = NeonLime.copy(alpha = 0.12f),
-                                focusedContainerColor = NeonLime.copy(alpha = 0.28f)
-                            )
-                        ) {
-                            Text(
-                                text = ch.name,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                val primary = channels.first()
+                TvClickableSurface(
+                    onClick = { onWatch(primary) },
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = NeonLime.copy(alpha = 0.22f),
+                        focusedContainerColor = NeonLime.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Text(
+                        text = if (fixture.isLive) "▶ ASSISTIR" else "▶ ABRIR CANAL",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            if (!fixture.isLive && !fixture.isFinished) {
+                TvClickableSurface(
+                    onClick = { onSchedule(fixture, channels.firstOrNull()) },
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = if (scheduled) NeonLime.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f),
+                        focusedContainerColor = Color.White.copy(alpha = 0.22f)
+                    )
+                ) {
+                    Text(
+                        text = if (scheduled) "✓ AGENDADO" else "🔔 AGENDAR",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            fixture.id?.let { fid ->
+                TvClickableSurface(
+                    onClick = { onPrediction(fid) },
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color.White.copy(alpha = 0.08f),
+                        focusedContainerColor = Color.White.copy(alpha = 0.18f)
+                    )
+                ) {
+                    Text(
+                        text = "PALPITE",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        if (channels.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "CANAIS NA SUA LISTA",
+                color = NeonLime.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(channels.take(8), key = { it.id }) { ch ->
+                    TvClickableSurface(
+                        onClick = { onWatch(ch) },
+                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
+                        colors = ClickableSurfaceDefaults.colors(
+                            containerColor = NeonLime.copy(alpha = 0.12f),
+                            focusedContainerColor = NeonLime.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Text(
+                            text = ch.name,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-            } else {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Nenhum canal correspondente na M3U · toque para ver palpite",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 12.sp
-                )
             }
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Nenhum canal correspondente na M3U — use Palpite ou busque no ao vivo",
+                color = Color.White.copy(alpha = 0.4f),
+                fontSize = 12.sp
+            )
         }
     }
 }
