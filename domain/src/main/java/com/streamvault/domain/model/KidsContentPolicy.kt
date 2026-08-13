@@ -1,7 +1,8 @@
 package com.streamvault.domain.model
 
 /**
- * Kids-safe catalog filter (no external scrapers — uses the provider catalog only).
+ * Kids-safe catalog filter (provider catalog only — no external scrapers).
+ * Always excludes adult content; requires positive kids signals for inclusion.
  */
 object KidsContentPolicy {
     private val KIDS_POSITIVE = listOf(
@@ -11,29 +12,35 @@ object KidsContentPolicy {
         "nick jr", "nickjr", "gloob", "gloobinho", "disney jr", "disney junior",
         "pbs kids", "peppa", "galinha pintadinha", "mundo bita", "patati",
         "super why", "paw patrol", "patrulha canina", "mickey", "frozen",
-        "moana", "encanto", "toy story", "minions", "shrek", "madagascar"
-    )
-
-    private val KIDS_NEGATIVE = listOf(
-        "terror", "horror", "18+", "+18", "adulto", "adult ", "erotic", "xxx",
-        "violence", "violência", "violencia", "gore", "slasher", "thriller adulto"
+        "moana", "encanto", "toy story", "minions", "shrek", "madagascar",
+        "cartoon network", "boomerang", "discovery family", "nat geo kids",
+        "sesame", "cocomelon", "bluey", "dora ", "bubble guppies"
     )
 
     fun isKidsSafeText(vararg parts: String?): Boolean {
         val blob = parts.filterNotNull().joinToString(" ").lowercase()
         if (blob.isBlank()) return false
-        if (KIDS_NEGATIVE.any { blob.contains(it) }) return false
+        if (AdultContentPolicy.textLooksAdult(blob)) return false
         return KIDS_POSITIVE.any { blob.contains(it) }
     }
 
-    fun isKidsSafeCategory(name: String): Boolean = isKidsSafeText(name)
+    fun isKidsSafeCategory(name: String): Boolean {
+        if (AdultContentPolicy.categoryLooksAdult(name)) return false
+        return isKidsSafeText(name)
+    }
 
-    fun isKidsSafeSeries(series: Series): Boolean =
-        isKidsSafeText(series.name, series.genre, series.plot)
+    fun isKidsSafeSeries(series: Series): Boolean {
+        if (AdultContentPolicy.isAdultSeries(series)) return false
+        return isKidsSafeText(series.name, series.genre, series.plot, series.categoryName)
+    }
 
-    fun isKidsSafeMovie(movie: Movie): Boolean =
-        isKidsSafeText(movie.name, movie.genre, movie.plot)
+    fun isKidsSafeMovie(movie: Movie): Boolean {
+        if (AdultContentPolicy.isAdultMovie(movie)) return false
+        return isKidsSafeText(movie.name, movie.genre, movie.plot, movie.categoryName)
+    }
 
-    fun isKidsSafeChannel(channel: Channel): Boolean =
-        isKidsSafeText(channel.name, channel.groupTitle)
+    fun isKidsSafeChannel(channel: Channel): Boolean {
+        if (AdultContentPolicy.isAdultChannel(channel)) return false
+        return isKidsSafeText(channel.name, channel.groupTitle)
+    }
 }

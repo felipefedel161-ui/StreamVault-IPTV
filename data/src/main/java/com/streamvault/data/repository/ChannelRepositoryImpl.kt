@@ -2,6 +2,7 @@ package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
 import com.streamvault.domain.model.KidsContentPolicy
+import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
@@ -89,7 +90,7 @@ class ChannelRepositoryImpl @Inject constructor(
 
     override fun getChannels(providerId: Long): Flow<List<Channel>> =
         observeChannels(channelDao.getByProvider(providerId), providerId)
-            .map { list -> if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeChannel(it) } else list }
+            .map { list -> filterRestrictedChannels(list) }
 
     override fun getChannelCount(providerId: Long): Flow<Int> =
         preferencesRepository.hideDecorativeLiveRows.flatMapLatest { hideDecorativeRows ->
@@ -199,9 +200,7 @@ class ChannelRepositoryImpl @Inject constructor(
                 }
             }
 
-            val kidsFiltered = if (isKidsMode()) {
-                filteredCategories.filter { KidsContentPolicy.isKidsSafeCategory(it.name) }
-            } else filteredCategories
+            val kidsFiltered = filterRestrictedCategories(filteredCategories)
             val allChannelsCategory = Category(
                 id = ChannelRepository.ALL_CHANNELS_ID,
                 name = "All Channels",
@@ -359,7 +358,8 @@ class ChannelRepositoryImpl @Inject constructor(
         val hiddenIds = values[4] as Set<Long>
         val filtered = applyVisibilityFilter(entities, level, unlockedCats, hideDecorativeRows)
             .filterNot { it.id in hiddenIds }
-        applyNumbering(buildPresentedChannels(filtered, settings, unlockedCats), settings.numberingMode)
+        val presented = applyNumbering(buildPresentedChannels(filtered, settings, unlockedCats), settings.numberingMode)
+        filterRestrictedChannels(presented)
     }.flowOn(Dispatchers.Default)
 
     private fun decorativeAwareCategoryCountFlow(providerId: Long): Flow<List<CategoryCount>> =

@@ -2,6 +2,7 @@ package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
 import com.streamvault.domain.model.KidsContentPolicy
+import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
@@ -101,10 +102,25 @@ class MovieRepositoryImpl @Inject constructor(
     private val profileManager: ProfileManager
 ) : MovieRepository {
     private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
-    private fun filterKidsMovies(list: List<com.streamvault.domain.model.Movie>) =
-        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeMovie(it) } else list
-    private fun filterKidsCategories(list: List<com.streamvault.domain.model.Category>) =
-        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeCategory(it.name) } else list
+
+    /** Always hide adult; Kids mode further restricts to kids-safe only. */
+    private fun filterRestrictedMovies(list: List<com.streamvault.domain.model.Movie>): List<com.streamvault.domain.model.Movie> {
+        val kids = isKidsMode()
+        return list.filter { m ->
+            if (AdultContentPolicy.isAdultMovie(m)) false
+            else if (kids) KidsContentPolicy.isKidsSafeMovie(m)
+            else true
+        }
+    }
+
+    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> {
+        val kids = isKidsMode()
+        return list.filter { c ->
+            if (AdultContentPolicy.isAdultCategory(c)) false
+            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
+            else true
+        }
+    }
 
     private companion object {
         const val TAG = "MovieRepository"
@@ -171,7 +187,7 @@ class MovieRepositoryImpl @Inject constructor(
             if (level >= 3) movieDao.getByProviderUnprotected(providerId)
             else movieDao.getByProvider(providerId)
         }.combine(moviePresentationSettingsFlow) { list, settings ->
-            filterKidsMovies(buildPresentedMovies(list.map { it.toDomain() }, settings))
+            filterRestrictedMovies(buildPresentedMovies(list.map { it.toDomain() }, settings))
         }
 
     override fun getMoviesByCategory(providerId: Long, categoryId: Long): Flow<List<Movie>> =
@@ -206,7 +222,7 @@ class MovieRepositoryImpl @Inject constructor(
                 }
             }.map { list -> list.map { it.toDomain() } }
                 .combine(moviePresentationSettingsFlow) { movies, settings ->
-                    buildPresentedMovies(movies, settings)
+                    filterRestrictedMovies(buildPresentedMovies(movies, settings))
                 }
         )
     }
@@ -375,7 +391,7 @@ class MovieRepositoryImpl @Inject constructor(
             } else {
                 mapped
             }
-            filterKidsCategories(base)
+            filterRestrictedCategories(base)
         }
 
     override fun getCategoryItemCounts(providerId: Long): Flow<Map<Long, Int>> =
@@ -428,7 +444,7 @@ class MovieRepositoryImpl @Inject constructor(
                 val favoriteIds = favorites.map { it.contentId }.toSet()
                 movies.map { if (it.id in favoriteIds) it.copy(isFavorite = true) else it }
             }.combine(moviePresentationSettingsFlow) { movies, settings ->
-                buildPresentedMovies(movies, settings)
+                filterRestrictedMovies(buildPresentedMovies(movies, settings))
             }
         }
 

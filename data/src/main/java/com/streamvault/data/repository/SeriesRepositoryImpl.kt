@@ -2,6 +2,7 @@ package com.streamvault.data.repository
 
 import com.streamvault.domain.manager.ProfileManager
 import com.streamvault.domain.model.KidsContentPolicy
+import com.streamvault.domain.model.AdultContentPolicy
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
@@ -75,10 +76,24 @@ class SeriesRepositoryImpl @Inject constructor(
     private val profileManager: ProfileManager
 ) : SeriesRepository {
     private fun isKidsMode(): Boolean = profileManager.activeProfile.value?.isKids == true
-    private fun filterKidsSeries(list: List<com.streamvault.domain.model.Series>) =
-        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeSeries(it) } else list
-    private fun filterKidsCategories(list: List<com.streamvault.domain.model.Category>) =
-        if (isKidsMode()) list.filter { KidsContentPolicy.isKidsSafeCategory(it.name) } else list
+
+    private fun filterRestrictedSeries(list: List<com.streamvault.domain.model.Series>): List<com.streamvault.domain.model.Series> {
+        val kids = isKidsMode()
+        return list.filter { s ->
+            if (AdultContentPolicy.isAdultSeries(s)) false
+            else if (kids) KidsContentPolicy.isKidsSafeSeries(s)
+            else true
+        }
+    }
+
+    private fun filterRestrictedCategories(list: List<com.streamvault.domain.model.Category>): List<com.streamvault.domain.model.Category> {
+        val kids = isKidsMode()
+        return list.filter { c ->
+            if (AdultContentPolicy.isAdultCategory(c)) false
+            else if (kids) KidsContentPolicy.isKidsSafeCategory(c.name)
+            else true
+        }
+    }
 
     private companion object {
         const val TAG = "SeriesRepository"
@@ -324,7 +339,7 @@ class SeriesRepositoryImpl @Inject constructor(
             } else {
                 mapped
             }
-            filterKidsCategories(base)
+            filterRestrictedCategories(base)
         }
 
     override fun getCategoryItemCounts(providerId: Long): Flow<Map<Long, Int>> =
@@ -371,7 +386,7 @@ class SeriesRepositoryImpl @Inject constructor(
                 val favoriteIds = favorites.map { it.contentId }.toSet()
                 series.map { if (it.id in favoriteIds) it.copy(isFavorite = true) else it }
             }.combine(seriesPresentationSettingsFlow) { series, settings ->
-                buildPresentedSeries(series, settings)
+                filterRestrictedSeries(buildPresentedSeries(series, settings))
             }
         }
 
