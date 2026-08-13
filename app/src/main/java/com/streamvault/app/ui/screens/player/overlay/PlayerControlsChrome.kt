@@ -145,6 +145,7 @@ fun PlayerControlsOverlay(
     audioVideoSyncEnabled: Boolean = false,
     showEpisodesAction: Boolean = false,
     onOpenEpisodes: () -> Unit = {},
+    onPlayNextEpisode: () -> Unit = {},
     onOpenSplitScreen: () -> Unit,
     onEnterPictureInPicture: () -> Unit = {},
     onToggleMute: () -> Unit,
@@ -236,6 +237,8 @@ fun PlayerControlsOverlay(
                 audioVideoSyncEnabled = audioVideoSyncEnabled,
                 showEpisodesAction = showEpisodesAction,
                 onOpenEpisodes = onOpenEpisodes,
+                onPlayNextEpisode = onPlayNextEpisode,
+                        onRestartProgram = onRestartProgram,
                 onOpenSplitScreen = onOpenSplitScreen,
                 onEnterPictureInPicture = onEnterPictureInPicture,
                 onToggleMute = onToggleMute,
@@ -549,6 +552,7 @@ private fun PlayerBottomBar(
     audioVideoSyncEnabled: Boolean,
     showEpisodesAction: Boolean,
     onOpenEpisodes: () -> Unit,
+    onPlayNextEpisode: () -> Unit = {},
     onOpenSplitScreen: () -> Unit,
     onEnterPictureInPicture: () -> Unit,
     onToggleMute: () -> Unit,
@@ -689,6 +693,8 @@ private fun PlayerBottomBar(
                         audioVideoSyncEnabled = audioVideoSyncEnabled,
                         showEpisodesAction = showEpisodesAction,
                         onOpenEpisodes = onOpenEpisodes,
+                onPlayNextEpisode = onPlayNextEpisode,
+                        onRestartProgram = onRestartProgram,
                         onEnterPictureInPicture = onEnterPictureInPicture,
                         onToggleMute = onToggleMute,
                         isCastConnected = isCastConnected,
@@ -991,6 +997,8 @@ private fun PlayerVodInfo(
     onOpenAudioVideoSync: () -> Unit,
     showEpisodesAction: Boolean,
     onOpenEpisodes: () -> Unit,
+    onPlayNextEpisode: () -> Unit = {},
+    onRestartProgram: () -> Unit = {},
     onEnterPictureInPicture: () -> Unit,
     onToggleMute: () -> Unit,
     isCastConnected: Boolean,
@@ -1053,6 +1061,8 @@ private fun PlayerVodInfo(
         }
         if (showEpisodesAction) {
             add(PlayerActionSpec(stringResource(R.string.player_episodes), onOpenEpisodes))
+            add(PlayerActionSpec(stringResource(R.string.player_next), onPlayNextEpisode))
+            add(PlayerActionSpec(stringResource(R.string.player_restart), onRestartProgram))
         }
         if (showExternalPlayerAction) {
             add(PlayerActionSpec(stringResource(R.string.player_open_in_external_player), onOpenExternalPlayer))

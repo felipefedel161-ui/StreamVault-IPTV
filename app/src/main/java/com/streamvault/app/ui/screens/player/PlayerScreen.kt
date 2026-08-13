@@ -995,7 +995,14 @@ fun PlayerScreen(
             onTogglePlayPause = { if (isPlaying) viewModel.pause() else viewModel.play() },
             onSeekBackward = viewModel::seekBackward,
             onSeekForward = viewModel::seekForward,
-            onRestartProgram = viewModel::restartCurrentProgram,
+            onRestartProgram = {
+                if (contentType == "SERIES_EPISODE") {
+                    playerEngine.seekTo(0L)
+                } else {
+                    viewModel.restartCurrentProgram()
+                }
+            },
+            onPlayNextEpisode = { viewModel.playNextEpisodeNow() },
             onOpenArchive = { showProgramHistory = true },
             onStartRecording = {
                 notificationPermissionGate.runRecordingAction {
@@ -1069,70 +1076,6 @@ fun PlayerScreen(
                 .align(Alignment.TopEnd)
                 .padding(32.dp)
         )
-
-        // Series episode quick actions: restart (top) + next (bottom) + skip intro
-        if (!isInPictureInPictureMode && contentType == "SERIES_EPISODE") {
-            val episodePositionMs by playerEngine.currentPosition.collectAsStateWithLifecycle()
-            val showSkipIntro = episodePositionMs in 5_000L..110_000L
-
-            // Top-end: restart episode
-            androidx.compose.material3.TextButton(
-                onClick = {
-                    playerEngine.seekTo(0L)
-                    viewModel.notifyUserActivity()
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 20.dp, end = 20.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
-            ) {
-                Text(
-                    text = stringResource(R.string.player_restart),
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-
-            // Top-start: skip intro (first ~2 min)
-            if (showSkipIntro) {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        playerEngine.seekTo((episodePositionMs + 85_000L).coerceAtMost(120_000L))
-                        viewModel.notifyUserActivity()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 20.dp, start = 20.dp)
-                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
-                ) {
-                    Text(
-                        text = "Pular abertura",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-
-            // Bottom: next episode (when picker available)
-            if (canOpenEpisodePicker) {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        viewModel.playNextEpisodeNow()
-                        viewModel.notifyUserActivity()
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = if (showControls) 120.dp else 28.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(999.dp))
-                ) {
-                    Text(
-                        text = stringResource(R.string.player_next),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-        }
 
         if (!isInPictureInPictureMode) {
             PlayerSleepTimerWarningOverlay(
