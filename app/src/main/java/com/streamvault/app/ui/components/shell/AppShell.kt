@@ -851,8 +851,32 @@ private fun rememberDestinationItems(): List<DestinationItem> {
         ?.collectAsStateWithLifecycle(initialValue = AppTopLevelDestination.defaultOrder)
         ?.value
         ?: AppTopLevelDestination.defaultOrder
-    return remember(configuredDestinations) {
-        configuredDestinations.map { it.toDestinationItem() }
+    val isKids = mainActivity?.profileManager?.activeProfile
+        ?.collectAsStateWithLifecycle(initialValue = null)
+        ?.value
+        ?.isKids == true
+    return remember(configuredDestinations, isKids) {
+        val dests = if (isKids) {
+            // Kids: only Live, Movies, Search, Settings
+            val kidsAllowed = setOf(
+                AppTopLevelDestination.LIVE_TV,
+                AppTopLevelDestination.MOVIES,
+                AppTopLevelDestination.SEARCH,
+                AppTopLevelDestination.SETTINGS
+            )
+            val filtered = configuredDestinations.filter { it in kidsAllowed }
+            // Ensure Movies first for kids UX
+            val ordered = listOf(
+                AppTopLevelDestination.MOVIES,
+                AppTopLevelDestination.LIVE_TV,
+                AppTopLevelDestination.SEARCH,
+                AppTopLevelDestination.SETTINGS
+            ).filter { it in filtered.toSet() || it in kidsAllowed }
+            ordered.distinct().ifEmpty { listOf(AppTopLevelDestination.MOVIES, AppTopLevelDestination.SETTINGS) }
+        } else {
+            configuredDestinations
+        }
+        dests.map { it.toDestinationItem() }
     }
 }
 

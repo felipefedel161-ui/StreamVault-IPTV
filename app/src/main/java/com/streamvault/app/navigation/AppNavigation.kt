@@ -482,8 +482,9 @@ fun AppNavigation(mainActivity: MainActivity) {
 
         composable(Routes.PROFILE_PICKER) {
             ProfilePickerScreen(
-                onProfileSelected = {
-                    navController.navigate(Routes.HOME) {
+                onProfileSelected = { isKids ->
+                    val target = if (isKids) Routes.MOVIES else Routes.HOME
+                    navController.navigate(target) {
                         popUpTo(Routes.PROFILE_PICKER) { inclusive = true }
                     }
                 }

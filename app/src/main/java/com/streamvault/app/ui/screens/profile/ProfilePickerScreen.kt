@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProfilePickerScreen(
-    onProfileSelected: () -> Unit,
+    onProfileSelected: (isKids: Boolean) -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
@@ -97,7 +97,7 @@ fun ProfilePickerScreen(
                                         mode = PickerMode.Pin
                                     } else {
                                         scope.launch {
-                                            if (viewModel.select(profile.id, null)) onProfileSelected()
+                                            if (viewModel.select(profile.id, null)) onProfileSelected(profile.isKids)
                                         }
                                     }
                                 }
@@ -139,7 +139,7 @@ fun ProfilePickerScreen(
                         onConfirm = {
                             scope.launch {
                                 val ok = viewModel.select(target.id, pinInput)
-                                if (ok) onProfileSelected()
+                                if (ok) onProfileSelected(target.isKids)
                                 else pinError = "PIN incorreto"
                             }
                         },

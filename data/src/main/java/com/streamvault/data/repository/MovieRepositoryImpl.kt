@@ -198,7 +198,7 @@ class MovieRepositoryImpl @Inject constructor(
                     if (level >= 3) movieDao.getByCategoryUnprotected(providerId, categoryId)
                     else movieDao.getByCategory(providerId, categoryId)
                 }.combine(moviePresentationSettingsFlow) { list, settings ->
-                    buildPresentedMovies(list.map { it.toDomain() }, settings)
+                    filterRestrictedMovies(buildPresentedMovies(list.map { it.toDomain() }, settings))
                 }
             )
         }
@@ -1226,7 +1226,7 @@ class MovieRepositoryImpl @Inject constructor(
             .take(query.limit)
             .map { it.toDomain() }
             .map { movie -> if (movie.id in favoriteIds) movie.copy(isFavorite = true) else movie }
-        val items = buildPresentedMovies(rawItems, presentationSettings)
+        val items = filterRestrictedMovies(buildPresentedMovies(rawItems, presentationSettings))
 
         return PagedResult(
             items = items,
