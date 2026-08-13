@@ -242,7 +242,8 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun removeFromHistory(contentId: Long, contentType: ContentType, providerId: Long): Result<Unit> = try {
+    override suspend fun removeFromHistory(contentId: Long, contentType: ContentType, providerId: Long): Result<Unit> {
+        return try {
         val profileId = activeProfileId()
         if (profileId != null) {
             profileLibrary.removeHistory(profileId, contentId, contentType, providerId)
@@ -257,8 +258,10 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
     } catch (e: Exception) {
         Result.error("Failed to remove playback history item", e)
     }
+    }
 
-    override suspend fun clearAllHistory(): Result<Unit> = try {
+    override suspend fun clearAllHistory(): Result<Unit> {
+        return try {
         val profileId = activeProfileId()
         if (profileId != null) {
             profileLibrary.clearHistory(profileId)
@@ -273,6 +276,7 @@ class PlaybackHistoryRepositoryImpl @Inject constructor(
         Result.success(Unit)
     } catch (e: Exception) {
         Result.error("Failed to clear playback history", e)
+    }
     }
 
     override suspend fun clearHistoryForProvider(providerId: Long): Result<Unit> = try {

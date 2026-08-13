@@ -120,7 +120,8 @@ class FavoriteRepositoryImpl @Inject constructor(
         contentId: Long,
         contentType: ContentType,
         groupId: Long?
-    ): Result<Unit> = try {
+    ): Result<Unit> {
+        return try {
         val profileId = activeProfileId()
         if (profileId != null) {
             profileLibrary.addFavorite(
@@ -148,8 +149,10 @@ class FavoriteRepositoryImpl @Inject constructor(
     } catch (e: Exception) {
         Result.error("Failed to add favorite: ${e.message}", e)
     }
+    }
 
-    override suspend fun removeFavorite(providerId: Long, contentId: Long, contentType: ContentType, groupId: Long?): Result<Unit> = try {
+    override suspend fun removeFavorite(providerId: Long, contentId: Long, contentType: ContentType, groupId: Long?): Result<Unit> {
+        return try {
         val profileId = activeProfileId()
         if (profileId != null) {
             profileLibrary.removeFavorite(profileId, providerId, contentId, contentType, groupId)
@@ -159,6 +162,7 @@ class FavoriteRepositoryImpl @Inject constructor(
         Result.success(Unit)
     } catch (e: Exception) {
         Result.error("Failed to remove favorite: ${e.message}", e)
+    }
     }
 
     override suspend fun moveFavoriteToGroup(
