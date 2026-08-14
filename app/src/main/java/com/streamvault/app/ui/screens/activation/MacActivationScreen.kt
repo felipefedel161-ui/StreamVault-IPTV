@@ -51,8 +51,14 @@ sealed class ActivationState {
 @HiltViewModel
 class MacActivationViewModel @Inject constructor(
     private val activationManager: ActivationManager,
-    private val validateAndAddProvider: ValidateAndAddProvider
+    private val validateAndAddProvider: ValidateAndAddProvider,
+    private val providerRepository: ProviderRepository,
+    private val channelRepository: ChannelRepository,
 ) : androidx.lifecycle.ViewModel() {
+
+    companion object {
+        private const val CATALOG_FRESH_MS = 12L * 60 * 60 * 1000
+    }
 
     private val _state = MutableStateFlow<ActivationState>(ActivationState.Checking)
     val state: StateFlow<ActivationState> = _state.asStateFlow()
@@ -107,21 +113,72 @@ class MacActivationViewModel @Inject constructor(
         _state.value = ActivationState.AddingProvider
         viewModelScope.launch {
             try {
-                validateAndAddProvider.addM3u(
-                    M3uProviderSetupCommand(
-                        url = m3uUrl,
-                        name = name,
-                        httpUserAgent = "StreamVault/1.0",
-                        httpHeaders = "",
-                        epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
-                        m3uVodClassificationEnabled = true,
-                        existingProviderId = null
-                    ),
-                    onProgress = { msg -> _syncProgress.value = msg }
-                )
-            } catch (_: Exception) {}
+                val url = m3uUrl.trim()
+                val providers = runCatching { providerRepository.getProviders().first() }.getOrDefault(emptyList())
+                val existing = providers.firstOrNull { urlsMatch(it.m3uUrl, url) }
+                    ?: providers.firstOrNull { urlsMatch(it.serverUrl, url) }
+                    ?: runCatching { providerRepository.getActiveProvider().first() }.getOrNull()
+                        ?.takeIf { urlsMatch(it.m3uUrl, url) || urlsMatch(it.serverUrl, url) }
+
+                val now = System.currentTimeMillis()
+                if (existing != null) {
+                    val count = runCatching {
+                        channelRepository.getChannelCount(existing.id).first()
+                    }.getOrDefault(0)
+                    val age = if (existing.lastSyncedAt > 0L) now - existing.lastSyncedAt else Long.MAX_VALUE
+                    val fresh = count > 0 && age in 0 until CATALOG_FRESH_MS
+
+                    if (fresh) {
+                        // Fast path: local Room already has the catalog
+                        _syncProgress.value = "Lista em cache ($count canais) — entrando…"
+                        _state.value = ActivationState.Done
+                        return@launch
+                    }
+
+                    _syncProgress.value = if (count > 0) {
+                        "Atualizando lista salva…"
+                    } else {
+                        "Baixando lista (primeira sincronização)…"
+                    }
+                    validateAndAddProvider.addM3u(
+                        M3uProviderSetupCommand(
+                            url = url,
+                            name = name.ifBlank { existing.name },
+                            httpUserAgent = "StreamVault/1.0",
+                            httpHeaders = "",
+                            epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+                            m3uVodClassificationEnabled = true,
+                            existingProviderId = existing.id // rewrite in place — no duplicate
+                        ),
+                        onProgress = { msg -> _syncProgress.value = msg }
+                    )
+                } else {
+                    _syncProgress.value = "Baixando lista (primeira vez)…"
+                    validateAndAddProvider.addM3u(
+                        M3uProviderSetupCommand(
+                            url = url,
+                            name = name,
+                            httpUserAgent = "StreamVault/1.0",
+                            httpHeaders = "",
+                            epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
+                            m3uVodClassificationEnabled = true,
+                            existingProviderId = null
+                        ),
+                        onProgress = { msg -> _syncProgress.value = msg }
+                    )
+                }
+            } catch (_: Exception) {
+                // Still enter app if local data exists
+            }
             _state.value = ActivationState.Done
         }
+    }
+
+    private fun urlsMatch(a: String?, b: String?): Boolean {
+        val x = (a ?: "").trim().trimEnd('/')
+        val y = (b ?: "").trim().trimEnd('/')
+        if (x.isEmpty() || y.isEmpty()) return false
+        return x.equals(y, ignoreCase = true)
     }
 }
 
@@ -193,7 +250,7 @@ fun MacActivationScreen(
                             is ActivationState.Activated, is ActivationState.AddingProvider -> {
                                 StatusPill(label = "ATIVADO ✓", containerColor = AppColors.Brand)
                                 CircularProgressIndicator(color = AppColors.Brand, modifier = Modifier.size(40.dp))
-                                Text("Carregando sua lista...", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
+                                Text(syncProgress ?: "Preparando sua lista...", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
                                 if (s is ActivationState.Activated && s.expiresIn >= 0)
                                     Text("Expira em: ${s.expiracao} (${s.expiresIn} dias)", style = MaterialTheme.typography.bodySmall, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
                                 syncProgress?.let {
