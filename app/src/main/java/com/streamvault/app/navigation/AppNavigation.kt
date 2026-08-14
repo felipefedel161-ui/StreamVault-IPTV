@@ -95,6 +95,7 @@ object Routes {
     const val LIVE_TV = "live_tv"
     const val FOOTBALL = "football"
     const val NOVELAS = "novelas"
+    const val RADIO = "radio"
     const val LIVE_TV_DESTINATION = "live_tv?categoryId={categoryId}"
     const val MOVIES = "movies"
     const val SERIES = "series"
@@ -341,6 +342,7 @@ internal fun AppTopLevelDestination.toAppRoute(): String = when (this) {
     AppTopLevelDestination.LIVE_TV -> Routes.LIVE_TV
     AppTopLevelDestination.FOOTBALL -> Routes.FOOTBALL
     AppTopLevelDestination.NOVELAS -> Routes.NOVELAS
+    AppTopLevelDestination.RADIO -> Routes.RADIO
     AppTopLevelDestination.MOVIES -> Routes.MOVIES
     AppTopLevelDestination.SERIES -> Routes.SERIES
     AppTopLevelDestination.DOWNLOADS -> Routes.DOWNLOADS
@@ -629,6 +631,25 @@ fun AppNavigation(mainActivity: MainActivity) {
                         returnRoute = Routes.FOOTBALL
                     )
                     if (request.streamUrl.isBlank()) return@FootballScreen
+                    navController.navigateToPlayer(request)
+                }
+            )
+        }
+
+
+        composable(Routes.RADIO) {
+            com.streamvault.app.ui.screens.radio.RadioScreen(
+                currentRoute = Routes.RADIO,
+                onNavigate = { route -> tabNavigate(route) },
+                onPlayStation = { channel ->
+                    if (channel.streamUrl.isBlank() && channel.id <= 0L) return@RadioScreen
+                    val request = Routes.livePlayer(
+                        channel = channel,
+                        categoryId = channel.categoryId,
+                        providerId = channel.providerId,
+                        returnRoute = Routes.RADIO
+                    )
+                    if (request.streamUrl.isBlank()) return@RadioScreen
                     navController.navigateToPlayer(request)
                 }
             )

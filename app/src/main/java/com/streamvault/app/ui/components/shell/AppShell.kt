@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.runtime.Composable
@@ -861,6 +862,7 @@ private fun AppTopLevelDestination.toDestinationItem(): DestinationItem = when (
     AppTopLevelDestination.LIVE_TV -> DestinationItem(Routes.LIVE_TV, R.string.nav_live_tv, Icons.Default.PlayArrow)
     AppTopLevelDestination.FOOTBALL -> DestinationItem(Routes.FOOTBALL, R.string.nav_football, Icons.Default.Star)
     AppTopLevelDestination.NOVELAS -> DestinationItem(Routes.NOVELAS, R.string.nav_novelas, Icons.Default.Menu)
+    AppTopLevelDestination.RADIO -> DestinationItem(Routes.RADIO, R.string.nav_radio, Icons.Default.MusicNote)
     AppTopLevelDestination.MOVIES -> DestinationItem(Routes.MOVIES, R.string.nav_movies, Icons.Default.Star)
     AppTopLevelDestination.SERIES -> DestinationItem(Routes.SERIES, R.string.nav_series, Icons.Default.Menu)
     AppTopLevelDestination.DOWNLOADS -> DestinationItem(Routes.DOWNLOADS, R.string.nav_downloads, Icons.Default.Download)
