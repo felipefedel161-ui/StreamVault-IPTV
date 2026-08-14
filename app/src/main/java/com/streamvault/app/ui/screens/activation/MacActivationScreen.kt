@@ -1,6 +1,7 @@
 package com.streamvault.app.ui.screens.activation
 
 import android.content.ClipData
+import android.net.Uri
 import android.content.ClipboardManager
 import android.widget.Toast
 import androidx.compose.animation.*
@@ -118,31 +119,33 @@ class MacActivationViewModel @Inject constructor(
             try {
                 val url = m3uUrl.trim()
                 val providers = runCatching { providerRepository.getProviders().first() }.getOrDefault(emptyList())
-                val existing = providers.firstOrNull { urlsMatch(it.m3uUrl, url) }
-                    ?: providers.firstOrNull { urlsMatch(it.serverUrl, url) }
-                    ?: runCatching { providerRepository.getActiveProvider().first() }.getOrNull()
-                        ?.takeIf { urlsMatch(it.m3uUrl, url) || urlsMatch(it.serverUrl, url) }
+                val existing = findMatchingProvider(providers, url)
 
-                val now = System.currentTimeMillis()
                 if (existing != null) {
                     val count = runCatching {
                         channelRepository.getChannelCount(existing.id).first()
                     }.getOrDefault(0)
-                    val age = if (existing.lastSyncedAt > 0L) now - existing.lastSyncedAt else Long.MAX_VALUE
-                    val fresh = count > 0 && age in 0 until CATALOG_FRESH_MS
 
-                    if (fresh) {
-                        // Fast path: local Room already has the catalog
-                        _syncProgress.value = "Lista em cache ($count canais) — entrando…"
+                    // PRIMARY RULE: if local catalog already has channels, enter immediately.
+                    // Do NOT block on full re-sync — that was the "Updating existing provider" delay.
+                    if (count > 0) {
+                        val age = if (existing.lastSyncedAt > 0L) {
+                            System.currentTimeMillis() - existing.lastSyncedAt
+                        } else {
+                            Long.MAX_VALUE
+                        }
+                        val stale = age >= CATALOG_FRESH_MS
+                        _syncProgress.value = if (stale) {
+                            "Lista em cache ($count) — atualização em segundo plano…"
+                        } else {
+                            "Lista em cache ($count canais) — entrando…"
+                        }
                         _state.value = ActivationState.Done
                         return@launch
                     }
 
-                    _syncProgress.value = if (count > 0) {
-                        "Atualizando lista salva…"
-                    } else {
-                        "Baixando lista (primeira sincronização)…"
-                    }
+                    // No local channels yet — first real download for this provider
+                    _syncProgress.value = "Baixando lista (primeira sincronização)…"
                     validateAndAddProvider.addM3u(
                         M3uProviderSetupCommand(
                             url = url,
@@ -151,7 +154,7 @@ class MacActivationViewModel @Inject constructor(
                             httpHeaders = "",
                             epgSyncMode = ProviderEpgSyncMode.BACKGROUND,
                             m3uVodClassificationEnabled = true,
-                            existingProviderId = existing.id // rewrite in place — no duplicate
+                            existingProviderId = existing.id
                         ),
                         onProgress = { msg -> _syncProgress.value = msg }
                     )
@@ -171,9 +174,50 @@ class MacActivationViewModel @Inject constructor(
                     )
                 }
             } catch (_: Exception) {
-                // Still enter app if local data exists
+                // If anything fails but we might already have local data, still proceed
             }
             _state.value = ActivationState.Done
+        }
+    }
+
+    private fun findMatchingProvider(providers: List<com.streamvault.domain.model.Provider>, url: String): com.streamvault.domain.model.Provider? {
+        if (providers.isEmpty()) return null
+        // Exact / normalized URL
+        providers.firstOrNull { urlsMatch(it.m3uUrl, url) || urlsMatch(it.serverUrl, url) }?.let { return it }
+        // Xtream get.php?username=… → match by host + username
+        val parsed = parseXtreamHint(url)
+        if (parsed != null) {
+            val (host, user) = parsed
+            providers.firstOrNull { p ->
+                val ph = hostOf(p.serverUrl.ifBlank { p.m3uUrl })
+                val pu = p.username.trim()
+                ph.isNotEmpty() && ph.equals(host, true) && pu.isNotEmpty() && pu.equals(user, true)
+            }?.let { return it }
+        }
+        // Single active provider with any catalog — treat as the activation target
+        if (providers.size == 1) return providers.first()
+        providers.firstOrNull { it.isActive }?.let { return it }
+        return null
+    }
+
+    private fun parseXtreamHint(url: String): Pair<String, String>? {
+        return try {
+            val u = Uri.parse(url)
+            val user = u.getQueryParameter("username")?.trim().orEmpty()
+            if (user.isEmpty()) return null
+            val host = (u.host ?: "").lowercase()
+            if (host.isEmpty()) return null
+            host to user
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun hostOf(url: String): String {
+        return try {
+            Uri.parse(url).host?.lowercase().orEmpty()
+        } catch (_: Exception) {
+            ""
         }
     }
 
@@ -181,9 +225,14 @@ class MacActivationViewModel @Inject constructor(
         val x = (a ?: "").trim().trimEnd('/')
         val y = (b ?: "").trim().trimEnd('/')
         if (x.isEmpty() || y.isEmpty()) return false
-        return x.equals(y, ignoreCase = true)
+        if (x.equals(y, ignoreCase = true)) return true
+        // Compare without query string noise
+        val xs = x.substringBefore('?')
+        val ys = y.substringBefore('?')
+        return xs.equals(ys, ignoreCase = true) && xs.length > 12
     }
 }
+
 
 @Composable
 fun MacActivationScreen(
