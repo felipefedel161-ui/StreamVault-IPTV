@@ -56,24 +56,15 @@ class RadioViewModel @Inject constructor(
                     .toSet()
 
                 // Prefer channels from radio categories; fall back to name scan on all live channels
-                val fromCategories = if (radioCategoryIds.isNotEmpty()) {
-                    radioCategoryIds.flatMap { catId ->
-                        channelRepository.getChannels(provider.id, catId).first()
-                    }
-                } else {
-                    emptyList()
-                }
-
-                val stations = if (fromCategories.isNotEmpty()) {
-                    fromCategories
-                } else {
-                    channelRepository.getChannels(provider.id).first()
-                        .filter { ch ->
+                val allChannels = channelRepository.getChannels(provider.id).first()
+                val stations = allChannels
+                    .filter { ch ->
+                        (ch.categoryId != null && ch.categoryId in radioCategoryIds) ||
                             isRadioText(ch.name) ||
-                                isRadioText(ch.groupTitle) ||
-                                isRadioText(categories.firstOrNull { it.id == ch.categoryId }?.name.orEmpty())
-                        }
-                }
+                            isRadioText(ch.groupTitle) ||
+                            isRadioText(ch.categoryName) ||
+                            isRadioText(categories.firstOrNull { it.id == ch.categoryId }?.name.orEmpty())
+                    }
                     .distinctBy { it.id }
                     .sortedBy { it.name.lowercase() }
 

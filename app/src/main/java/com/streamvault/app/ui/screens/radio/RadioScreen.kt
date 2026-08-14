@@ -21,10 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -74,26 +74,37 @@ fun RadioScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = viewModel::setQuery,
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    placeholder = { Text("Buscar estação…", color = AppColors.TextTertiary) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = AppColors.TextSecondary)
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = AppColors.TextPrimary,
-                        unfocusedTextColor = AppColors.TextPrimary,
-                        focusedBorderColor = AppColors.Brand,
-                        unfocusedBorderColor = AppColors.Border,
-                        cursorColor = AppColors.Brand,
-                        focusedContainerColor = AppColors.Surface,
-                        unfocusedContainerColor = AppColors.Surface,
-                    ),
-                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
-                )
+                Surface(
+                    onClick = {},
+                    shape = RoundedCornerShape(12.dp),
+                    colors = androidx.tv.material3.SurfaceDefaults.colors(containerColor = AppColors.Surface),
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = AppColors.TextSecondary, modifier = Modifier.size(20.dp))
+                        BasicTextField(
+                            value = state.query,
+                            onValueChange = viewModel::setQuery,
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = AppColors.TextPrimary),
+                            cursorBrush = SolidColor(AppColors.Brand),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { inner ->
+                                Box {
+                                    if (state.query.isEmpty()) {
+                                        Text("Buscar estação…", style = MaterialTheme.typography.bodyMedium, color = AppColors.TextTertiary)
+                                    }
+                                    inner()
+                                }
+                            }
+                        )
+                    }
+                }
+
                 TvClickableSurface(
                     onClick = { viewModel.load() },
                     shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
