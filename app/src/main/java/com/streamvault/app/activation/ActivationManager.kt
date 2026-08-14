@@ -22,6 +22,8 @@ class ActivationManager @Inject constructor(
 ) {
     companion object {
         const val SERVER_URL = "https://vault-1-c68s.onrender.com"
+        /** Must match ACTIVATION_API_KEY on the panel when configured. */
+        const val ACTIVATION_API_KEY = ""
         private const val USER_AGENT = "StreamVault/1.0"
         private const val TAG = "Activation"
         // Render free: cold start pode passar de 60s
@@ -48,6 +50,24 @@ class ActivationManager @Inject constructor(
      *
      * Result is always uppercase and never blank.
      */
+
+    /**
+     * Secondary hardware binding (survives MAC spoof attempts better when combined with device id).
+     * Bound server-side on first successful activation.
+     */
+    fun buildFingerprint(): String {
+        val parts = listOfNotNull(
+            Build.BOARD,
+            Build.BRAND,
+            Build.MODEL,
+            Build.DEVICE,
+            Build.HARDWARE,
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        ).joinToString("|")
+        // stable short token
+        return parts.uppercase().replace(" ", "").take(120).ifBlank { "UNKNOWN" }
+    }
+
     fun getDeviceId(): String {
         // 1. Hardware MAC (best for TV boxes / stick)
         readHardwareMac()?.let { return it }
@@ -153,13 +173,18 @@ class ActivationManager @Inject constructor(
     private fun attemptStatus(deviceId: String): ActivationResult {
         return try {
             val url = "$SERVER_URL/api/status/${deviceId}"
-            val request = Request.Builder()
+            val fp = buildFingerprint()
+            val reqBuilder = Request.Builder()
                 .url(url)
                 .get()
                 .header("Accept", "application/json")
                 .header("User-Agent", USER_AGENT)
                 .header("Cache-Control", "no-cache")
-                .build()
+                .header("X-Device-Fingerprint", fp)
+            if (ACTIVATION_API_KEY.isNotBlank()) {
+                reqBuilder.header("X-Vault-Key", ACTIVATION_API_KEY)
+            }
+            val request = reqBuilder.build()
 
             activationClient.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
