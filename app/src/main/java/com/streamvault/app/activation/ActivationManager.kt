@@ -184,6 +184,9 @@ class ActivationManager @Inject constructor(
             if (ACTIVATION_API_KEY.isNotBlank()) {
                 reqBuilder.header("X-Vault-Key", ACTIVATION_API_KEY)
             }
+            reqBuilder.header("X-Device-Model", "${Build.MANUFACTURER} ${Build.MODEL}".trim().take(80))
+            reqBuilder.header("X-Android-Version", Build.VERSION.RELEASE ?: "")
+            reqBuilder.header("X-App-Version", "StreamVault")
             val request = reqBuilder.build()
 
             activationClient.newCall(request).execute().use { response ->
@@ -216,6 +219,7 @@ class ActivationManager @Inject constructor(
                 if (m3u.isBlank()) ActivationResult.Error(ActivationError.NO_M3U)
                 else ActivationResult.Success(m3uUrl = m3u, expiracao = exp, diasRestantes = dias)
             }
+            202 -> ActivationResult.Error(ActivationError.PENDING)
             403 -> {
                 val msg = json.optString("mensagem", "").lowercase()
                 when {

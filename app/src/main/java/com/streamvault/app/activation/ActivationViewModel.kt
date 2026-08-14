@@ -69,6 +69,7 @@ class ActivationViewModel @Inject constructor(
                     val errorMsg = when (result.error) {
                         ActivationError.EXPIRED ->
                             "⚠️ Assinatura expirada. Contacte o administrador."
+                        ActivationError.PENDING -> "⏳ Aguardando ativação.\nEnvie uma foto do ID ao suporte.\n\nID: ${_uiState.value.deviceId}"
                         ActivationError.NOT_FOUND ->
                             "❌ Dispositivo não cadastrado.\n\nInforme o ID ao seu revendedor:\n${_uiState.value.deviceId}"
                         ActivationError.NO_M3U ->

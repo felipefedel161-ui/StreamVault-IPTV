@@ -11,6 +11,7 @@ sealed class ActivationResult {
 }
 
 enum class ActivationError {
+    PENDING,
     EXPIRED,
     NOT_FOUND,
     NO_M3U,

@@ -46,6 +46,7 @@ import javax.inject.Inject
 sealed class ActivationState {
     object Checking : ActivationState()
     object NotActivated : ActivationState()
+    object Pending : ActivationState()
     data class Error(val message: String, val isExpired: Boolean = false, val isFingerprintMismatch: Boolean = false) : ActivationState()
     data class Activated(val m3uUrl: String, val expiresIn: Int, val expiracao: String) : ActivationState()
     object AddingProvider : ActivationState()
@@ -89,6 +90,7 @@ class MacActivationViewModel @Inject constructor(
                 }
                 is ActivationResult.Error -> {
                     _state.value = when (result.error) {
+                        ActivationError.PENDING -> ActivationState.Pending
                         ActivationError.NOT_FOUND -> ActivationState.NotActivated
                         ActivationError.EXPIRED -> ActivationState.Error(
                             "Assinatura expirada.\nContacte o administrador para renovar.",
@@ -284,6 +286,26 @@ fun MacActivationScreen(
                                 CircularProgressIndicator(color = AppColors.Brand, modifier = Modifier.size(40.dp))
                                 Text("Verificando ativação...", style = MaterialTheme.typography.titleLarge, color = AppColors.TextPrimary, textAlign = TextAlign.Center)
                                 if (deviceId.isNotBlank()) Text("ID: $deviceId", style = MaterialTheme.typography.bodySmall, color = AppColors.TextSecondary, textAlign = TextAlign.Center)
+                            }
+                            is ActivationState.Pending -> {
+                                StatusPill(label = "AGUARDANDO ATIVAÇÃO", containerColor = AppColors.BrandMuted)
+                                Text(
+                                    "Seu aparelho já apareceu no painel.",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = AppColors.TextPrimary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    "Envie uma foto desta tela ao suporte para confirmar o ID.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AppColors.TextSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (deviceId.isNotBlank()) {
+                                    Text("ID do dispositivo:", style = MaterialTheme.typography.bodySmall, color = AppColors.TextTertiary, textAlign = TextAlign.Center)
+                                    DeviceIdBox(deviceId)
+                                }
+                                TvButton(onClick = { viewModel.checkActivation() }) { Text("↻ Já ativei — verificar") }
                             }
                             is ActivationState.NotActivated -> {
                                 StatusPill(label = "NÃO ATIVADO", containerColor = AppColors.BrandMuted)
