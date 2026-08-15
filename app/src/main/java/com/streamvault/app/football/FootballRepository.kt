@@ -16,8 +16,10 @@ class FootballRepository @Inject constructor(
     okHttpClient: OkHttpClient
 ) {
     private val client = okHttpClient.newBuilder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(12, TimeUnit.SECONDS)
+        .writeTimeout(8, TimeUnit.SECONDS)
+        .callTimeout(15, TimeUnit.SECONDS)
         .build()
 
     private val base = ActivationManager.SERVER_URL.trimEnd('/')
