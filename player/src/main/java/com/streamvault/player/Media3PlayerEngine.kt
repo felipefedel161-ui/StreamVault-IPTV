@@ -1171,8 +1171,6 @@ class Media3PlayerEngine @Inject constructor(
                     .setMaxVideoBitrate(Int.MAX_VALUE)
                     .setMaxAudioBitrate(Int.MAX_VALUE)
                     .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
-                    // Use full measured bandwidth so ABR can climb to max quickly.
-                    .setBandwidthFraction(1.0f)
                     .setExceedRendererCapabilitiesIfNecessary(true)
                     .build()
             )
