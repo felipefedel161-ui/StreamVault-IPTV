@@ -35,16 +35,16 @@ internal object PlaybackBufferPolicies {
     private const val LOW_MEMORY_PLAYBACK_BUFFER_MS = 750
     private const val LOW_MEMORY_REBUFFER_MS = 2_000
 
-    private const val LIVE_MIN_BUFFER_MS = 2_500
+    private const val LIVE_MIN_BUFFER_MS = 3_000
     private const val LIVE_MAX_BUFFER_MS = 35_000
     private const val COMPAT_LIVE_MIN_BUFFER_MS = 3_000
     private const val COMPAT_LIVE_MAX_BUFFER_MS = 30_000
     private const val VOD_MIN_BUFFER_MS = 3_000
     private const val VOD_MAX_BUFFER_MS = 90_000
-    private const val PLAYBACK_BUFFER_MS = 750
-    private const val REBUFFER_MS = 2_000
-    private const val VOD_PLAYBACK_BUFFER_MS = 1_000
-    private const val VOD_REBUFFER_MS = 2_500
+    private const val PLAYBACK_BUFFER_MS = 1_000
+    private const val REBUFFER_MS = 2_500
+    private const val VOD_PLAYBACK_BUFFER_MS = 1_250
+    private const val VOD_REBUFFER_MS = 3_000
     private const val MEDIUM_LIVE_MIN_BUFFER_MS = 3_000
     private const val MEDIUM_LIVE_MAX_BUFFER_MS = 50_000
     private const val MEDIUM_LIVE_PLAYBACK_BUFFER_MS = 1_000

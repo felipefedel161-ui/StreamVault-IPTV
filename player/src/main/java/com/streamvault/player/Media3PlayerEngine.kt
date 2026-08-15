@@ -1163,14 +1163,17 @@ class Media3PlayerEngine @Inject constructor(
             .setFallbackMaxPlaybackSpeed(1.0f)
             .build()
 
-        // Prefer highest quality representation (HLS/DASH multi-bitrate).
+        // Prefer high quality without locking forever on the top rung (IPTV networks vary).
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    .setForceHighestSupportedBitrate(true)
+                    .setForceHighestSupportedBitrate(false)
                     .setMaxVideoBitrate(Int.MAX_VALUE)
                     .setMaxAudioBitrate(Int.MAX_VALUE)
                     .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
+                    // Use full measured bandwidth so ABR can climb to max quickly.
+                    .setBandwidthFraction(1.0f)
+                    .setExceedRendererCapabilitiesIfNecessary(true)
                     .build()
             )
         }

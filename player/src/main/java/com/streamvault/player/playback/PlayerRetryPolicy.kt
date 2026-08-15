@@ -10,8 +10,8 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-private const val FAST_TRANSIENT_RETRY_DELAY_MS = 500L
-private const val LIVE_TRANSIENT_RETRY_ATTEMPTS = 10
+private const val FAST_TRANSIENT_RETRY_DELAY_MS = 350L
+private const val LIVE_TRANSIENT_RETRY_ATTEMPTS = 15
 private const val LIVE_HLS_MALFORMED_RETRY_ATTEMPTS_AFTER_START = 12
 
 data class PlaybackRetryContext(
@@ -180,12 +180,13 @@ class PlayerRetryPolicy(
                 streamContext.resolvedStreamType == ResolvedStreamType.HLS && playbackStarted ->
                     LIVE_HLS_MALFORMED_RETRY_ATTEMPTS_AFTER_START
                 playbackStarted -> 0
-                else -> 1
+                else -> 3
             }
             PlaybackErrorCategory.UNKNOWN -> when {
                 streamContext.isLive && playbackStarted -> LIVE_TRANSIENT_RETRY_ATTEMPTS
+                streamContext.isLive && !playbackStarted -> 5
                 playbackStarted -> 0
-                else -> 1
+                else -> 3
             }
         }
     }
