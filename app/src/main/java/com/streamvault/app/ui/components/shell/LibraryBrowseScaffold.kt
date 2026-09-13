@@ -223,7 +223,7 @@ fun BrowseHeroPanel(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(240.dp),
+            .height(300.dp),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(28.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = AppColors.SurfaceElevated,
