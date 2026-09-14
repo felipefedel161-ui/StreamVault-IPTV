@@ -59,7 +59,7 @@ fun NovelasScreen(
     onNavigate: (String) -> Unit,
     viewModel: NovelasViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     BackHandler(enabled = state.selectedKey != "all" || state.searchQuery.isNotBlank()) {
         when {
