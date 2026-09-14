@@ -1,5 +1,7 @@
 package com.streamvault.app.ui.screens.player.overlay
 
+import androidx.compose.foundation.BorderStroke
+import androidx.tv.material3.Border
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -563,6 +565,8 @@ private fun PlayerBottomBar(
     onSeekPreviewPositionChanged: (Long?) -> Unit,
     showExternalPlayerAction: Boolean,
     onOpenExternalPlayer: () -> Unit,
+    showSkipIntro: Boolean = false,
+    onSkipIntro: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isVod = contentType != "LIVE" || isCatchUpPlayback
@@ -656,7 +660,9 @@ private fun PlayerBottomBar(
                         onSeekToPosition = onSeekToPosition,
                         onSetScrubbingMode = onSetScrubbingMode,
                         showExternalPlayerAction = showExternalPlayerAction,
-                        onOpenExternalPlayer = onOpenExternalPlayer
+                        onOpenExternalPlayer = onOpenExternalPlayer,
+                        showSkipIntro = showSkipIntro,
+                        onSkipIntro = onSkipIntro
                     )
                 } else {
                     PlayerVodInfo(
@@ -1004,7 +1010,9 @@ private fun PlayerVodInfo(
     seekPreview: SeekPreviewState,
     onSeekPreviewPositionChanged: (Long?) -> Unit,
     showExternalPlayerAction: Boolean,
-    onOpenExternalPlayer: () -> Unit
+    onOpenExternalPlayer: () -> Unit,
+    showSkipIntro: Boolean = false,
+    onSkipIntro: () -> Unit = {}
 ) {
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val isTelevisionDevice = rememberIsTelevisionDevice()
@@ -1116,217 +1124,206 @@ private fun PlayerVodInfo(
         }
     }
 
+
+    // ===== Layout idêntico à mockup aprovada =====
+    // Linha 1: transporte + Pular abertura
     Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            when {
-                compactControls -> 8.dp
-                tabletControls -> 10.dp
-                else -> 12.dp
-            }
-        )
-    ) {
-        PlayerMetaPill(
-            text = if (contentType == "MOVIE") {
-                stringResource(R.string.player_type_movie)
-            } else {
-                stringResource(R.string.player_type_series)
-            },
-            accent = true
-        )
-        if (isMuted) {
-            PlayerMetaPill(text = stringResource(R.string.player_muted_badge))
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.82f),
-            maxLines = 1
-        )
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        colors = SurfaceDefaults.colors(containerColor = Color.White.copy(alpha = 0.06f))
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(outerSpacing),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            PlayerTransportButton(
+                label = "<<",
+                contentDescription = stringResource(R.string.player_rewind),
+                onClick = onSeekBackward,
+                buttonSize = if (compactControls) 44.dp else 48.dp,
+                modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
+            )
             Surface(
-                shape = RoundedCornerShape(999.dp),
-                colors = SurfaceDefaults.colors(containerColor = Color.Black.copy(alpha = 0.24f))
+                onClick = onTogglePlayPause,
+                modifier = Modifier
+                    .size(if (compactControls) 56.dp else 64.dp)
+                    .focusRequester(playButtonFocusRequester)
+                    .focusProperties { down = quickActionsFocusRequester },
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = Color.White,
+                    focusedContainerColor = Color(0xFFE8F0FF)
+                )
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = transportGroupHorizontalPadding, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        when {
-                            compactControls -> 6.dp
-                            tabletControls -> 7.dp
-                            else -> 8.dp
-                        }
-                    ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PlayerTransportButton(
-                        label = "<<",
-                        contentDescription = stringResource(R.string.player_rewind),
-                        onClick = onSeekBackward,
-                        buttonSize = transportButtonSize,
-                        modifier = Modifier.focusProperties {
-                            down = quickActionsFocusRequester
-                        }
-                    )
-                    TvClickableSurface(
-                        onClick = onTogglePlayPause,
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = Color.White,
-                            focusedContainerColor = Color(0xFFE8F0FF)
-                        ),
-                        modifier = Modifier
-                            .size(playButtonSize)
-                            .focusRequester(playButtonFocusRequester)
-                            .focusProperties {
-                                down = quickActionsFocusRequester
-                            }
-                            .semantics { contentDescription = playbackLabel }
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            if (isPlaying) {
-                                Text(
-                                    text = "II",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = Color(0xFF0A0E14)
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = stringResource(R.string.player_play),
-                                    tint = Color(0xFF0A0E14),
-                                    modifier = Modifier.size(playIconSize)
-                                )
-                            }
-                        }
+                Box(Modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (isPlaying) {
+                        Text(
+                            text = "II",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color(0xFF0A0E14)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = stringResource(R.string.player_play),
+                            tint = Color(0xFF0A0E14),
+                            modifier = Modifier.size(if (compactControls) 28.dp else 32.dp)
+                        )
                     }
-                    PlayerTransportButton(
-                        label = ">>",
-                        contentDescription = stringResource(R.string.player_forward),
-                        onClick = onSeekForward,
-                        buttonSize = transportButtonSize,
-                        modifier = Modifier.focusProperties {
-                            down = quickActionsFocusRequester
-                        }
-                    )
                 }
             }
+            PlayerTransportButton(
+                label = ">>",
+                contentDescription = stringResource(R.string.player_forward),
+                onClick = onSeekForward,
+                buttonSize = if (compactControls) 44.dp else 48.dp,
+                modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
+            )
+        }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        if (showSkipIntro) {
+            Surface(
+                onClick = onSkipIntro,
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.25f)
+                ),
+                border = ClickableSurfaceDefaults.border(
+                    border = Border(
+                        border = BorderStroke(1.5.dp, Color(0xFF4F8CFF).copy(alpha = 0.85f)),
+                        shape = RoundedCornerShape(999.dp)
+                    ),
+                    focusedBorder = Border(
+                        border = BorderStroke(2.dp, Color(0xFF4F8CFF)),
+                        shape = RoundedCornerShape(999.dp)
+                    )
+                )
             ) {
-                AnimatedVisibility(visible = seekPreview.visible) {
-                    PlayerSeekPreviewCard(
-                        preview = seekPreview,
-                        previewHeight = when {
-                            compactControls -> 96.dp
-                            tabletControls -> 106.dp
-                            else -> 118.dp
-                        },
-                        modifier = Modifier.width(seekPreviewWidth)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = playbackLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.78f)
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.58f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = formatDuration(
-                            if (isScrubbing && duration > 0) {
-                                (sliderValue * duration).toLong()
-                            } else {
-                                currentPosition
-                            }
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White
-                    )
-                    Slider(
-                        value = sliderValue,
-                        onValueChange = { newValue ->
-                            val clampedValue = newValue.coerceIn(0f, 1f)
-                            if (!isScrubbing) {
-                                isScrubbing = true
-                                latestScrubbingCallback(true)
-                            }
-                            sliderValue = clampedValue
-                            if (duration > 0) {
-                                latestSeekPreviewPositionChanged((clampedValue * duration).toLong())
-                            }
-                        },
-                        onValueChangeFinished = {
-                            if (duration > 0) {
-                                latestSeekCallback((sliderValue.coerceIn(0f, 1f) * duration).toLong())
-                            }
-                            if (isScrubbing) {
-                                latestScrubbingCallback(false)
-                                isScrubbing = false
-                            }
-                            latestSeekPreviewPositionChanged(null)
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 12.dp)
-                            .focusProperties {
-                                down = quickActionsFocusRequester
-                            }
-                            .semantics { contentDescription = playbackLabel },
-                        enabled = duration > 0,
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = Primary,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.2f)
-                        )
-                    )
-                    Text(
-                        text = formatDuration(duration),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White
-                    )
-                }
+                Text(
+                    text = "Pular abertura",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                )
             }
         }
     }
 
-    PlayerQuickActionRows(
-        primaryActions = actions,
-        secondaryActions = emptyList(),
-        firstActionFocusRequester = quickActionsFocusRequester,
-        primaryActionsUpFocusRequester = playButtonFocusRequester,
-        singleRow = true,
-        compactButtons = true
-    )
+    Spacer(modifier = Modifier.height(14.dp))
+
+    // Linha 2: progresso + ações secundárias
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Slider(
+                value = sliderValue,
+                onValueChange = { newValue ->
+                    val clampedValue = newValue.coerceIn(0f, 1f)
+                    if (!isScrubbing) {
+                        isScrubbing = true
+                        latestScrubbingCallback(true)
+                    }
+                    sliderValue = clampedValue
+                    if (duration > 0) {
+                        latestSeekPreviewPositionChanged((clampedValue * duration).toLong())
+                    }
+                },
+                onValueChangeFinished = {
+                    if (duration > 0) {
+                        latestSeekCallback((sliderValue.coerceIn(0f, 1f) * duration).toLong())
+                    }
+                    if (isScrubbing) {
+                        latestScrubbingCallback(false)
+                        isScrubbing = false
+                    }
+                    latestSeekPreviewPositionChanged(null)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusProperties { down = quickActionsFocusRequester },
+                enabled = duration > 0,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color(0xFF4F8CFF),
+                    activeTrackColor = Color(0xFF4F8CFF),
+                    inactiveTrackColor = Color.White.copy(alpha = 0.22f)
+                )
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatDuration(
+                        if (isScrubbing && duration > 0) (sliderValue * duration).toLong()
+                        else currentPosition
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+                Text(
+                    text = "Reprodução",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.45f)
+                )
+                Text(
+                    text = formatDuration(duration),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            PlayerQuickSettingsButton(
+                text = if (isMuted) "Mudo ✓" else "Mudo",
+                onClick = onToggleMute,
+                compact = true,
+                modifier = Modifier.focusRequester(quickActionsFocusRequester)
+            )
+            if (videoQualityCount > 0) {
+                PlayerQuickSettingsButton(
+                    text = "Qualidade",
+                    onClick = onOpenVideoTracks,
+                    compact = true
+                )
+            }
+            if (audioTrackCount > 0) {
+                PlayerQuickSettingsButton(
+                    text = "Áudio",
+                    onClick = onOpenAudioTracks,
+                    compact = true
+                )
+            }
+            PlayerQuickSettingsButton(
+                text = "Velocidade",
+                onClick = onOpenPlaybackSpeed,
+                compact = true
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    // Linha 3: episódios / próximo / reiniciar
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
+    ) {
+        if (showEpisodesAction) {
+            PlayerQuickSettingsButton(text = "Episódios", onClick = onOpenEpisodes, compact = false)
+        }
+        if (showEpisodesAction) {
+            PlayerQuickSettingsButton(text = "Próximo", onClick = onPlayNextEpisode, compact = false)
+        }
+        PlayerQuickSettingsButton(text = "Reiniciar", onClick = onRestartProgram, compact = false)
+        if (showExternalPlayerAction) {
+            PlayerQuickSettingsButton(text = "Externo", onClick = onOpenExternalPlayer, compact = false)
+        }
+    }
 }
 
 @Composable

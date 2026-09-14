@@ -972,6 +972,12 @@ fun PlayerScreen(
             )
         }
 
+        // Skip intro window (wired into player dock)
+        val introPos by playerEngine.currentPosition.collectAsStateWithLifecycle()
+        val showSkipIntro = !isInPictureInPictureMode &&
+            contentType == "SERIES_EPISODE" &&
+            introPos in 3_000L..95_000L
+
         PlayerControlsOverlayHost(
             playerEngine = playerEngine,
             visible = showControls,
@@ -1056,6 +1062,11 @@ fun PlayerScreen(
             onUserInteraction = {
                 viewModel.notifyUserActivity()
                 viewModel.refreshControlsAutoHide()
+            },
+            showSkipIntro = showSkipIntro,
+            onSkipIntro = {
+                playerEngine.seekTo(95_000L)
+                viewModel.notifyUserActivity()
             }
         )
 
@@ -1068,41 +1079,7 @@ fun PlayerScreen(
         )
 
 
-        // Skip intro — only during opening, disappears after window or when used
-        if (!isInPictureInPictureMode && contentType == "SERIES_EPISODE") {
-            val introPos by playerEngine.currentPosition.collectAsStateWithLifecycle()
-            val showSkipIntro = introPos in 3_000L..95_000L
-            androidx.compose.animation.AnimatedVisibility(
-                visible = showSkipIntro,
-                enter = fadeIn() + slideInVertically { it / 3 },
-                exit = fadeOut() + slideOutVertically { it / 3 },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = if (showControls) 168.dp else 48.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .border(
-                            BorderStroke(1.5.dp, Color(0xFF4F8CFF).copy(alpha = 0.7f)),
-                            RoundedCornerShape(999.dp)
-                        )
-                        .background(Color(0xE6101824), RoundedCornerShape(999.dp))
-                        .clickable {
-                            playerEngine.seekTo(95_000L)
-                            viewModel.notifyUserActivity()
-                        }
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = "Pular abertura",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-        }
-
-        PlayerAspectRatioToast(
+                PlayerAspectRatioToast(
             aspectRatioLabel = aspectRatio.modeName,
             controlsVisible = showControls,
             modifier = Modifier
@@ -1493,7 +1470,9 @@ private fun PlayerControlsOverlayHost(
     onSetScrubbingMode: (Boolean) -> Unit,
     seekPreview: SeekPreviewState,
     onSeekPreviewPositionChanged: (Long?) -> Unit,
-    onUserInteraction: () -> Unit
+    onUserInteraction: () -> Unit,
+    showSkipIntro: Boolean = false,
+    onSkipIntro: () -> Unit = {}
 ) {
     val currentPosition by playerEngine.currentPosition.collectAsStateWithLifecycle()
     val duration by playerEngine.duration.collectAsStateWithLifecycle()
@@ -1558,7 +1537,9 @@ private fun PlayerControlsOverlayHost(
         onSetScrubbingMode = onSetScrubbingMode,
         seekPreview = seekPreview,
         onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
-        onUserInteraction = onUserInteraction
+        onUserInteraction = onUserInteraction,
+        showSkipIntro = showSkipIntro,
+        onSkipIntro = onSkipIntro
     )
 }
 
