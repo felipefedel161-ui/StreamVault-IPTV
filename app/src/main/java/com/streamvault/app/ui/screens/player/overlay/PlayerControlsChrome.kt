@@ -163,6 +163,8 @@ fun PlayerControlsOverlay(
     onSeekPreviewPositionChanged: (Long?) -> Unit = {},
     clockLabelOverride: String? = null,
     onUserInteraction: () -> Unit = {},
+    showSkipIntro: Boolean = false,
+    onSkipIntro: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
