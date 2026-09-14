@@ -1145,7 +1145,7 @@ private fun PlayerVodInfo(
                 buttonSize = if (compactControls) 44.dp else 48.dp,
                 modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
             )
-            Surface(
+            TvClickableSurface(
                 onClick = onTogglePlayPause,
                 modifier = Modifier
                     .size(if (compactControls) 56.dp else 64.dp)
@@ -1184,7 +1184,7 @@ private fun PlayerVodInfo(
         }
 
         if (showSkipIntro) {
-            Surface(
+            TvClickableSurface(
                 onClick = onSkipIntro,
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
                 colors = ClickableSurfaceDefaults.colors(

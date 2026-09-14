@@ -975,8 +975,8 @@ fun PlayerScreen(
         // Skip intro window (wired into player dock)
         val introPos by playerEngine.currentPosition.collectAsStateWithLifecycle()
         val showSkipIntro = !isInPictureInPictureMode &&
-            contentType == "SERIES_EPISODE" &&
-            introPos in 3_000L..95_000L
+            (contentType == "SERIES_EPISODE" || contentType.contains("SERIES", ignoreCase = true)) &&
+            introPos in 1_000L..120_000L
 
         PlayerControlsOverlayHost(
             playerEngine = playerEngine,

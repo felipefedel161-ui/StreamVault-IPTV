@@ -73,14 +73,8 @@ fun HomeDiscoverContent(
     onNavigate: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val heroChannel = remember(uiState.recentChannels, uiState.filteredChannels) {
-        uiState.recentChannels.firstOrNull()
-            ?: uiState.filteredChannels.firstOrNull { it.currentProgram != null }
-            ?: uiState.filteredChannels.firstOrNull()
-    }
-    val continueItems = remember(uiState.recentChannels, uiState.filteredChannels) {
-        val base = uiState.recentChannels.ifEmpty { uiState.filteredChannels }
-        base.distinctBy { it.id }.take(12)
+    val recentIds = remember(uiState.recentChannels) {
+        uiState.recentChannels.map { it.id }.toSet()
     }
     val recentMovies = remember(uiState.filteredChannels, uiState.recentChannels) {
         (uiState.filteredChannels + uiState.recentChannels)
@@ -103,46 +97,6 @@ fun HomeDiscoverContent(
         contentPadding = PaddingValues(bottom = 48.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
-        // ===== HERO =====
-        item(key = "hero") {
-            if (heroChannel != null) {
-                CinematicHero(
-                    channel = heroChannel,
-                    onPlay = {
-                        onChannelClick(heroChannel, null, resolveProvider(heroChannel), null, null)
-                    },
-                    onAddList = { /* my list placeholder */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                )
-            } else {
-                EmptyHeroBanner()
-            }
-        }
-
-        // ===== Continuar assistindo =====
-        if (continueItems.isNotEmpty()) {
-            item(key = "continue") {
-                SectionTitle("Continuar assistindo")
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    itemsIndexed(continueItems, key = { _, c -> "cw-${c.id}" }) { index, ch ->
-                        val progress = ((index * 17 + 28) % 70 + 20) / 100f
-                        ContinueWatchingCard(
-                            channel = ch,
-                            progress = progress,
-                            onClick = {
-                                onChannelClick(ch, null, resolveProvider(ch), null, null)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
         // ===== Filmes adicionados recentemente =====
         if (recentMovies.isNotEmpty()) {
             item(key = "recent-movies") {
@@ -153,9 +107,13 @@ fun HomeDiscoverContent(
                 ) {
                     itemsIndexed(recentMovies, key = { _, c -> "rm-${c.id}" }) { index, ch ->
                         val rating = 6.5f + (index % 25) / 10f
+                        val progress = if (ch.id in recentIds) {
+                            ((index * 17 + 28) % 70 + 15) / 100f
+                        } else null
                         MoviePosterCard(
                             channel = ch,
                             rating = rating,
+                            progress = progress,
                             onClick = {
                                 onChannelClick(ch, null, resolveProvider(ch), null, null)
                             }
@@ -537,6 +495,7 @@ private fun ContinueWatchingCard(
 private fun MoviePosterCard(
     channel: Channel,
     rating: Float,
+    progress: Float? = null,
     onClick: () -> Unit
 ) {
     val model = rememberCrossfadeImageModel(channel.logoUrl)
@@ -597,8 +556,28 @@ private fun MoviePosterCard(
                 style = MaterialTheme.typography.labelMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
             )
+            if (progress != null) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .padding(bottom = 8.dp)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.White.copy(alpha = 0.2f))
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progress.coerceIn(0.05f, 1f))
+                            .background(AccentBlue)
+                    )
+                }
+            } else {
+                Spacer(Modifier.height(4.dp))
+            }
         }
     }
 }
