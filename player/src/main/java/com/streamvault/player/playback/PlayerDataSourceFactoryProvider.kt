@@ -14,6 +14,7 @@ import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import okhttp3.Interceptor
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 
@@ -78,6 +79,8 @@ class PlayerDataSourceFactoryProvider(
                 .readTimeout(profile.readTimeoutMs, TimeUnit.MILLISECONDS)
                 .writeTimeout(profile.writeTimeoutMs, TimeUnit.MILLISECONDS)
                 .dns(PlayerDnsPolicy.healthAwareDns(port = port, healthStore = addressHealthStore))
+                .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))
+                .retryOnConnectionFailure(true)
                 .eventListener(PlayerAddressHealthEventListener(addressHealthStore))
                 .apply {
                     if (forceHttp1) {

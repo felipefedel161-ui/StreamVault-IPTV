@@ -1160,18 +1160,25 @@ class Media3PlayerEngine @Inject constructor(
             .build()
         val livePlaybackSpeedControl = DefaultLivePlaybackSpeedControl.Builder()
             .setFallbackMinPlaybackSpeed(1.0f)
-            .setFallbackMaxPlaybackSpeed(1.0f)
+            .setFallbackMaxPlaybackSpeed(1.04f) // recupera atraso após rebuffer sem saltar
+            .setMinUpdateIntervalMs(1_000)
+            .setProportionalControlFactor(0.1f)
+            .setMaxLiveOffsetErrorMsForUnitSpeed(1_500)
+            .setTargetLiveOffsetIncrementOnRebufferMs(500)
             .build()
 
         // Prefer high quality without locking forever on the top rung (IPTV networks vary).
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    .setForceHighestSupportedBitrate(false)
+                    // Qualidade máxima: prioriza a faixa mais alta que a rede/dispositivo aguentam
+                    .setForceHighestSupportedBitrate(true)
                     .setMaxVideoBitrate(Int.MAX_VALUE)
                     .setMaxAudioBitrate(Int.MAX_VALUE)
                     .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
                     .setExceedRendererCapabilitiesIfNecessary(true)
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+                    .setAllowAudioMixedMimeTypeAdaptiveness(true)
                     .build()
             )
         }

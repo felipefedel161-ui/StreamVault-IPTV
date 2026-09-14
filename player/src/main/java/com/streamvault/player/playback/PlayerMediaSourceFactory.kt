@@ -67,7 +67,7 @@ class PlayerMediaSourceFactory(
             vodHttpProtocolMode = vodHttpProtocolMode,
             preload = preload
         )
-        val mediaItem = buildMediaItem(streamInfo)
+        val mediaItem = buildMediaItem(streamInfo, resolvedStreamType)
         val mediaSource = when {
             streamInfo.streamType == StreamType.RTSP || resolvedStreamType == ResolvedStreamType.RTSP ->
                 RtspMediaSource.Factory().createMediaSource(mediaItem)
@@ -121,7 +121,14 @@ class PlayerMediaSourceFactory(
         return timeoutProfile to mediaSource
     }
 
-    private fun buildMediaItem(streamInfo: StreamInfo): MediaItem {
+    private fun buildMediaItem(
+        streamInfo: StreamInfo,
+        resolvedStreamType: ResolvedStreamType = ResolvedStreamType.UNKNOWN
+    ): MediaItem {
+        val isLive = resolvedStreamType == ResolvedStreamType.HLS ||
+            resolvedStreamType == ResolvedStreamType.MPEG_TS_LIVE ||
+            resolvedStreamType == ResolvedStreamType.DASH ||
+            resolvedStreamType.name.contains("LIVE")
         return MediaItem.Builder()
             .setUri(Uri.parse(streamInfo.url))
             .setMediaId(mediaIdFor(streamInfo))
@@ -131,6 +138,18 @@ class PlayerMediaSourceFactory(
                     .build()
             )
             .apply {
+                // Anti-spoiler: fica perto da borda ao vivo (sem ~30s de atraso por buffer)
+                if (isLive) {
+                    setLiveConfiguration(
+                        MediaItem.LiveConfiguration.Builder()
+                            .setTargetOffsetMs(3_500)
+                            .setMinOffsetMs(1_500)
+                            .setMaxOffsetMs(10_000)
+                            .setMinPlaybackSpeed(1.0f)
+                            .setMaxPlaybackSpeed(1.04f)
+                            .build()
+                    )
+                }
                 streamInfo.drmInfo?.let { drmInfo ->
                     setDrmConfiguration(
                         MediaItem.DrmConfiguration.Builder(drmInfo.scheme.toUuid())

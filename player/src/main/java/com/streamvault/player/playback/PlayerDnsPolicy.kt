@@ -1,8 +1,12 @@
 package com.streamvault.player.playback
 
 import java.net.InetAddress
+import java.net.UnknownHostException
 import okhttp3.Dns
 
+/**
+ * DNS para playback: ordena por saúde e tenta fallback se o resolver do sistema falhar.
+ */
 internal object PlayerDnsPolicy {
     fun healthAwareDns(
         port: Int,
@@ -14,11 +18,21 @@ internal object PlayerDnsPolicy {
                 return sortForPlayback(
                     hostname = hostname,
                     port = port,
-                    addresses = delegate.lookup(hostname),
+                    addresses = lookupWithFallback(hostname, delegate),
                     healthStore = healthStore
                 )
             }
         }
+    }
+
+    fun lookupWithFallback(hostname: String, delegate: Dns = Dns.SYSTEM): List<InetAddress> {
+        val primary = runCatching { delegate.lookup(hostname) }.getOrNull().orEmpty()
+        if (primary.isNotEmpty()) return primary
+        val native = runCatching {
+            InetAddress.getAllByName(hostname)?.toList().orEmpty()
+        }.getOrNull().orEmpty()
+        if (native.isNotEmpty()) return native
+        throw UnknownHostException(hostname)
     }
 
     fun sortForPlayback(

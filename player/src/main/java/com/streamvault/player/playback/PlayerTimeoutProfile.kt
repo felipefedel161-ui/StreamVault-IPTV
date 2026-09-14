@@ -9,24 +9,24 @@ enum class PlayerTimeoutProfile(
     val writeTimeoutMs: Long
 ) {
     LIVE(
-        connectTimeoutMs = 12_000L,
-        readTimeoutMs = 20_000L,
-        writeTimeoutMs = 20_000L
-    ),
-    VOD(
-        connectTimeoutMs = 15_000L,
-        readTimeoutMs = 45_000L,
-        writeTimeoutMs = 30_000L
-    ),
-    PROGRESSIVE(
-        connectTimeoutMs = 5_000L,
-        readTimeoutMs = 10_000L,
-        writeTimeoutMs = 30_000L
-    ),
-    PRELOAD(
-        connectTimeoutMs = 10_000L,
+        connectTimeoutMs = 8_000L,
         readTimeoutMs = 15_000L,
         writeTimeoutMs = 15_000L
+    ),
+    VOD(
+        connectTimeoutMs = 12_000L,
+        readTimeoutMs = 40_000L,
+        writeTimeoutMs = 25_000L
+    ),
+    PROGRESSIVE(
+        connectTimeoutMs = 6_000L,
+        readTimeoutMs = 12_000L,
+        writeTimeoutMs = 20_000L
+    ),
+    PRELOAD(
+        connectTimeoutMs = 8_000L,
+        readTimeoutMs = 12_000L,
+        writeTimeoutMs = 12_000L
     );
 
     companion object {
