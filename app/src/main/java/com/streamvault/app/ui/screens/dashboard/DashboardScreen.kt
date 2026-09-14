@@ -1,8 +1,11 @@
 package com.streamvault.app.ui.screens.dashboard
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
+
+import androidx.compose.material.icons.filled.PlayArrow
+
+import androidx.compose.material.icons.Icons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -348,7 +351,14 @@ fun DashboardScreen(
             currentShelves = uiState.homeDashboardShelves,
             onDismiss = { showHomeCustomizationDialog = false },
             onSave = { shelves ->
-                viewModel.setHomeDashboardShelves(shelv
+                viewModel.setHomeDashboardShelves(shelves)
+                showHomeCustomizationDialog = false
+            }
+        )
+    }
+}
+
+@Composable
 private fun DashboardHero(
     providerName: String,
     feature: DashboardFeature,
@@ -376,7 +386,6 @@ private fun DashboardHero(
             .height(heroHeight)
             .clip(RoundedCornerShape(22.dp))
     ) {
-        // Artwork
         if (!feature.artworkUrl.isNullOrBlank()) {
             AsyncImage(
                 model = rememberCrossfadeImageModel(feature.artworkUrl),
@@ -395,7 +404,6 @@ private fun DashboardHero(
                     )
             )
         }
-        // Left readability gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -410,7 +418,6 @@ private fun DashboardHero(
                     )
                 )
         )
-        // Bottom fade
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -420,7 +427,6 @@ private fun DashboardHero(
                     )
                 )
         )
-
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -429,7 +435,7 @@ private fun DashboardHero(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "EXCLUSIVO  ·  DESTAQUE  ·  ${providerName.uppercase().take(18)}",
+                text = "EXCLUSIVO  ·  DESTAQUE  ·  " + providerName.uppercase().take(18),
                 style = MaterialTheme.typography.labelMedium,
                 color = Color(0xFF93C5FD),
                 maxLines = 1
@@ -473,7 +479,7 @@ private fun DashboardHero(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = feature.actionLabel.ifBlank { stringResource(R.string.player_play) },
+                            text = feature.actionLabel.ifBlank { "Assistir agora" },
                             style = MaterialTheme.typography.labelLarge,
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold
@@ -485,15 +491,7 @@ private fun DashboardHero(
                     shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
                     colors = ClickableSurfaceDefaults.colors(
                         containerColor = Color.White.copy(alpha = 0.12f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.22f),
-                        contentColor = Color.White,
-                        focusedContentColor = Color.White
-                    ),
-                    border = ClickableSurfaceDefaults.border(
-                        focusedBorder = Border(
-                            border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.5f)),
-                            shape = RoundedCornerShape(999.dp)
-                        )
+                        focusedContainerColor = Color.White.copy(alpha = 0.22f)
                     )
                 ) {
                     Text(
@@ -505,8 +503,6 @@ private fun DashboardHero(
                 }
             }
         }
-
-        // Carousel dots (visual)
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -520,9 +516,6 @@ private fun DashboardHero(
         }
     }
 }
-
-tion(): List<Long> =
-    variants.map { it.rawSeriesId }.ifEmpty { listOf(selectedVariantId ?: id) }
 
 @Composable
 private fun DashboardStatRow(
@@ -591,67 +584,79 @@ private fun DashboardShortcutRow(
 }
 
 @Composable
-
 private fun DashboardShortcutCard(
     shortcut: DashboardLiveShortcut,
     onClick: () -> Unit
 ) {
-    val accentColor = when (shortcut.type) {
-        DashboardShortcutType.FAVORITES -> Color(0xFF3B82F6)
-        DashboardShortcutType.RECENT -> Color(0xFF22C55E)
-        DashboardShortcutType.LAST_GROUP -> Color(0xFFF59E0B)
-        DashboardShortcutType.CUSTOM_GROUP -> Color(0xFFA78BFA)
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val isTelevisionDevice = rememberIsTelevisionDevice()
+    val cardWidth = when {
+        screenWidth < 700.dp -> 168.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 190.dp
+        else -> 210.dp
     }
-    Surface(
+    val accentColor = when (shortcut.type) {
+        DashboardShortcutType.FAVORITES -> Color(0xFFFFC857)
+        DashboardShortcutType.RECENT -> Color(0xFF4FD1C5)
+        DashboardShortcutType.LAST_GROUP -> Color(0xFF60A5FA)
+        DashboardShortcutType.CUSTOM_GROUP -> Primary
+    }
+
+    TvClickableSurface(
         onClick = onClick,
         modifier = Modifier
-            .width(200.dp)
-            .height(100.dp),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
+            .width(cardWidth)
+            .height(76.dp),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color(0xFF12171F),
-            focusedContainerColor = Color(0xFF1A2332)
+            containerColor = SurfaceElevated,
+            focusedContainerColor = SurfaceHighlight
         ),
         border = ClickableSurfaceDefaults.border(
+            border = Border(
+                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.28f)),
+                shape = RoundedCornerShape(16.dp)
+            ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, Color(0xFF3B82F6)),
-                shape = RoundedCornerShape(18.dp)
+                border = BorderStroke(2.dp, FocusBorder),
+                shape = RoundedCornerShape(16.dp)
             )
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.Start
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(accentColor)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = shortcut.label,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(accentColor)
+                )
+                Text(
+                    text = shortcut.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Text(
                 text = shortcut.detail,
-                style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFFA1A1AA),
-                maxLines = 1,
+                style = MaterialTheme.typography.bodySmall,
+                color = OnSurfaceDim,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
-
 
 @Composable
 private fun DashboardActionButton(
