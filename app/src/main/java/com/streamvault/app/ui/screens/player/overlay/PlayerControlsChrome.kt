@@ -383,7 +383,7 @@ fun PlayerResolutionBadge(
 
     Box(
         modifier = modifier
-            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+            .background(Color.Black.copy(alpha = 0.72f), RoundedCornerShape(8.dp))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
@@ -428,7 +428,7 @@ private fun PlayerTopBar(
             .height(topBarHeight)
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent)
+                    colors = listOf(Color.Black.copy(alpha = 0.75f), Color.Black.copy(alpha = 0.35f), Color.Transparent)
                 )
             )
             .padding(horizontal = horizontalPadding, vertical = verticalPadding)
@@ -577,7 +577,7 @@ private fun PlayerBottomBar(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f), Color.Black.copy(alpha = 0.92f))
+                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.88f), Color.Black.copy(alpha = 0.96f))
                 )
             )
             .padding(
@@ -931,8 +931,8 @@ private fun PlayerLiveInfo(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(4.dp),
-            color = Primary,
-            trackColor = Color.White.copy(alpha = 0.2f)
+            color = Color(0xFF4F8CFF),
+            trackColor = Color.White.copy(alpha = 0.18f)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -1445,10 +1445,10 @@ private fun PlayerQuickSettingsButton(
 ) {
     TvClickableSurface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = Color.White.copy(alpha = 0.1f),
-            focusedContainerColor = Primary.copy(alpha = 0.9f)
+            containerColor = Color.White.copy(alpha = 0.12f),
+            focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.92f)
         ),
         modifier = modifier
     ) {

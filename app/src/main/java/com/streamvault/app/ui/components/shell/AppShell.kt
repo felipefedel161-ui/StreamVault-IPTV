@@ -271,30 +271,45 @@ private fun TopNavigationBar(
                 focusRequesters[activeItem?.route] ?: FocusRequester.Default
             }
         },
-        shape = RoundedCornerShape(18.dp),
-        colors = SurfaceDefaults.colors(containerColor = AppColors.Surface.copy(alpha = 0.9f))
+        shape = RoundedCornerShape(20.dp),
+        colors = SurfaceDefaults.colors(containerColor = AppColors.SurfaceGlass)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 10.dp),
+                .height(58.dp)
+                .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Brand mark
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(AppColors.Brand, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "XV",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.Canvas,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                )
+            }
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleSmall,
                 color = AppColors.TextPrimary,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 modifier = Modifier.wrapContentWidth(Alignment.Start)
             )
-            Spacer(modifier = Modifier.width(32.dp)) // Increased spacing to prevent overlap
+            Spacer(modifier = Modifier.width(16.dp))
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .horizontalScroll(scrollState)
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items.forEach { item ->
                     val requester = focusRequesters.getOrPut(item.route) { FocusRequester() }
@@ -394,33 +409,34 @@ private fun TopNavigationButton(
                 }
                 isFocused = it.isFocused
             },
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (selected) AppColors.BrandMuted else Color.Transparent,
-            focusedContainerColor = AppColors.SurfaceAccent
+            focusedContainerColor = AppColors.SurfaceEmphasis,
+            pressedContainerColor = AppColors.SurfaceAccent
         ),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
-                border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus),
-                shape = RoundedCornerShape(14.dp)
+                border = BorderStroke(FocusSpec.BorderWidth, AppColors.FocusRing),
+                shape = RoundedCornerShape(16.dp)
             )
         )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (selected) AppColors.Brand else AppColors.TextSecondary,
-                modifier = Modifier.size(14.dp)
+                tint = if (selected || isFocused) AppColors.BrandStrong else AppColors.TextSecondary,
+                modifier = Modifier.size(16.dp)
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) AppColors.TextPrimary else AppColors.TextSecondary
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected || isFocused) AppColors.TextPrimary else AppColors.TextSecondary
             )
         }
     }
