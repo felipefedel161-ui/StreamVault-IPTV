@@ -21,7 +21,7 @@ internal fun resolvePlaybackProbeFailure(responseCode: Int): PlaybackProbeFailur
     )
 
     456 -> PlaybackProbeFailure(
-        message = "This provider rejected playback for this channel (HTTP 456). The MAC or subscription may not have access to this stream.",
+        message = "O provedor bloqueou temporariamente este canal (HTTP 456). Tente novamente.",
         recoveryType = PlayerRecoveryType.SOURCE
     )
 

@@ -74,12 +74,12 @@ class PlayerRetryPolicy(
             PlaybackErrorCategory.EMPTY_RESPONSE,
             PlaybackErrorCategory.UNKNOWN -> streamContext.isLive
             PlaybackErrorCategory.SOURCE_MALFORMED -> streamContext.resolvedStreamType == ResolvedStreamType.HLS
-            PlaybackErrorCategory.HTTP_AUTH,
             PlaybackErrorCategory.SSL,
             PlaybackErrorCategory.CLEAR_TEXT_BLOCKED,
             PlaybackErrorCategory.DRM,
             PlaybackErrorCategory.DECODER,
             PlaybackErrorCategory.FORMAT_UNSUPPORTED -> false
+            PlaybackErrorCategory.HTTP_AUTH -> true
         }
     }
 
@@ -96,7 +96,7 @@ class PlayerRetryPolicy(
                 } else {
                     "malformed-source"
                 }
-            PlaybackErrorCategory.HTTP_AUTH -> "terminal-auth"
+            PlaybackErrorCategory.HTTP_AUTH -> "retryable-auth"
             PlaybackErrorCategory.SSL -> "terminal-tls"
             PlaybackErrorCategory.CLEAR_TEXT_BLOCKED -> "terminal-cleartext"
             PlaybackErrorCategory.DRM -> "terminal-drm"
@@ -147,8 +147,10 @@ class PlayerRetryPolicy(
             PlaybackErrorCategory.DRM,
             PlaybackErrorCategory.DECODER,
             PlaybackErrorCategory.CLEAR_TEXT_BLOCKED,
-            PlaybackErrorCategory.SSL,
-            PlaybackErrorCategory.HTTP_AUTH -> 0
+            PlaybackErrorCategory.SSL -> 0
+
+            // 403/456 em 4K/CDN costuma ser transitório — tenta de novo antes de desistir
+            PlaybackErrorCategory.HTTP_AUTH -> if (streamContext.isLive && !playbackStarted) 2 else 0
 
             PlaybackErrorCategory.FORMAT_UNSUPPORTED -> if (playbackStarted) 1 else 0
 

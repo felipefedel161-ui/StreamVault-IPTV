@@ -1361,17 +1361,20 @@ class PlayerViewModel @Inject constructor(
 
         return runCatching {
             withContext(Dispatchers.IO) {
-                val request = Request.Builder()
-                    .url(url)
-                    .get()
-                    .header("Range", "bytes=0-0")
-                    .apply {
-                        streamInfo.userAgent?.takeIf { it.isNotBlank() }?.let { header("User-Agent", it) }
-                        streamInfo.headers.forEach { (name, value) ->
-                            header(name, value)
+                fun buildRequest(withRange: Boolean): Request {
+                    return Request.Builder()
+                        .url(url)
+                        .get()
+                        .apply {
+                            // Range em 4K/CDN costuma devolver 403/456 mesmo com stream válido
+                            if (withRange) header("Range", "bytes=0-0")
+                            streamInfo.userAgent?.takeIf { it.isNotBlank() }?.let { header("User-Agent", it) }
+                            streamInfo.headers.forEach { (name, value) ->
+                                header(name, value)
+                            }
                         }
-                    }
-                    .build()
+                        .build()
+                }
                 val probeClient = if (streamInfo.allowInvalidSsl || streamInfo.proxyHost.isNotBlank()) {
                     okHttpClient.newBuilder()
                         .apply {
@@ -1384,8 +1387,16 @@ class PlayerViewModel @Inject constructor(
                 } else {
                     okHttpClient
                 }
-                probeClient.newCall(request).execute().use { response ->
-                    resolvePlaybackProbeFailure(response.code)
+                // 1) probe leve sem Range (compatível com 4K / CDN agressivo)
+                val firstCode = probeClient.newCall(buildRequest(withRange = false)).execute().use { it.code }
+                // 2xx/3xx => ok; 401 => bloqueio real; 403/456 => tenta playback real (falso positivo comum)
+                when {
+                    firstCode in 200..399 -> return@withContext null
+                    firstCode == 401 -> return@withContext resolvePlaybackProbeFailure(firstCode)
+                    firstCode in setOf(404, 410) -> return@withContext resolvePlaybackProbeFailure(firstCode)
+                    firstCode in 500..599 -> return@withContext resolvePlaybackProbeFailure(firstCode)
+                    firstCode in setOf(403, 405, 416, 456, 509) -> return@withContext null
+                    else -> return@withContext null
                 }
             }
         }.getOrNull()

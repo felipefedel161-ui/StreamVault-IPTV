@@ -25,7 +25,7 @@ internal object PlaybackBufferPolicies {
 
     // Fast start: low playback/rebuffer, but minBuffer always >= rebuffer (ExoPlayer constraint)
     private const val MPEG_TS_LIVE_MIN_BUFFER_MS = 2_000
-    private const val MPEG_TS_LIVE_MAX_BUFFER_MS = 8_000
+    private const val MPEG_TS_LIVE_MAX_BUFFER_MS = 12_000
     private const val LOW_MEMORY_LIVE_MIN_BUFFER_MS = 2_000
     private const val LOW_MEMORY_LIVE_MAX_BUFFER_MS = 10_000
     private const val LOW_MEMORY_COMPAT_LIVE_MIN_BUFFER_MS = 2_500
@@ -36,7 +36,7 @@ internal object PlaybackBufferPolicies {
     private const val LOW_MEMORY_REBUFFER_MS = 2_000
 
     private const val LIVE_MIN_BUFFER_MS = 2_500
-    private const val LIVE_MAX_BUFFER_MS = 12_000
+    private const val LIVE_MAX_BUFFER_MS = 18_000
     private const val COMPAT_LIVE_MIN_BUFFER_MS = 2_500
     private const val COMPAT_LIVE_MAX_BUFFER_MS = 12_000
     private const val VOD_MIN_BUFFER_MS = 3_000
@@ -46,11 +46,11 @@ internal object PlaybackBufferPolicies {
     private const val VOD_PLAYBACK_BUFFER_MS = 1_250
     private const val VOD_REBUFFER_MS = 3_000
     private const val MEDIUM_LIVE_MIN_BUFFER_MS = 2_500
-    private const val MEDIUM_LIVE_MAX_BUFFER_MS = 15_000
+    private const val MEDIUM_LIVE_MAX_BUFFER_MS = 25_000
     private const val MEDIUM_LIVE_PLAYBACK_BUFFER_MS = 750
     private const val MEDIUM_LIVE_REBUFFER_MS = 2_000
-    private const val LARGE_LIVE_MIN_BUFFER_MS = 3_000
-    private const val LARGE_LIVE_MAX_BUFFER_MS = 18_000
+    private const val LARGE_LIVE_MIN_BUFFER_MS = 4_000
+    private const val LARGE_LIVE_MAX_BUFFER_MS = 35_000
     private const val LARGE_LIVE_PLAYBACK_BUFFER_MS = 1_000
     private const val LARGE_LIVE_REBUFFER_MS = 2_500
     private const val UHD_MIN_WIDTH = 3_840

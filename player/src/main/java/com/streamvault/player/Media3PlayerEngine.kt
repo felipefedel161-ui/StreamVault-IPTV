@@ -1171,8 +1171,8 @@ class Media3PlayerEngine @Inject constructor(
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    // Qualidade máxima: prioriza a faixa mais alta que a rede/dispositivo aguentam
-                    .setForceHighestSupportedBitrate(true)
+                    // Prefere a melhor qualidade, mas permite cair se a faixa 4K falhar
+                    .setForceHighestSupportedBitrate(false)
                     .setMaxVideoBitrate(Int.MAX_VALUE)
                     .setMaxAudioBitrate(Int.MAX_VALUE)
                     .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)

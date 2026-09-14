@@ -36,7 +36,7 @@ internal fun resolvePlaybackErrorMessage(error: PlayerError): String = when (cla
     PlayerRecoveryType.SOURCE -> when {
         error.message.contains("HTTP 456", ignoreCase = true) ||
             error.message.contains("access denied", ignoreCase = true) ->
-            "This provider rejected playback for this channel. The MAC or subscription may not have access to this stream."
+            "O provedor recusou este canal no momento. Pode ser limite de conexão, token ou o stream 4K. Tente de novo."
 
         error.message.contains("HTTP 509", ignoreCase = true) ->
             "Provider rejected playback, likely max connections or bandwidth limit."
