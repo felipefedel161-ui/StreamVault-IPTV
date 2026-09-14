@@ -35,12 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.tv.material3.Border
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import androidx.tv.material3.Border
 import androidx.compose.foundation.BorderStroke
 import com.streamvault.app.ui.components.SeriesCard
 import com.streamvault.app.ui.components.shell.AppNavigationChrome
@@ -54,9 +53,9 @@ private val AccentBlue = Color(0xFF3B82F6)
 
 @Composable
 fun NovelasScreen(
-    onSeriesClick: (Series) -> Unit,
     currentRoute: String,
     onNavigate: (String) -> Unit,
+    onSeriesClick: (Series) -> Unit,
     viewModel: NovelasViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -71,12 +70,11 @@ fun NovelasScreen(
     AppScreenScaffold(
         currentRoute = currentRoute,
         onNavigate = onNavigate,
-        topBar = {
-            AppNavigationChrome(
-                currentRoute = currentRoute,
-                onNavigate = onNavigate
-            )
-        }
+        title = "Novelas",
+        subtitle = "${state.displayedSeries.size} títulos",
+        navigationChrome = AppNavigationChrome.TopBar,
+        showScreenHeader = false,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
         when {
             state.loading && state.allSeries.isEmpty() -> {
@@ -90,20 +88,15 @@ fun NovelasScreen(
                 }
             }
             else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     Text(
                         text = "Novelas",
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 10.dp)
                     )
 
-                    // Busca
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -140,7 +133,6 @@ fun NovelasScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // Categorias em chips horizontais (sem lista lateral)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 8.dp)
@@ -164,7 +156,7 @@ fun NovelasScreen(
                                 )
                             ) {
                                 Text(
-                                    text = "${item.label}  ${item.count}",
+                                    text = "${item.label} · ${item.count}",
                                     color = Color.White,
                                     style = MaterialTheme.typography.labelLarge,
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
@@ -172,8 +164,6 @@ fun NovelasScreen(
                             }
                         }
                     }
-
-                    Spacer(Modifier.height(4.dp))
 
                     Text(
                         text = "${state.displayedSeries.size} títulos",
