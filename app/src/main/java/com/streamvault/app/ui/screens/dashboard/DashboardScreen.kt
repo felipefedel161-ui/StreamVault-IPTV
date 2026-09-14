@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -154,7 +155,7 @@ fun DashboardScreen(
 
             androidx.compose.foundation.lazy.LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 28.dp)
+                contentPadding = PaddingValues(bottom = 48.dp)
             ) {
                 if (uiState.isLoading && orderedSections.isEmpty()) {
                     item(key = "dashboard_loading") {
@@ -185,6 +186,30 @@ fun DashboardScreen(
                         )
                     }
                 }
+                // Google TV-style cinematic hero
+                item(key = "dashboard_hero") {
+                    DashboardHero(
+                        providerName = provider?.name.orEmpty(),
+                        feature = uiState.feature,
+                        stats = uiState.stats,
+                        onOpenLiveTv = { onNavigate(Routes.LIVE_TV) },
+                        onOpenGuide = { onNavigate(Routes.LIVE_TV) },
+                        onOpenSearch = { onNavigate(Routes.SEARCH) },
+                        onOpenSavedLibrary = { onNavigate(Routes.MOVIES) },
+                        onFeatureAction = {
+                            when (uiState.feature.actionType) {
+                                DashboardFeatureAction.LIVE -> onNavigate(Routes.LIVE_TV)
+                                DashboardFeatureAction.CONTINUE_WATCHING -> {
+                                    uiState.continueWatching.firstOrNull()?.let(onContinueWatchingItemClick)
+                                        ?: onNavigate(Routes.MOVIES)
+                                }
+                                DashboardFeatureAction.MOVIES -> onNavigate(Routes.MOVIES)
+                                DashboardFeatureAction.SERIES -> onNavigate(Routes.SERIES)
+                            }
+                        }
+                    )
+                }
+
                 items(orderedSections, key = { it.storageValue }) { section ->
                     when (section) {
                     AppHomeDashboardShelf.LIVE_SHORTCUTS -> DashboardShortcutRow(
@@ -341,9 +366,9 @@ private fun DashboardHero(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val isTelevisionDevice = rememberIsTelevisionDevice()
     val heroHeight = when {
-        screenWidth < 700.dp -> 176.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 196.dp
-        else -> 220.dp
+        screenWidth < 700.dp -> 220.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 280.dp
+        else -> 340.dp
     }
     Box(
         modifier = Modifier
@@ -452,30 +477,22 @@ private fun DashboardShortcutRow(
     shortcuts: List<DashboardLiveShortcut>,
     onShortcutClick: (DashboardLiveShortcut) -> Unit
 ) {
+    if (shortcuts.isEmpty()) return
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
+            .padding(top = 12.dp, bottom = 4.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = TextPrimary
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim
-            )
-        }
-
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = TextPrimary,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
         LazyRow(
             contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(shortcuts, key = { "${it.type}:${it.categoryId}:${it.label}" }) { shortcut ->
                 DashboardShortcutCard(
@@ -495,9 +512,9 @@ private fun DashboardShortcutCard(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val isTelevisionDevice = rememberIsTelevisionDevice()
     val cardWidth = when {
-        screenWidth < 700.dp -> 148.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 160.dp
-        else -> 170.dp
+        screenWidth < 700.dp -> 168.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 190.dp
+        else -> 210.dp
     }
     val accentColor = when (shortcut.type) {
         DashboardShortcutType.FAVORITES -> Color(0xFFFFC857)
