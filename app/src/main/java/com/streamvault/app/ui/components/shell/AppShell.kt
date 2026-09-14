@@ -411,9 +411,11 @@ private fun TopNavigationButton(
             },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) AppColors.BrandMuted else Color.Transparent,
-            focusedContainerColor = AppColors.SurfaceEmphasis,
-            pressedContainerColor = AppColors.SurfaceAccent
+            containerColor = if (selected) Color(0xFF3B82F6) else Color.Transparent,
+            focusedContainerColor = if (selected) Color(0xFF60A5FA) else AppColors.SurfaceEmphasis,
+            pressedContainerColor = AppColors.SurfaceAccent,
+            contentColor = if (selected) Color.White else AppColors.TextSecondary,
+            focusedContentColor = Color.White
         ),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
@@ -430,13 +432,13 @@ private fun TopNavigationButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (selected || isFocused) AppColors.BrandStrong else AppColors.TextSecondary,
+                tint = if (selected) Color.White else if (isFocused) AppColors.BrandStrong else AppColors.TextSecondary,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (selected || isFocused) AppColors.TextPrimary else AppColors.TextSecondary
+                color = if (selected) Color.White else if (isFocused) AppColors.TextPrimary else AppColors.TextSecondary
             )
         }
     }

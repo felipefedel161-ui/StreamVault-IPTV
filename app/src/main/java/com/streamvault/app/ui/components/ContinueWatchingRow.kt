@@ -167,15 +167,31 @@ private fun ContinueWatchingTile(
         }
 
         if (progress > 0f) {
-            LinearProgressIndicator(
-                progress = { progress },
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .height(3.dp),
-                color = AccentCyan,
-                trackColor = Color.Transparent
-            )
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                        )
+                    )
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "${(progress * 100).toInt()}% assistido",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = Color(0xFF3B82F6),
+                    trackColor = Color.White.copy(alpha = 0.2f)
+                )
+            }
         }
     }
 }

@@ -1,4 +1,7 @@
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 package com.streamvault.app.ui.screens.dashboard
+import androidx.compose.material3.Icon
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -345,14 +348,7 @@ fun DashboardScreen(
             currentShelves = uiState.homeDashboardShelves,
             onDismiss = { showHomeCustomizationDialog = false },
             onSave = { shelves ->
-                viewModel.setHomeDashboardShelves(shelves)
-                showHomeCustomizationDialog = false
-            }
-        )
-    }
-}
-
-@Composable
+                viewModel.setHomeDashboardShelves(shelv
 private fun DashboardHero(
     providerName: String,
     feature: DashboardFeature,
@@ -366,76 +362,166 @@ private fun DashboardHero(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val isTelevisionDevice = rememberIsTelevisionDevice()
     val heroHeight = when {
-        screenWidth < 700.dp -> 220.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 280.dp
-        else -> 340.dp
+        screenWidth < 700.dp -> 260.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 320.dp
+        else -> 380.dp
     }
+    val title = feature.title.ifBlank { stringResource(R.string.dashboard_title) }
+    val summary = feature.summary.ifBlank { stringResource(R.string.dashboard_subtitle, providerName) }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .height(heroHeight)
+            .clip(RoundedCornerShape(22.dp))
     ) {
+        // Artwork
         if (!feature.artworkUrl.isNullOrBlank()) {
             AsyncImage(
                 model = rememberCrossfadeImageModel(feature.artworkUrl),
-                contentDescription = feature.title,
+                contentDescription = title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(heroHeight)
-                    .clip(RoundedCornerShape(28.dp))
+                modifier = Modifier.fillMaxSize()
             )
+        } else {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(heroHeight)
-                    .clip(RoundedCornerShape(28.dp))
+                    .fillMaxSize()
                     .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.88f),
-                                Color.Black.copy(alpha = 0.72f),
-                                Color.Black.copy(alpha = 0.34f)
-                            )
+                        Brush.linearGradient(
+                            listOf(Color(0xFF0A1628), Color(0xFF1A2744), Color(0xFF0A0C12))
                         )
                     )
             )
         }
-
-        AppHeroHeader(
-            eyebrow = providerName,
-            title = feature.title.ifBlank { stringResource(R.string.dashboard_title) },
-            subtitle = feature.summary.ifBlank { stringResource(R.string.dashboard_subtitle, providerName) },
+        // Left readability gradient
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(heroHeight),
-            footer = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusPill(label = stringResource(R.string.nav_live_tv), containerColor = AppColors.BrandMuted)
-                        StatusPill(label = stringResource(R.string.nav_epg), containerColor = AppColors.SurfaceEmphasis)
-                        StatusPill(label = stringResource(R.string.favorites_title), containerColor = AppColors.Warning, contentColor = Color.Black)
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xF20A0C12),
+                            Color(0xCC0A0C12),
+                            Color(0x660A0C12),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+        // Bottom fade
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color(0x990A0C12))
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(0.55f)
+                .padding(horizontal = 28.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "EXCLUSIVO  ·  DESTAQUE  ·  ${providerName.uppercase().take(18)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFF93C5FD),
+                maxLines = 1
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFFD4D4D8),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(
+                    onClick = onFeatureAction,
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color(0xFF3B82F6),
+                        focusedContainerColor = Color(0xFF60A5FA),
+                        contentColor = Color.White,
+                        focusedContentColor = Color.White
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = feature.actionLabel.ifBlank { stringResource(R.string.player_play) },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
-                    DashboardStatRow(stats = stats)
                 }
-            },
-            actions = {
-                DashboardActionButton(label = stringResource(R.string.nav_live_tv), onClick = onOpenLiveTv)
-                DashboardActionButton(label = stringResource(R.string.nav_epg), onClick = onOpenGuide)
-                DashboardActionButton(label = stringResource(R.string.dashboard_search_library), onClick = onOpenSearch)
-                DashboardActionButton(label = stringResource(R.string.favorites_title), onClick = onOpenSavedLibrary)
-                if (feature.actionLabel.isNotBlank()) {
-                    DashboardActionButton(
-                        label = feature.actionLabel,
-                        onClick = onFeatureAction
+                Surface(
+                    onClick = onOpenSavedLibrary,
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color.White.copy(alpha = 0.12f),
+                        focusedContainerColor = Color.White.copy(alpha = 0.22f),
+                        contentColor = Color.White,
+                        focusedContentColor = Color.White
+                    ),
+                    border = ClickableSurfaceDefaults.border(
+                        focusedBorder = Border(
+                            border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                    )
+                ) {
+                    Text(
+                        text = "+  Minha lista",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
                     )
                 }
             }
-        )
+        }
+
+        // Carousel dots (visual)
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(Color(0xFF3B82F6)))
+            repeat(3) {
+                Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.35f)))
+            }
+        }
     }
 }
 
-private fun Series.rawSeriesIdsForNavigation(): List<Long> =
+tion(): List<Long> =
     variants.map { it.rawSeriesId }.ifEmpty { listOf(selectedVariantId ?: id) }
 
 @Composable
@@ -505,79 +591,67 @@ private fun DashboardShortcutRow(
 }
 
 @Composable
+
 private fun DashboardShortcutCard(
     shortcut: DashboardLiveShortcut,
     onClick: () -> Unit
 ) {
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val isTelevisionDevice = rememberIsTelevisionDevice()
-    val cardWidth = when {
-        screenWidth < 700.dp -> 168.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 190.dp
-        else -> 210.dp
-    }
     val accentColor = when (shortcut.type) {
-        DashboardShortcutType.FAVORITES -> Color(0xFFFFC857)
-        DashboardShortcutType.RECENT -> Color(0xFF4FD1C5)
-        DashboardShortcutType.LAST_GROUP -> Color(0xFF60A5FA)
-        DashboardShortcutType.CUSTOM_GROUP -> Primary
+        DashboardShortcutType.FAVORITES -> Color(0xFF3B82F6)
+        DashboardShortcutType.RECENT -> Color(0xFF22C55E)
+        DashboardShortcutType.LAST_GROUP -> Color(0xFFF59E0B)
+        DashboardShortcutType.CUSTOM_GROUP -> Color(0xFFA78BFA)
     }
-
-    TvClickableSurface(
+    Surface(
         onClick = onClick,
         modifier = Modifier
-            .width(cardWidth)
-            .height(76.dp),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+            .width(200.dp)
+            .height(100.dp),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(18.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = SurfaceElevated,
-            focusedContainerColor = SurfaceHighlight
+            containerColor = Color(0xFF12171F),
+            focusedContainerColor = Color(0xFF1A2332)
         ),
         border = ClickableSurfaceDefaults.border(
-            border = Border(
-                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.28f)),
-                shape = RoundedCornerShape(16.dp)
-            ),
             focusedBorder = Border(
-                border = BorderStroke(2.dp, FocusBorder),
-                shape = RoundedCornerShape(16.dp)
+                border = BorderStroke(2.dp, Color(0xFF3B82F6)),
+                shape = RoundedCornerShape(18.dp)
             )
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.Start
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(accentColor)
-                )
-                Text(
-                    text = shortcut.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(accentColor)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = shortcut.label,
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Text(
                 text = shortcut.detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceDim,
-                maxLines = 2,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color(0xFFA1A1AA),
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
 
 @Composable
 private fun DashboardActionButton(
