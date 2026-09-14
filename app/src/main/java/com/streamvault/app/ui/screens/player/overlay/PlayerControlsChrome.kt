@@ -198,6 +198,42 @@ fun PlayerControlsOverlay(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
+            if (showSkipIntro) {
+                val skipFocusRequester = remember { FocusRequester() }
+                LaunchedEffect(Unit) {
+                    runCatching { skipFocusRequester.requestFocus() }
+                }
+                TvClickableSurface(
+                    onClick = onSkipIntro,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 68.dp, end = 24.dp)
+                        .focusRequester(skipFocusRequester),
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color(0xE6101824),
+                        focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.45f)
+                    ),
+                    border = ClickableSurfaceDefaults.border(
+                        border = Border(
+                            border = BorderStroke(1.5.dp, Color(0xFF4F8CFF).copy(alpha = 0.95f)),
+                            shape = RoundedCornerShape(999.dp)
+                        ),
+                        focusedBorder = Border(
+                            border = BorderStroke(2.dp, Color(0xFF4F8CFF)),
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                    )
+                ) {
+                    Text(
+                        text = "Pular abertura",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
             PlayerBottomBar(
                 title = title,
                 contentType = contentType,
@@ -582,8 +618,8 @@ private fun PlayerBottomBar(
                 )
             )
             .padding(
-                horizontal = if (isVod) 14.dp else 32.dp,
-                vertical = if (isVod) 10.dp else 24.dp
+                horizontal = if (isVod) 12.dp else 32.dp,
+                vertical = if (isVod) 4.dp else 24.dp
             )
     ) {
         Surface(
@@ -595,7 +631,7 @@ private fun PlayerBottomBar(
             } else {
                 Modifier.fillMaxWidth()
             },
-            shape = RoundedCornerShape(if (isVod) 24.dp else 28.dp),
+            shape = RoundedCornerShape(if (isVod) 16.dp else 28.dp),
             colors = SurfaceDefaults.colors(containerColor = Color(0xFF0A1018).copy(alpha = 0.94f))
         ) {
             Column(
@@ -610,8 +646,8 @@ private fun PlayerBottomBar(
                         )
                     )
                     .padding(
-                        horizontal = if (isVod) 14.dp else 24.dp,
-                        vertical = if (isVod) 12.dp else 22.dp
+                        horizontal = if (isVod) 10.dp else 24.dp,
+                        vertical = if (isVod) 6.dp else 22.dp
                     )
             ) {
                 if (contentType == "LIVE") {
@@ -1127,99 +1163,57 @@ private fun PlayerVodInfo(
     }
 
 
-    // ===== Layout idêntico à mockup aprovada =====
-    // Linha 1: transporte + Pular abertura
+
+    // Layout compacto: transporte + progresso alinhados; ações embaixo
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            PlayerTransportButton(
-                label = "<<",
-                contentDescription = stringResource(R.string.player_rewind),
-                onClick = onSeekBackward,
-                buttonSize = if (compactControls) 44.dp else 48.dp,
-                modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
+        PlayerTransportButton(
+            label = "<<",
+            contentDescription = stringResource(R.string.player_rewind),
+            onClick = onSeekBackward,
+            buttonSize = if (compactControls) 40.dp else 42.dp,
+            modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
+        )
+        TvClickableSurface(
+            onClick = onTogglePlayPause,
+            modifier = Modifier
+                .size(if (compactControls) 46.dp else 50.dp)
+                .focusRequester(playButtonFocusRequester)
+                .focusProperties { down = quickActionsFocusRequester },
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+            colors = ClickableSurfaceDefaults.colors(
+                containerColor = Color.White,
+                focusedContainerColor = Color(0xFFE8F0FF)
             )
-            TvClickableSurface(
-                onClick = onTogglePlayPause,
-                modifier = Modifier
-                    .size(if (compactControls) 56.dp else 64.dp)
-                    .focusRequester(playButtonFocusRequester)
-                    .focusProperties { down = quickActionsFocusRequester },
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = Color.White,
-                    focusedContainerColor = Color(0xFFE8F0FF)
-                )
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    if (isPlaying) {
-                        Text(
-                            text = "II",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color(0xFF0A0E14)
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = stringResource(R.string.player_play),
-                            tint = Color(0xFF0A0E14),
-                            modifier = Modifier.size(if (compactControls) 28.dp else 32.dp)
-                        )
-                    }
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (isPlaying) {
+                    Text(
+                        text = "II",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color(0xFF0A0E14)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = stringResource(R.string.player_play),
+                        tint = Color(0xFF0A0E14),
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
-            PlayerTransportButton(
-                label = ">>",
-                contentDescription = stringResource(R.string.player_forward),
-                onClick = onSeekForward,
-                buttonSize = if (compactControls) 44.dp else 48.dp,
-                modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
-            )
         }
+        PlayerTransportButton(
+            label = ">>",
+            contentDescription = stringResource(R.string.player_forward),
+            onClick = onSeekForward,
+            buttonSize = if (compactControls) 40.dp else 42.dp,
+            modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
+        )
 
-        if (showSkipIntro) {
-            TvClickableSurface(
-                onClick = onSkipIntro,
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = Color(0xFF101820).copy(alpha = 0.9f),
-                    focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.3f)
-                ),
-                border = ClickableSurfaceDefaults.border(
-                    border = Border(
-                        border = BorderStroke(1.5.dp, Color(0xFF4F8CFF).copy(alpha = 0.85f)),
-                        shape = RoundedCornerShape(999.dp)
-                    ),
-                    focusedBorder = Border(
-                        border = BorderStroke(2.dp, Color(0xFF4F8CFF)),
-                        shape = RoundedCornerShape(999.dp)
-                    )
-                )
-            ) {
-                Text(
-                    text = "Pular abertura",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
-                )
-            }
-        }
-    }
-
-    Spacer(modifier = Modifier.height(14.dp))
-
-    // Linha 2: progresso + ações secundárias
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
         Column(modifier = Modifier.weight(1f)) {
             Slider(
                 value = sliderValue,
@@ -1246,6 +1240,7 @@ private fun PlayerVodInfo(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(26.dp)
                     .focusProperties { down = quickActionsFocusRequester },
                 enabled = duration > 0,
                 colors = SliderDefaults.colors(
@@ -1267,63 +1262,41 @@ private fun PlayerVodInfo(
                     color = Color.White.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "Reprodução",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.45f)
-                )
-                Text(
                     text = formatDuration(duration),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.7f)
                 )
             }
         }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            PlayerQuickSettingsButton(
-                text = if (isMuted) "Mudo ✓" else "Mudo",
-                onClick = onToggleMute,
-                compact = true,
-                modifier = Modifier.focusRequester(quickActionsFocusRequester)
-            )
-            if (videoQualityCount > 0) {
-                PlayerQuickSettingsButton(
-                    text = "Qualidade",
-                    onClick = onOpenVideoTracks,
-                    compact = true
-                )
-            }
-            if (audioTrackCount > 0) {
-                PlayerQuickSettingsButton(
-                    text = "Áudio",
-                    onClick = onOpenAudioTracks,
-                    compact = true
-                )
-            }
-            PlayerQuickSettingsButton(
-                text = "Velocidade",
-                onClick = onOpenPlaybackSpeed,
-                compact = true
-            )
-        }
     }
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(6.dp))
 
-    // Linha 3: episódios / próximo / reiniciar
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (showEpisodesAction) {
-            PlayerQuickSettingsButton(text = "Episódios", onClick = onOpenEpisodes, compact = false)
+        PlayerQuickSettingsButton(
+            text = if (isMuted) "Mudo ✓" else "Mudo",
+            onClick = onToggleMute,
+            compact = true,
+            modifier = Modifier.focusRequester(quickActionsFocusRequester)
+        )
+        if (videoQualityCount > 0) {
+            PlayerQuickSettingsButton(text = "Qualidade", onClick = onOpenVideoTracks, compact = true)
         }
-        if (showEpisodesAction) {
-            PlayerQuickSettingsButton(text = "Próximo", onClick = onPlayNextEpisode, compact = false)
+        if (audioTrackCount > 0) {
+            PlayerQuickSettingsButton(text = "Áudio", onClick = onOpenAudioTracks, compact = true)
         }
-        PlayerQuickSettingsButton(text = "Reiniciar", onClick = onRestartProgram, compact = false)
+        PlayerQuickSettingsButton(text = "Velocidade", onClick = onOpenPlaybackSpeed, compact = true)
+        if (showEpisodesAction) {
+            PlayerQuickSettingsButton(text = "Episódios", onClick = onOpenEpisodes, compact = true)
+            PlayerQuickSettingsButton(text = "Próximo", onClick = onPlayNextEpisode, compact = true)
+        }
+        PlayerQuickSettingsButton(text = "Reiniciar", onClick = onRestartProgram, compact = true)
         if (showExternalPlayerAction) {
-            PlayerQuickSettingsButton(text = "Externo", onClick = onOpenExternalPlayer, compact = false)
+            PlayerQuickSettingsButton(text = "Externo", onClick = onOpenExternalPlayer, compact = true)
         }
     }
 }
