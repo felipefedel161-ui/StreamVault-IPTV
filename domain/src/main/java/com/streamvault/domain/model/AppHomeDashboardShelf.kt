@@ -4,54 +4,45 @@ enum class AppHomeDashboardShelf(
     val storageValue: String,
     val defaultEnabled: Boolean
 ) {
-    FAVORITE_CHANNELS("favorite_channels", defaultEnabled = true),
-    RECENT_CHANNELS("recent_channels", defaultEnabled = true),
-    LIVE_SHORTCUTS("live_shortcuts", defaultEnabled = true),
-    CONTINUE_WATCHING("continue_watching", defaultEnabled = true),
     RECENT_MOVIES("recent_movies", defaultEnabled = true),
     RECENT_SERIES("recent_series", defaultEnabled = true),
-    FAVORITE_MOVIES("favorite_movies", defaultEnabled = false),
-    FAVORITE_SERIES("favorite_series", defaultEnabled = false),
+    RECENT_CHANNELS("recent_channels", defaultEnabled = true),
+    FAVORITE_CHANNELS("favorite_channels", defaultEnabled = true),
+    FAVORITE_MOVIES("favorite_movies", defaultEnabled = true),
+    FAVORITE_SERIES("favorite_series", defaultEnabled = true),
+    TOP_RATED_MOVIES("top_rated_movies", defaultEnabled = true),
+    RECOMMENDED_MOVIES("recommended_movies", defaultEnabled = true),
+    // clutter — off by default
+    LIVE_SHORTCUTS("live_shortcuts", defaultEnabled = false),
+    CONTINUE_WATCHING("continue_watching", defaultEnabled = false),
     CONTINUE_WATCHING_MOVIES("continue_watching_movies", defaultEnabled = false),
-    CONTINUE_WATCHING_SERIES("continue_watching_series", defaultEnabled = false),
-    TOP_RATED_MOVIES("top_rated_movies", defaultEnabled = false),
-    RECOMMENDED_MOVIES("recommended_movies", defaultEnabled = false);
+    CONTINUE_WATCHING_SERIES("continue_watching_series", defaultEnabled = false);
 
     companion object {
         val catalogOrder: List<AppHomeDashboardShelf> = listOf(
-            FAVORITE_CHANNELS,
-            RECENT_CHANNELS,
-            LIVE_SHORTCUTS,
-            CONTINUE_WATCHING,
             RECENT_MOVIES,
             RECENT_SERIES,
+            RECENT_CHANNELS,
+            FAVORITE_CHANNELS,
             FAVORITE_MOVIES,
             FAVORITE_SERIES,
+            TOP_RATED_MOVIES,
+            RECOMMENDED_MOVIES,
+            CONTINUE_WATCHING,
             CONTINUE_WATCHING_MOVIES,
             CONTINUE_WATCHING_SERIES,
-            TOP_RATED_MOVIES,
-            RECOMMENDED_MOVIES
+            LIVE_SHORTCUTS
         )
 
         val defaultOrder: List<AppHomeDashboardShelf> = catalogOrder.filter { it.defaultEnabled }
 
         fun fromStorage(value: String?): AppHomeDashboardShelf? =
-            catalogOrder.firstOrNull { it.storageValue.equals(value, ignoreCase = true) }
+            entries.firstOrNull { it.storageValue.equals(value, ignoreCase = true) }
 
         fun normalizeForStorage(shelves: List<AppHomeDashboardShelf>): List<AppHomeDashboardShelf> {
             val unique = linkedSetOf<AppHomeDashboardShelf>()
-            shelves.forEach { shelf ->
-                if (shelf in catalogOrder) {
-                    unique += shelf
-                }
-            }
+            shelves.forEach(unique::add)
             return unique.toList()
-        }
-
-        fun displayOrder(enabledShelves: List<AppHomeDashboardShelf>): List<AppHomeDashboardShelf> {
-            val normalized = normalizeForStorage(enabledShelves)
-            val hidden = catalogOrder.filterNot { it in normalized }
-            return normalized + hidden
         }
     }
 }

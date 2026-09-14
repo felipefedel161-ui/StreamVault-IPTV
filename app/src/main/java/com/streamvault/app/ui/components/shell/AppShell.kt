@@ -871,7 +871,28 @@ private fun rememberDestinationItems(): List<DestinationItem> {
         ?.value
         ?: AppTopLevelDestination.defaultOrder
     return remember(configuredDestinations) {
-        configuredDestinations.map { it.toDestinationItem() }
+        // Principais em destaque; Arena fora; Rádio por último entre abas de conteúdo
+        val hidden = setOf(
+            AppTopLevelDestination.FOOTBALL,
+            AppTopLevelDestination.DOWNLOADS,
+            AppTopLevelDestination.PLUGINS,
+            AppTopLevelDestination.GUIDE
+        )
+        val preferred = listOf(
+            AppTopLevelDestination.HOME,
+            AppTopLevelDestination.LIVE_TV,
+            AppTopLevelDestination.MOVIES,
+            AppTopLevelDestination.SERIES,
+            AppTopLevelDestination.NOVELAS,
+            AppTopLevelDestination.RADIO,
+            AppTopLevelDestination.SEARCH,
+            AppTopLevelDestination.SETTINGS
+        )
+        val remaining = configuredDestinations.filter { it !in hidden && it !in preferred }
+        (preferred.filter { it in configuredDestinations || it.isRequired || it in AppTopLevelDestination.defaultOrder } + remaining)
+            .distinct()
+            .filter { it !in hidden }
+            .map { it.toDestinationItem() }
     }
 }
 

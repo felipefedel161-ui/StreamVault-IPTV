@@ -22,12 +22,10 @@ enum class AppTopLevelDestination(
         val defaultOrder: List<AppTopLevelDestination> = listOf(
             HOME,
             LIVE_TV,
-            FOOTBALL,
-            RADIO,
-            NOVELAS,
-            SERIES,
             MOVIES,
-            GUIDE,
+            SERIES,
+            NOVELAS,
+            RADIO,
             SEARCH,
             SETTINGS
         )

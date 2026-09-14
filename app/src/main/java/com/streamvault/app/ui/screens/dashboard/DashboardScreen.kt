@@ -192,30 +192,6 @@ fun DashboardScreen(
                         )
                     }
                 }
-                // Google TV-style cinematic hero
-                item(key = "dashboard_hero") {
-                    DashboardHero(
-                        providerName = provider?.name.orEmpty(),
-                        feature = uiState.feature,
-                        stats = uiState.stats,
-                        onOpenLiveTv = { onNavigate(Routes.LIVE_TV) },
-                        onOpenGuide = { onNavigate(Routes.LIVE_TV) },
-                        onOpenSearch = { onNavigate(Routes.SEARCH) },
-                        onOpenSavedLibrary = { onNavigate(Routes.MOVIES) },
-                        onFeatureAction = {
-                            when (uiState.feature.actionType) {
-                                DashboardFeatureAction.LIVE -> onNavigate(Routes.LIVE_TV)
-                                DashboardFeatureAction.CONTINUE_WATCHING -> {
-                                    uiState.continueWatching.firstOrNull()?.let(onContinueWatchingItemClick)
-                                        ?: onNavigate(Routes.MOVIES)
-                                }
-                                DashboardFeatureAction.MOVIES -> onNavigate(Routes.MOVIES)
-                                DashboardFeatureAction.SERIES -> onNavigate(Routes.SERIES)
-                            }
-                        }
-                    )
-                }
-
                 items(orderedSections, key = { it.storageValue }) { section ->
                     when (section) {
                     AppHomeDashboardShelf.LIVE_SHORTCUTS -> DashboardShortcutRow(

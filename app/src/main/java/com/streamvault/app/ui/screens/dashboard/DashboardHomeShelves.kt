@@ -2,10 +2,18 @@ package com.streamvault.app.ui.screens.dashboard
 
 import com.streamvault.domain.model.AppHomeDashboardShelf
 
+private val ClutterShelves = setOf(
+    AppHomeDashboardShelf.LIVE_SHORTCUTS,
+    AppHomeDashboardShelf.CONTINUE_WATCHING,
+    AppHomeDashboardShelf.CONTINUE_WATCHING_MOVIES,
+    AppHomeDashboardShelf.CONTINUE_WATCHING_SERIES
+)
+
 internal fun resolveVisibleDashboardShelves(
     uiState: DashboardUiState
 ): List<AppHomeDashboardShelf> = AppHomeDashboardShelf
-    .normalizeForStorage(uiState.homeDashboardShelves)
+    .normalizeForStorage(uiState.homeDashboardShelves.ifEmpty { AppHomeDashboardShelf.defaultOrder })
+    .filter { it !in ClutterShelves }
     .filter(uiState::hasContentFor)
 
 internal fun DashboardUiState.hasContentFor(shelf: AppHomeDashboardShelf): Boolean = when (shelf) {

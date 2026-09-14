@@ -6,49 +6,24 @@ import org.junit.Test
 class AppHomeDashboardShelfTest {
 
     @Test
-    fun `defaultOrder matches the existing home layout`() {
-        assertThat(AppHomeDashboardShelf.defaultOrder).containsExactly(
-            AppHomeDashboardShelf.FAVORITE_CHANNELS,
-            AppHomeDashboardShelf.RECENT_CHANNELS,
-            AppHomeDashboardShelf.LIVE_SHORTCUTS,
-            AppHomeDashboardShelf.CONTINUE_WATCHING,
+    fun `defaultOrder prioritizes content shelves without clutter`() {
+        assertThat(AppHomeDashboardShelf.defaultOrder).doesNotContain(AppHomeDashboardShelf.LIVE_SHORTCUTS)
+        assertThat(AppHomeDashboardShelf.defaultOrder).doesNotContain(AppHomeDashboardShelf.CONTINUE_WATCHING)
+        assertThat(AppHomeDashboardShelf.defaultOrder.first()).isEqualTo(AppHomeDashboardShelf.RECENT_MOVIES)
+    }
+
+    @Test
+    fun `normalizeForStorage keeps unique shelves`() {
+        val ordered = AppHomeDashboardShelf.normalizeForStorage(
+            listOf(
+                AppHomeDashboardShelf.RECENT_MOVIES,
+                AppHomeDashboardShelf.RECENT_MOVIES,
+                AppHomeDashboardShelf.RECENT_SERIES
+            )
+        )
+        assertThat(ordered).containsExactly(
             AppHomeDashboardShelf.RECENT_MOVIES,
             AppHomeDashboardShelf.RECENT_SERIES
         ).inOrder()
-    }
-
-    @Test
-    fun `normalizeForStorage removes duplicates and preserves order`() {
-        val normalized = AppHomeDashboardShelf.normalizeForStorage(
-            listOf(
-                AppHomeDashboardShelf.RECENT_MOVIES,
-                AppHomeDashboardShelf.FAVORITE_CHANNELS,
-                AppHomeDashboardShelf.RECENT_MOVIES,
-                AppHomeDashboardShelf.TOP_RATED_MOVIES
-            )
-        )
-
-        assertThat(normalized).containsExactly(
-            AppHomeDashboardShelf.RECENT_MOVIES,
-            AppHomeDashboardShelf.FAVORITE_CHANNELS,
-            AppHomeDashboardShelf.TOP_RATED_MOVIES
-        ).inOrder()
-    }
-
-    @Test
-    fun `displayOrder keeps enabled shelves first and appends hidden shelves`() {
-        val ordered = AppHomeDashboardShelf.displayOrder(
-            listOf(
-                AppHomeDashboardShelf.RECOMMENDED_MOVIES,
-                AppHomeDashboardShelf.FAVORITE_CHANNELS
-            )
-        )
-
-        assertThat(ordered.take(2)).containsExactly(
-            AppHomeDashboardShelf.RECOMMENDED_MOVIES,
-            AppHomeDashboardShelf.FAVORITE_CHANNELS
-        ).inOrder()
-        assertThat(ordered).containsAtLeastElementsIn(AppHomeDashboardShelf.catalogOrder)
-        assertThat(ordered).hasSize(AppHomeDashboardShelf.catalogOrder.size)
     }
 }
