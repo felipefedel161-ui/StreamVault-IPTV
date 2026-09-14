@@ -662,9 +662,7 @@ private fun PlayerBottomBar(
                         onSeekToPosition = onSeekToPosition,
                         onSetScrubbingMode = onSetScrubbingMode,
                         showExternalPlayerAction = showExternalPlayerAction,
-                        onOpenExternalPlayer = onOpenExternalPlayer,
-                        showSkipIntro = showSkipIntro,
-                        onSkipIntro = onSkipIntro
+                        onOpenExternalPlayer = onOpenExternalPlayer
                     )
                 } else {
                     PlayerVodInfo(
@@ -708,7 +706,9 @@ private fun PlayerBottomBar(
                         seekPreview = seekPreview,
                         onSeekPreviewPositionChanged = onSeekPreviewPositionChanged,
                         showExternalPlayerAction = showExternalPlayerAction,
-                        onOpenExternalPlayer = onOpenExternalPlayer
+                        onOpenExternalPlayer = onOpenExternalPlayer,
+                        showSkipIntro = showSkipIntro,
+                        onSkipIntro = onSkipIntro
                     )
                 }
             }
@@ -1145,7 +1145,7 @@ private fun PlayerVodInfo(
                 buttonSize = if (compactControls) 44.dp else 48.dp,
                 modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
             )
-            Surface(
+            TvClickableSurface(
                 onClick = onTogglePlayPause,
                 modifier = Modifier
                     .size(if (compactControls) 56.dp else 64.dp)
@@ -1157,7 +1157,7 @@ private fun PlayerVodInfo(
                     focusedContainerColor = Color(0xFFE8F0FF)
                 )
             ) {
-                Box(Modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (isPlaying) {
                         Text(
                             text = "II",
@@ -1184,12 +1184,12 @@ private fun PlayerVodInfo(
         }
 
         if (showSkipIntro) {
-            Surface(
+            TvClickableSurface(
                 onClick = onSkipIntro,
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(999.dp)),
                 colors = ClickableSurfaceDefaults.colors(
-                    containerColor = Color.Transparent,
-                    focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.25f)
+                    containerColor = Color(0xFF101820).copy(alpha = 0.9f),
+                    focusedContainerColor = Color(0xFF4F8CFF).copy(alpha = 0.3f)
                 ),
                 border = ClickableSurfaceDefaults.border(
                     border = Border(
