@@ -168,10 +168,12 @@ internal fun ProviderActionButtons(
     liveOnboardingIncomplete: Boolean,
     onConnect: () -> Unit,
     onRefresh: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
     onParentalControl: () -> Unit
 ) {
+    // Editar / Excluir removidos — gestão só via painel XtreamVault
+
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         if (!isActive) {
             ProviderActionButton(
@@ -192,18 +194,6 @@ internal fun ProviderActionButtons(
                 onClick = onRefresh
             )
         }
-
-        ProviderActionButton(
-            label = stringResource(R.string.settings_edit),
-            accent = Secondary,
-            onClick = onEdit
-        )
-
-        ProviderActionButton(
-            label = stringResource(R.string.settings_delete),
-            accent = ErrorColor,
-            onClick = onDelete
-        )
 
         if (isActive) {
             ProviderActionButton(
