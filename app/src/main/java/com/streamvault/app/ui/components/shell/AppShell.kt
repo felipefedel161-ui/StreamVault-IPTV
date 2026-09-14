@@ -184,7 +184,7 @@ fun AppScreenScaffold(
                         actions = topBarActions,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
                 if (showScreenHeader) {
                     AppScreenHeader(
@@ -741,7 +741,7 @@ private fun DestinationRail(
                 style = MaterialTheme.typography.labelSmall,
                 color = AppColors.TextTertiary
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             items.forEach { item ->
                 val requester = focusRequesters.getOrPut(item.route) { FocusRequester() }
                 RailButton(

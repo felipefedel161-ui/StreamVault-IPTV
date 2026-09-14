@@ -155,7 +155,7 @@ fun VodHeroStrip(
             }
             Surface(
                 shape = RoundedCornerShape(999.dp),
-                colors = SurfaceDefaults.colors(containerColor = Primary)
+                colors = SurfaceDefaults.colors(containerColor = Color.White)
             ) {
                 Text(
                     text = actionLabel,

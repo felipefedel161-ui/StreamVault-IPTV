@@ -108,7 +108,7 @@ fun LiveChannelRowCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(AppColors.SurfaceElevated)
             .fillMaxWidth()
             .height(rowHeight)
@@ -289,7 +289,7 @@ fun LiveChannelRowSurface(
                 isFocused = it.isFocused
             },
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = AppColors.SurfaceElevated,
             focusedContainerColor = AppColors.SurfaceEmphasis
@@ -300,7 +300,7 @@ fun LiveChannelRowSurface(
                     width = if (isDragging) 4.dp else FocusSpec.BorderWidth,
                     color = if (isDragging) AppColors.Warning else AppColors.Focus
                 ),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             )
         )
     ) {
@@ -393,7 +393,7 @@ fun EpisodeRowCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(AppColors.SurfaceElevated)
             .padding(16.dp)
     ) {
@@ -465,7 +465,7 @@ private fun PosterCard(
     subtitle: String?,
     modifier: Modifier = Modifier
 ) {
-    val posterShape = RoundedCornerShape(12.dp)
+    val posterShape = RoundedCornerShape(14.dp)
     var imageLoaded by remember(imageUrl) { mutableStateOf(false) }
     var imageFailed by remember(imageUrl) { mutableStateOf(false) }
     val showFallback = imageUrl.isNullOrBlank() || imageFailed || !imageLoaded
@@ -521,15 +521,16 @@ private fun PosterCard(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = AppColors.TextPrimary,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
             )
             subtitle?.takeIf { it.isNotBlank() }?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = AppColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

@@ -52,10 +52,10 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val PitchGreenDeep = Color(0xFF071F18)
-private val NeonLime = Color(0xFFB8FF3C)
+private val PitchGreenDeep = Color(0xFF05070B)
+private val NeonLime = Color(0xFF7AABFF)
 private val LiveRed = Color(0xFFFF3B4E)
-private val CardGlass = Color(0xFF0F1F1A)
+private val CardGlass = Color(0xFF12171F)
 private val Gold = Color(0xFFFFC857)
 
 @Composable

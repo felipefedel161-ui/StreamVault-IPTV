@@ -125,8 +125,8 @@ fun CategoryRailPanel(
     val spacing = LocalAppSpacing.current
     Surface(
         modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(28.dp),
-        colors = androidx.tv.material3.SurfaceDefaults.colors(containerColor = AppColors.SurfaceElevated)
+        shape = RoundedCornerShape(22.dp),
+        colors = androidx.tv.material3.SurfaceDefaults.colors(containerColor = AppColors.Surface)
     ) {
         Column(
             modifier = Modifier
