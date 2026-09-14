@@ -615,7 +615,7 @@
     <string name="favorites_continue_subtitle">Pegue filmes e séries inacabados no hub salvo.</string>
     <string name="favorites_recent_live_title">Ao vivo recente</string>
     <string name="favorites_recent_live_subtitle">Volte aos canais ao vivo assistidos recentemente com um clique.</string>
-    <string name="favorites_continue_short">Currículo</string>
+    <string name="favorites_continue_short">Continuar</string>
     <string name="favorites_recent_short">Recente</string>
     <string name="favorites_filters_title">Navegue por tipo</string>
     <string name="favorites_filters_subtitle">Limite o hub ao conteúdo que você deseja revisitar.</string>
@@ -815,7 +815,7 @@
     <string name="player_resume_title">Retomar a reprodução</string>
     <string name="player_resume_desc">Deseja retomar %1$s de onde parou?</string>
     <string name="player_resume_start_over">Recomeçar</string>
-    <string name="player_resume">Currículo</string>
+    <string name="player_resume">Continuar</string>
     <string name="player_playback_speed_title">Velocidade de reprodução</string>
     <string name="player_playback_speed_value">Velocidade %1$s</string>
     <string name="player_track_audio">Selecione faixa de áudio</string>
@@ -1130,9 +1130,9 @@
     <string name="action_see_all">Ver tudo</string>
     <string name="dashboard_resume_movie">Retomar filme</string>
     <string name="dashboard_resume_series">Retomar série</string>
-    <string name="dashboard_resume_episode_format">Currículo S%1$d E%2$d</string>
+    <string name="dashboard_resume_episode_format">Continuar S%1$d E%2$d</string>
     <string name="dashboard_resume_episode">Retomar episódio</string>
-    <string name="dashboard_resume_live">Currículo</string>
+    <string name="dashboard_resume_live">Continuar</string>
     <string name="dashboard_continue_watching">Continuar assistindo</string>
     <string name="dashboard_jump_back_live">Volte para a TV ao vivo</string>
     <string name="dashboard_watch_live">Assistir ao vivo</string>
