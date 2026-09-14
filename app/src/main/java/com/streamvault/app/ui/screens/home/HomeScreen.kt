@@ -669,6 +669,7 @@ fun HomeScreen(
                         onChannelClick = onChannelClick,
                         resolveProvider = resolveProviderForChannel,
                         onOpenCategory = { category -> viewModel.selectCategory(category) },
+                        onNavigate = onNavigate,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else Row(

@@ -290,7 +290,7 @@ private fun TopNavigationBar(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "XV",
+                    text = "S",
                     style = MaterialTheme.typography.labelSmall,
                     color = AppColors.Canvas,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Black
