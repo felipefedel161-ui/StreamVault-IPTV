@@ -408,19 +408,19 @@ private fun PlayerTopBar(
     val appTimeFormat = LocalAppTimeFormat.current
     val timeFormat = remember(appTimeFormat) { appTimeFormat.createTimeFormat() }
     val topBarHeight = when {
-        screenWidth < 700.dp -> 100.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 116.dp
-        else -> 132.dp
+        screenWidth < 700.dp -> 64.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 72.dp
+        else -> 80.dp
     }
     val horizontalPadding = when {
-        screenWidth < 700.dp -> 18.dp
+        screenWidth < 700.dp -> 16.dp
         !isTelevisionDevice && screenWidth < 1280.dp -> 24.dp
         else -> 32.dp
     }
     val verticalPadding = when {
-        screenWidth < 700.dp -> 16.dp
-        !isTelevisionDevice && screenWidth < 1280.dp -> 20.dp
-        else -> 24.dp
+        screenWidth < 700.dp -> 10.dp
+        !isTelevisionDevice && screenWidth < 1280.dp -> 12.dp
+        else -> 14.dp
     }
     Box(
         modifier = modifier
@@ -438,7 +438,11 @@ private fun PlayerTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 PlayerMetaPill(
                     text = when (contentType) {
                         "LIVE" -> stringResource(R.string.nav_live_tv)
@@ -446,24 +450,15 @@ private fun PlayerTopBar(
                         else -> stringResource(R.string.player_type_series)
                     }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-                if (contentType != "LIVE") {
-                    Text(
-                        text = if (contentType == "MOVIE") {
-                            stringResource(R.string.player_type_movie)
-                        } else {
-                            stringResource(R.string.player_type_series)
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
-                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -594,8 +589,8 @@ private fun PlayerBottomBar(
             } else {
                 Modifier.fillMaxWidth()
             },
-            shape = RoundedCornerShape(if (isVod) 20.dp else 28.dp),
-            colors = SurfaceDefaults.colors(containerColor = Color(0xFF0C1624).copy(alpha = 0.92f))
+            shape = RoundedCornerShape(if (isVod) 24.dp else 28.dp),
+            colors = SurfaceDefaults.colors(containerColor = Color(0xFF0A1018).copy(alpha = 0.94f))
         ) {
             Column(
                 modifier = Modifier
@@ -1179,7 +1174,7 @@ private fun PlayerVodInfo(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlayerTransportButton(
-                        label = "\u23EA",
+                        label = "<<",
                         contentDescription = stringResource(R.string.player_rewind),
                         onClick = onSeekBackward,
                         buttonSize = transportButtonSize,
@@ -1191,8 +1186,8 @@ private fun PlayerVodInfo(
                         onClick = onTogglePlayPause,
                         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
                         colors = ClickableSurfaceDefaults.colors(
-                            containerColor = Primary.copy(alpha = 0.84f),
-                            focusedContainerColor = Primary
+                            containerColor = Color.White,
+                            focusedContainerColor = Color(0xFFE8F0FF)
                         ),
                         modifier = Modifier
                             .size(playButtonSize)
@@ -1207,20 +1202,20 @@ private fun PlayerVodInfo(
                                 Text(
                                     text = "II",
                                     style = MaterialTheme.typography.headlineMedium,
-                                    color = Color.White
+                                    color = Color(0xFF0A0E14)
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = stringResource(R.string.player_play),
-                                    tint = Color.White,
+                                    tint = Color(0xFF0A0E14),
                                     modifier = Modifier.size(playIconSize)
                                 )
                             }
                         }
                     }
                     PlayerTransportButton(
-                        label = "\u23E9",
+                        label = ">>",
                         contentDescription = stringResource(R.string.player_forward),
                         onClick = onSeekForward,
                         buttonSize = transportButtonSize,
@@ -1552,7 +1547,7 @@ private fun PlayerMetaPill(
     Surface(
         shape = RoundedCornerShape(999.dp),
         colors = SurfaceDefaults.colors(
-            containerColor = if (accent) Primary.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.10f)
+            containerColor = if (accent) Primary.copy(alpha = 0.35f) else Color(0xFF4F8CFF)
         )
     ) {
         Text(
@@ -1725,7 +1720,7 @@ private fun LiveTimeshiftScrubber(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlayerTransportButton(
-                        label = "\u23EA",
+                        label = "<<",
                         contentDescription = stringResource(R.string.player_rewind),
                         onClick = onSeekBackward,
                         modifier = Modifier.focusProperties { down = quickActionsFocusRequester }
@@ -1734,8 +1729,8 @@ private fun LiveTimeshiftScrubber(
                         onClick = onTogglePlayPause,
                         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
                         colors = ClickableSurfaceDefaults.colors(
-                            containerColor = Primary.copy(alpha = 0.84f),
-                            focusedContainerColor = Primary
+                            containerColor = Color.White,
+                            focusedContainerColor = Color(0xFFE8F0FF)
                         ),
                         modifier = Modifier
                             .size(62.dp)
@@ -1756,7 +1751,7 @@ private fun LiveTimeshiftScrubber(
                         }
                     }
                     PlayerTransportButton(
-                        label = "\u23E9",
+                        label = ">>",
                         contentDescription = stringResource(R.string.player_forward),
                         onClick = onSeekForward,
                         modifier = Modifier.focusProperties { down = quickActionsFocusRequester }

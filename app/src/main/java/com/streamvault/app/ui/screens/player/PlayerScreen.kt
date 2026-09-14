@@ -4,7 +4,9 @@ import android.app.Activity
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -1075,18 +1077,21 @@ fun PlayerScreen(
                 enter = fadeIn() + slideInVertically { it / 3 },
                 exit = fadeOut() + slideOutVertically { it / 3 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 28.dp, bottom = if (showControls) 140.dp else 36.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = if (showControls) 168.dp else 48.dp)
             ) {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        playerEngine.seekTo(95_000L)
-                        viewModel.notifyUserActivity()
-                    },
-                    modifier = Modifier.background(
-                        Color.Black.copy(alpha = 0.55f),
-                        RoundedCornerShape(999.dp)
-                    )
+                Box(
+                    modifier = Modifier
+                        .border(
+                            BorderStroke(1.5.dp, Color(0xFF4F8CFF).copy(alpha = 0.7f)),
+                            RoundedCornerShape(999.dp)
+                        )
+                        .background(Color(0xE6101824), RoundedCornerShape(999.dp))
+                        .clickable {
+                            playerEngine.seekTo(95_000L)
+                            viewModel.notifyUserActivity()
+                        }
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
                     Text(
                         text = "Pular abertura",
