@@ -57,8 +57,8 @@ android {
         applicationId = "com.streamvault.app"
         minSdk = 25
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.9.0"
+        versionCode = 27
+        versionName = "1.9.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "OFFICIAL_APPLICATION_ID", "\"com.streamvault.app\"")
         buildConfigField("String", "OFFICIAL_SIGNING_CERT_SHA256", "\"$officialSigningCertSha256\"")

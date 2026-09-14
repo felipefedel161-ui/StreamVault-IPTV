@@ -519,33 +519,6 @@ private fun SeriesVodContent(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            item(key = "hero") {
-            if (heroSeries != null) {
-                BrowseHeroPanel(
-                        title = heroSeries.name,
-                        subtitle = heroSeries.plot?.takeIf { it.isNotBlank() }
-                            ?: heroSeries.genre
-                            ?: stringResource(R.string.series_library_lens_subtitle),
-                        imageUrl = heroSeries.backdropUrl?.takeIf { it.isNotBlank() }
-                            ?: heroSeries.posterUrl,
-                        eyebrow = stringResource(R.string.nav_series),
-                        metadata = buildList {
-                            heroSeries.genre?.takeIf { it.isNotBlank() }?.let { g ->
-                                add(g.split(",", "|").first().trim())
-                            }
-                            if (heroSeries.rating > 0f) add("%.1f/10".format(heroSeries.rating))
-                        },
-                        actionLabel = stringResource(R.string.player_play),
-                        onClick = {
-                            val isLocked = isSeriesLocked(heroSeries)
-                            if (isLocked) onProtectedSeriesClick(heroSeries) else onSeriesClick(heroSeries)
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                            .focusRequester(initialFocusRequester)
-                    )
-            }
-            }
             item(key = "actions") {
             VodActionChipRow(
                     actions = buildList {

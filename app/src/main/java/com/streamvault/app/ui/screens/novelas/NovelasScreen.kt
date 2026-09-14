@@ -132,33 +132,7 @@ fun NovelasScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                if (featured != null && state.searchQuery.isBlank() && state.selectedKey == "all") {
-                                    item(
-                                        key = "hero",
-                                        span = { GridItemSpan(maxLineSpan) }
-                                    ) {
-                                        BrowseHeroPanel(
-                                            title = featured.name,
-                                            subtitle = featured.plot?.takeIf { it.isNotBlank() }
-                                                ?: featured.genre
-                                                ?: "Novela em destaque",
-                                            imageUrl = featured.backdropUrl?.takeIf { it.isNotBlank() }
-                                                ?: featured.posterUrl,
-                                            eyebrow = "NOVELAS",
-                                            metadata = buildList {
-                                                featured.genre?.takeIf { it.isNotBlank() }?.let {
-                                                    add(it.split(",", "|").first().trim())
-                                                }
-                                                if (featured.rating > 0f) add("%.1f/10".format(featured.rating))
-                                            },
-                                            actionLabel = "Assistir",
-                                            onClick = { onSeriesClick(featured) },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(bottom = 8.dp)
-                                        )
-                                    }
-                                }
+
                                 items(state.displayedSeries, key = { it.id }) { s ->
                                     SeriesCard(
                                         series = s,

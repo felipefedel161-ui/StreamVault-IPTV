@@ -520,35 +520,6 @@ private fun MoviesVodContent(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            item(key = "hero") {
-            if (heroMovie != null) {
-                BrowseHeroPanel(
-                        title = heroMovie.name,
-                        subtitle = heroMovie.plot?.takeIf { it.isNotBlank() }
-                            ?: listOfNotNull(heroMovie.year, heroMovie.genre).joinToString(" · ").ifBlank {
-                                stringResource(R.string.movies_library_lens_subtitle)
-                            },
-                        imageUrl = heroMovie.backdropUrl?.takeIf { it.isNotBlank() }
-                            ?: heroMovie.posterUrl,
-                        eyebrow = stringResource(R.string.nav_movies),
-                        metadata = buildList {
-                            heroMovie.year?.takeIf { it.isNotBlank() }?.let(::add)
-                            if (heroMovie.rating > 0f) add("%.1f/10".format(heroMovie.rating))
-                            heroMovie.genre?.takeIf { it.isNotBlank() }?.let { g ->
-                                add(g.split(",", "|").first().trim())
-                            }
-                        },
-                        actionLabel = stringResource(R.string.player_play),
-                        onClick = {
-                            val isLocked = isMovieLocked(heroMovie)
-                            if (isLocked) onProtectedMovieClick(heroMovie) else onMovieClick(heroMovie)
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                            .focusRequester(initialFocusRequester)
-                    )
-            }
-            }
             item(key = "actions") {
             VodActionChipRow(
                     actions = buildList {
