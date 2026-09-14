@@ -223,30 +223,29 @@ fun BrowseHeroPanel(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(28.dp)),
+            .height(340.dp),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(24.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = AppColors.SurfaceElevated,
-            focusedContainerColor = AppColors.SurfaceEmphasis
+            containerColor = AppColors.CanvasElevated,
+            focusedContainerColor = AppColors.SurfaceElevated
         ),
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(
                 border = BorderStroke(FocusSpec.BorderWidth, AppColors.Focus),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(24.dp)
             )
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Gradient fallback always visible; covered by AsyncImage on successful load
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.horizontalGradient(
+                        Brush.linearGradient(
                             colors = listOf(
                                 AppColors.Canvas,
-                                AppColors.CanvasElevated,
-                                AppColors.SurfaceEmphasis
+                                AppColors.HeroAccent,
+                                AppColors.SurfaceElevated
                             )
                         )
                     )
@@ -255,30 +254,42 @@ fun BrowseHeroPanel(
                 AsyncImage(
                     model = rememberCrossfadeImageModel(imageUrl),
                     contentDescription = title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 280.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
-
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                AppColors.Canvas,
+                                AppColors.Canvas.copy(alpha = 0.85f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                AppColors.HeroTop,
                                 Color.Transparent,
                                 AppColors.HeroBottom
                             )
                         )
                     )
             )
-
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 28.dp, vertical = 26.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 eyebrow?.takeIf { it.isNotBlank() }?.let {
                     Text(
@@ -298,7 +309,7 @@ fun BrowseHeroPanel(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyLarge,
                     color = AppColors.TextSecondary,
-                    maxLines = 3,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (metadata.isNotEmpty()) {
@@ -307,8 +318,10 @@ fun BrowseHeroPanel(
                 TvButton(
                     onClick = onClick,
                     colors = ButtonDefaults.colors(
-                        containerColor = AppColors.Brand,
-                        contentColor = Color.Black
+                        containerColor = AppColors.Focus,
+                        focusedContainerColor = AppColors.BrandStrong,
+                        contentColor = AppColors.Canvas,
+                        focusedContentColor = AppColors.Canvas
                     )
                 ) {
                     Text(actionLabel)
