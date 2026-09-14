@@ -147,7 +147,7 @@ fun DashboardScreen(
                     history.contentType == com.streamvault.domain.model.ContentType.SERIES_EPISODE
                 ) {
                     uiState.continueWatchingSeries.firstOrNull { series ->
-                        series.rawSeriesIdsForNavigation().contains(rawSeriesId)
+                        series.seriesId == rawSeriesId || series.id == rawSeriesId
                     }
                 } else {
                     null

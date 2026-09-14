@@ -53,8 +53,8 @@ import androidx.compose.foundation.BorderStroke
 import coil3.compose.AsyncImage
 import com.streamvault.app.ui.components.rememberCrossfadeImageModel
 import com.streamvault.app.ui.interaction.TvClickableSurface
-import com.streamvault.app.ui.theme.AppColors
-import com.streamvault.app.ui.theme.FocusSpec
+import com.streamvault.app.ui.design.AppColors
+import com.streamvault.app.ui.design.FocusSpec
 import com.streamvault.domain.model.Category
 import com.streamvault.domain.model.Channel
 import com.streamvault.domain.model.Provider
